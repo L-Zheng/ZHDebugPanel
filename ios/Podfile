@@ -1,0 +1,9 @@
+# use_frameworks!
+platform :ios, '10.0'
+
+target 'Demo' do
+    pod 'ZHDebugPanel', :git=>'https://github.com/L-Zheng/ZHDebugPanel.git'
+    # pod 'ZHDebugPanel', :path=>'../'
+
+end
+

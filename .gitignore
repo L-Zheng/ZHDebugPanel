@@ -6,6 +6,10 @@ ios/Pods
 ios/Podfile.lock
 macos/Pods
 macos/Podfile.lock
+/template/node_modules
+/template/dist
+/template/release
+/template/package-lock.json
 
 
 .DS_Store

@@ -1,13 +1,14 @@
 <template>
   <div class="main-wrap">
-      <div style="width:150px;height:100px;background-color:green;">
-      点我测试
-      </div>
+    <Option :items="optionItems"></Option>
+    <Content></Content>
   </div>
 </template>
 
 <script>
 import Vue from "vue";
+import Option from "./debugPanel/option/option.vue";
+import Content from "./debugPanel/content/content.vue";
 function preventDefault(e) {
   e.preventDefault();
 }
@@ -15,29 +16,49 @@ function preventDefault(e) {
 var vm = {
   name: "app",
   components: {
+    Option,
+    Content,
   },
+  props: {},
   data() {
     return {
+      optionItems: [],
     };
   },
   created() {
     this.configVue();
+    this.loadPage();
   },
   computed: {},
-  mounted() {
-  },
+  mounted() {},
   methods: {
+    loadPage() {
+      this.optionItems = [
+        {
+          title: "Log",
+          selected: true,
+          click: (item) => {
+            console.log(item.title);
+          },
+        },
+        {
+          title: "Network",
+          selected: false,
+          click: (item) => {},
+        }
+      ];
+    },
     configVue() {
-      Vue.config.errorHandler = (oriFunc => {
-        return function(err, vm, info) {
+      Vue.config.errorHandler = ((oriFunc) => {
+        return function (err, vm, info) {
           /**发送至Vue*/
           if (oriFunc) oriFunc.call(null, err, vm, info);
           /**发送至WebView*/
           if (window.onerror) window.onerror.call(null, err);
         };
       })(Vue.config.errorHandler);
-    }
-  }
+    },
+  },
 };
 export default vm;
 </script>

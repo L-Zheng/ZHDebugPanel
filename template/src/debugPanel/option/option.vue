@@ -1,17 +1,17 @@
 <template>
-  <div class="wrap">
-      <div
-        class="title-wrap"
-        v-for="(item, index) in items"
-        :key="index"
-        :style="{
+  <div class="option">
+    <div
+      class="title-wrap"
+      v-for="(item, index) in items"
+      :key="index"
+      :style="{
           'background-color': item.selected ? 'white' : '',
           color: item.selected ? '#0CC82E' : 'black',
         }"
-        @click="clickTitle(item)"
-      >
-        <div>{{ item.title }}</div>
-      </div>
+      @click="clickTitle(item)"
+    >
+      <span>{{ item.title }}</span>
+    </div>
   </div>
 </template>
 <script>
@@ -22,10 +22,10 @@ var vm = {
     items: {
       type: Array,
       required: true,
-      default: function () {
+      default: function() {
         return [];
-      },
-    },
+      }
+    }
   },
   data() {
     return {};
@@ -35,20 +35,15 @@ var vm = {
   mounted() {},
   methods: {
     clickTitle(item) {
-      this.items.forEach((el) => {
-        el.selected = false;
-      });
-      item.selected = true;
-      item.click(item);
-    },
-  },
+      this.$emit("clickOptionItem", item)
+    }
+  }
 };
 export default vm;
 </script>
 
-
 <style lang="scss" scoped>
-.wrap {
+.option {
   position: fixed;
   top: 0px;
   left: 0px;
@@ -56,12 +51,13 @@ export default vm;
   height: 40px;
   margin: 0px;
   padding: 0px;
-  background-color: rgba(239, 239, 244, 1);
+  background-color: #EFEFF4;
   overflow-x: auto;
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
   align-items: center;
+  border-bottom: 1px solid #999;
 }
 .title-wrap {
   height: 100%;

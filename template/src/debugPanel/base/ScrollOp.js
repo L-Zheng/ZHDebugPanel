@@ -11,6 +11,7 @@ class ScrollOp {
     listenScrollEvent() {
         //监听滚动事件
         window.onscroll = e => {
+            // console.log(e)
             const scrollEvents = ScrollOp.scrollEvents;
             try {
                 scrollEvents.forEach(el => {

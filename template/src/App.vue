@@ -1,12 +1,15 @@
 <template>
   <div class="main-wrap">
-    <Option :items="optionItems"></Option>
-    <Content></Content>
+    <Option :items="optionItems" @clickOptionItem="clickOptionItem"></Option>
+    <Content ref="content"></Content>
   </div>
 </template>
 
 <script>
 import Vue from "vue";
+import ScrollOp from "./debugPanel/base/ScrollOp.js";
+import DataTask from "./debugPanel/data/DataTask.js";
+import ListConfig from "./debugPanel/data/ListConfig.js";
 import Option from "./debugPanel/option/option.vue";
 import Content from "./debugPanel/content/content.vue";
 function preventDefault(e) {
@@ -17,48 +20,127 @@ var vm = {
   name: "app",
   components: {
     Option,
-    Content,
+    Content
   },
   props: {},
   data() {
     return {
-      optionItems: [],
+      optionItems: []
     };
   },
   created() {
     this.configVue();
-    this.loadPage();
+    ScrollOp.listenScrollEvent();
+    this.optionItems = ListConfig.fetchItems();
   },
   computed: {},
-  mounted() {},
+  mounted() {
+    setTimeout(() => {
+      this.clickOptionItem(this.optionItems[0]);
+      // 建立socket连接 开始接收数据
+      this.startTimer();
+    }, 1000);
+  },
   methods: {
-    loadPage() {
-      this.optionItems = [
-        {
-          title: "Log",
-          selected: true,
-          click: (item) => {
-            console.log(item.title);
+    startTimer() {
+      setInterval(() => {
+        const second = new Date().getSeconds();
+        // 哪个应用的数据
+        const appItem = {};
+        appItem.appId = "App";
+        appItem.appName = "App";
+        // 构造数据
+        const secItem = {
+          enterMemoryTime: new Date().getTime(),
+          open: true,
+          colItems: [],
+          rowItems: [
+            {
+              colItems: [
+                {
+                  title: "aa" + second,
+                  percent: "80%",
+                  color: "red",
+                  backgroundColor: "red"
+                },
+                {
+                  title: "bb" + second,
+                  percent: "20%",
+                  color: "black",
+                  backgroundColor: "blue"
+                }
+              ]
+            }
+          ],
+          detailItems: [
+            {
+              title: second,
+              content: "描述" + second,
+              selected: true
+            },
+            {
+              title: second,
+              content: "描述" + second,
+              selected: false
+            }
+          ],
+          clickRow: secItem => {
+            this.$refs.content.$refs.detail.reloadItems(secItem.detailItems);
           },
-        },
-        {
-          title: "Network",
-          selected: false,
-          click: (item) => {},
+          pasteboardBlock: () => {}
+        };
+        // 追加数据
+        this.addData("log-list", appItem, secItem);
+      }, 500);
+    },
+    addData(listId, appItem, secItem) {
+      let listMap = null;
+      const items = this.optionItems;
+      items.forEach(el => {
+        if (el.listId == listId) {
+          listMap = el
         }
-      ];
+      });
+      if (!listMap) {
+        return;
+      }
+
+      // 追加到全局数据管理
+      const appDataItem = DataTask.fetchAppDataItem(appItem);
+      secItem.appDataItem = appDataItem;
+      DataTask.addAndCleanItems(
+        listMap.itemsFunc(appDataItem),
+        secItem,
+        listMap.limitCount,
+        listMap.removePercent
+      );
+      // console.log(DataTask.fetchAppDataItem(appItem).logItems);
+
+      // 如果当前列表正在显示，刷新列表
+      this.$refs.content.$refs[listId].addItem(
+        secItem,
+        listMap.limitCount,
+        listMap.removePercent
+      );
+    },
+    clickOptionItem(item) {
+      this.optionItems.forEach(el => {
+        el.selected = false;
+      });
+      item.selected = true;
+      this.$refs.content.showList(item.listId);
     },
     configVue() {
-      Vue.config.errorHandler = ((oriFunc) => {
-        return function (err, vm, info) {
+      Vue.config.errorHandler = (oriFunc => {
+        return function(err, vm, info) {
           /**发送至Vue*/
           if (oriFunc) oriFunc.call(null, err, vm, info);
           /**发送至WebView*/
           if (window.onerror) window.onerror.call(null, err);
         };
       })(Vue.config.errorHandler);
-    },
-  },
+    }
+  }
 };
 export default vm;
 </script>

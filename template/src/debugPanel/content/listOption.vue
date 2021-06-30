@@ -51,7 +51,7 @@ export default vm;
   bottom: 0px;
   left: 0px;
   opacity: 0.5;
-  width: 100%;
+  width: 60%;
   height: 40px;
   margin: 0px;
   padding: 0px;
@@ -61,7 +61,7 @@ export default vm;
   flex-direction: row;
   justify-content: flex-start;
   align-items: center;
-  border-top: 1px solid #999;
+  border: 1px solid #999;
 }
 .title-wrap {
   height: 100%;

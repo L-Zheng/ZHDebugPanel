@@ -26,7 +26,8 @@ var vm = {
     return {
       items: [],
       lastSelectIdx: 0,
-      selectItem: {}
+      selectItem: {},
+      timer: null
     };
   },
   created() {},
@@ -35,7 +36,9 @@ var vm = {
   methods: {
     reloadItems(items) {
       if (!JSTool.isArray(items)) return;
-      JSTool.debounce(() => {
+      clearTimeout(this.timer);
+      // 然后又创建一个新的 setTimeout, 这样就能保证interval 间隔内如果时间持续触发，就不会执行 fn 函数
+      this.timer = setTimeout(() => {
         this.items = items;
         this.clickIndex(this.lastSelectIdx);
         this.$nextTick(() => {});
@@ -50,7 +53,7 @@ var vm = {
       });
       this.items[index].selected = true;
       this.lastSelectIdx = index;
-      this.selectItem = this.items[index]
+      this.selectItem = this.items[index];
     }
   }
 };
@@ -93,7 +96,7 @@ export default vm;
   flex-direction: column;
   justify-content: center;
 }
-.content{
+.content {
   margin: 5px;
 }
 </style>

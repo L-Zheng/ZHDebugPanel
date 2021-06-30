@@ -8,6 +8,7 @@
 <script>
 import Vue from "vue";
 import ScrollOp from "./debugPanel/base/ScrollOp.js";
+import Mouse from "./debugPanel/base/Mouse.js";
 import DataTask from "./debugPanel/data/DataTask.js";
 import ListConfig from "./debugPanel/data/ListConfig.js";
 import Option from "./debugPanel/option/option.vue";
@@ -31,6 +32,7 @@ var vm = {
   created() {
     this.configVue();
     ScrollOp.listenScrollEvent();
+    Mouse.listenMouseEvent()
     this.optionItems = ListConfig.fetchItems();
   },
   computed: {},

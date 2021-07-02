@@ -444,9 +444,11 @@
     NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
     style.lineSpacing = 5;
     for (NSUInteger i = 0; i < titles.count; i++) {
-        [attStr appendAttributedString:[[NSAttributedString alloc] initWithString:titles[i] attributes:@{NSFontAttributeName: [ZHDPMg() defaultBoldFont], NSForegroundColorAttributeName: [ZHDPMg() selectColor], NSParagraphStyleAttributeName: style}]];
+        NSString *title = titles[i];
+        [attStr appendAttributedString:([title isKindOfClass:NSAttributedString.class] ? (NSAttributedString *)title : [[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [ZHDPMg() defaultBoldFont], NSForegroundColorAttributeName: [ZHDPMg() selectColor], NSParagraphStyleAttributeName: style}])];
         if (i < descs.count){
-            [attStr appendAttributedString:[[NSAttributedString alloc] initWithString:descs[i] attributes:@{NSFontAttributeName: [ZHDPMg() defaultFont], NSForegroundColorAttributeName: [ZHDPMg() defaultColor], NSParagraphStyleAttributeName: style}]];
+            NSString *desc = descs[i];
+            [attStr appendAttributedString:([desc isKindOfClass:NSAttributedString.class] ? (NSAttributedString *)desc : [[NSAttributedString alloc] initWithString:desc attributes:@{NSFontAttributeName: [ZHDPMg() defaultFont], NSForegroundColorAttributeName: [ZHDPMg() defaultColor], NSParagraphStyleAttributeName: style}])];
         }
     }
     return [[NSAttributedString alloc] initWithAttributedString:attStr];
@@ -454,16 +456,28 @@
 - (ZHDPListColItem *)createColItem:(NSString *)title percent:(CGFloat)percent X:(CGFloat)X colorType:(ZHDPOutputColorType)colorType{
 
     title = title?:@"";
-    NSMutableAttributedString *tAtt = [[NSMutableAttributedString alloc] init];
-    
+    NSMutableAttributedString *tAtt = nil;
+
     NSUInteger limit = 200;
     NSUInteger titleLength = title.length;
-    if (titleLength < limit) {
-        [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
+    if ([title isKindOfClass:NSAttributedString.class]) {
+        tAtt = [[NSMutableAttributedString alloc] initWithAttributedString:(NSAttributedString *)title];
+        NSUInteger titleLength = [(NSAttributedString *)title string].length;
+        if (titleLength >= limit) {
+            tAtt = [[NSMutableAttributedString alloc] initWithAttributedString:[tAtt attributedSubstringFromRange:NSMakeRange(0, limit - 1)]];
+            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n...点击展开" attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self selectColor]}]];
+        }
     }else{
-        title = [title substringToIndex:limit - 1];
-        [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
-        [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n...点击展开" attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self selectColor]}]];
+        tAtt = [[NSMutableAttributedString alloc] init];
+        
+        NSUInteger titleLength = title.length;
+        if (titleLength < limit) {
+            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
+        }else{
+            title = [title substringToIndex:limit - 1];
+            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
+            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n...点击展开" attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self selectColor]}]];
+        }
     }
     
     ZHDPListColItem *colItem = [[ZHDPListColItem alloc] init];

@@ -3,9 +3,9 @@ class Color {
     constructor() { }
     static map = {
         bgColor: '#EFEFF4',
-        lineBgColor: '#999',
-        selectTextColor: '#0CC82E',
-        textColor: '#000000',
+        selectColor: '#0CC82E',
+        defaultColor: '#000000',
+        highlightColor: '#aaaaaa'
     }
 }
 

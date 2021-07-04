@@ -1,16 +1,31 @@
 <template>
-  <div class="list-option">
+  <div
+    class="list-option"
+    :style="{
+      height: layoutConfig.listOptionH + 'px', 
+      width: layoutConfig.contentW, 
+      'background-color': colorConfig.bgColor, 
+       'border-right': layoutConfig.border, 
+       'border-left': layoutConfig.border
+    }"
+  >
     <div
       class="title-wrap"
       v-for="(item, index) in items"
       :key="index"
+      :style="{
+          'background-color': item.highlight ? colorConfig.highlightColor: '',
+          color: item.selected ? colorConfig.selectColor : colorConfig.defaultColor,
+        }"
       @click="clickTitle(item)"
     >
-      <span>{{ item.title }}</span>
+      <span :class="`iconfont ${item.icon}`"></span>
     </div>
   </div>
 </template>
 <script>
+import LayoutConfig from "../data/LayoutConfig.js";
+import Color from "../data/Color.js";
 var vm = {
   name: "app",
   components: {},
@@ -19,26 +34,30 @@ var vm = {
       type: Array,
       required: false,
       default: function() {
-        return [
-          {
-            title: 'a',
-            click: e => {
-
-            }
-          }
-        ];
+        return [];
       }
     }
   },
   data() {
-    return {};
+    return {
+      layoutConfig: {},
+      colorConfig: {}
+    };
   },
-  created() {},
+  created() {
+    this.layoutConfig = LayoutConfig;
+    this.colorConfig = Color;
+  },
   computed: {},
   mounted() {},
   methods: {
     clickTitle(item) {
-      item.click(item)
+      item.highlight = true;
+      setTimeout(() => {
+        item.highlight = false;
+      }, 200);
+      item.click();
+      // this.$emit("clickOptionItem", item);
     }
   }
 };
@@ -47,27 +66,26 @@ export default vm;
 
 <style lang="scss" scoped>
 .list-option {
+  opacity: 0.7;
   position: fixed;
-  bottom: 0px;
   left: 0px;
-  opacity: 0.5;
-  width: 60%;
-  height: 40px;
+  bottom: 0px;
   margin: 0px;
   padding: 0px;
-  background-color: #EFEFF4;
   overflow-x: auto;
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
-  border: 1px solid #999;
 }
 .title-wrap {
+  width: 100%;
   height: 100%;
-  padding: 0px 5px;
+  padding: 0px;
+  margin: 0px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
 }
 </style>

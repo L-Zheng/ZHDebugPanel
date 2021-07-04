@@ -1,6 +1,7 @@
 
 import Vue from 'vue';
 import JSTool from "../base/JSTool.js";
+import ListConfig from "./ListConfig.js";
 
 class DataTask {
     /* 数据结构
@@ -17,16 +18,27 @@ class DataTask {
      NSMutableArray <ZHDPListSecItem *> *storageItems;
  */
     static AllMap = {}
-    fetchAllAppDataItems() {
+    fetchAllAppDataItems(listId) {
+        let listMap = null;
+        const items = ListConfig.fetchItems();
+        items.forEach(el => {
+            if (el.listId == listId) {
+                listMap = el
+            }
+        });
+        if (!listMap) return;
+
         const map = DataTask.AllMap
         const keys = Object.keys(map)
-        const res = []
+        let res = []
         keys.forEach(el => {
-            res.push(map[el])
+            res = res.concat(listMap.itemsFunc(map[el]))
         });
+        // 按照进入内存的时间 升序排列
+        res.sort((a, b) => {return a.enterMemoryTime - b.enterMemoryTime}); 
         return res
     }
-    fetchAppDataItem(appItem){
+    fetchAppDataItem(appItem) {
         if (!JSTool.isJson(appItem)) return
         const appId = appItem.appId;
         if (!appId || !JSTool.isString(appId)) return
@@ -34,7 +46,7 @@ class DataTask {
         var appDataItem = DataTask.AllMap[appId]
         if (!appDataItem) {
             appDataItem = {
-                appItem: appItem, 
+                appItem: appItem,
                 logItems: [],
                 networkItems: [],
                 storageItems: [],

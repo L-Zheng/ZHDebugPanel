@@ -1,49 +1,84 @@
 <template>
-  <div class="content">
-    <!-- <List v-for="(item, idx) in items" :key="idx" :ref="item.listId"></List> -->
-    <List ref="log-list"></List>
-    <List ref="network-list"></List>
-    <List ref="storage-list"></List>
-    <List ref="memory-list"></List>
-    <List ref="exception-list"></List>
-    <List ref="im-list"></List>
-    <List ref="sdkError-list"></List>
-    <Detail ref="detail"></Detail>
-    <ListOption></ListOption>
+  <div
+    class="content" id="content"
+    :style="{
+      'top': layoutConfig.optionH + 'px',
+      // 'margin': layoutConfig.optionH + 'px' + ' 0px' + ' 0px' + ' 0px',
+      width: layoutConfig.contentW,
+      height: contentPercentH,
+      'border': layoutConfig.border
+    }"
+  >
+    <!-- <List v-for="(item, idx) in items" :key="idx" :ref="item.listId" :listH="contentH"></List> -->
+    <List ref="log-list" :listId="'log-list'" :listH="contentH"></List>
+    <List ref="network-list" :listId="'network-list'" :listH="contentH"></List>
+    <List ref="storage-list" :listId="'storage-list'" :listH="contentH"></List>
+    <List ref="memory-list" :listId="'memory-list'" :listH="contentH"></List>
+    <List ref="exception-list" :listId="'exception-list'" :listH="contentH"></List>
+    <List ref="im-list" :listId="'im-list'" :listH="contentH"></List>
+    <List ref="sdkError-list" :listId="'sdkError-list'" :listH="contentH"></List>
   </div>
 </template>
 <script>
+import LayoutConfig from "../data/LayoutConfig.js";
+import Color from "../data/Color.js";
+import HtmlWindow from "../base/HtmlWindow.js";
 import ListConfig from "../data/ListConfig.js";
 import List from "../content/list.vue";
-import Detail from "../content/detail.vue";
-import ListOption from "../content/listOption.vue";
 var vm = {
   name: "app",
   components: {
-    List,
-    Detail,
-    ListOption
+    List
   },
-  props: {},
+  props: {
+    items: {
+      type: Array,
+      required: true,
+      default: function() {
+        return [];
+      }
+    }
+  },
   data() {
     return {
-      items: []
+      layoutConfig: {},
+      colorConfig: {},
+      contentH: 0,
+      contentPercentH: 0
     };
   },
   created() {
-    this.items = ListConfig.fetchItems();
+    this.layoutConfig = LayoutConfig;
+    this.colorConfig = Color;
+    this.getContentH()
   },
   computed: {},
-  mounted() {},
+  mounted() {
+    // 此代码无效
+    // window.οnresize = function() {  
+    // } 
+    window.addEventListener('resize', () =>{
+       this.getContentH()
+    }, false)
+    },
   methods: {
     showList(ref) {
       this.items.forEach(item => {
         const list = this.$refs[item.listId];
         if (list) {
-          list.hide()
+          list.hide();
         }
       });
       this.$refs[ref].show();
+    },
+    getContentH(){
+      // return '80%'
+      const bodyRect = HtmlWindow.client();
+      const windowH = bodyRect.height;
+      const otherH = this.layoutConfig.listOptionH + this.layoutConfig.optionH
+      this.contentH = (windowH - otherH - 3)
+      this.contentPercentH = this.contentH * 1.0 / (windowH * 1.0) * 100 + '%'
+      return this.contentPercentH
     }
   }
 };
@@ -52,13 +87,14 @@ export default vm;
 
 <style lang="scss" scoped>
 .content {
-  margin: 40px 0px 0px 0px;
+  margin: 0px;
   padding: 0px;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  left: 0px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
+  overflow-y: scroll;
 }
 </style>

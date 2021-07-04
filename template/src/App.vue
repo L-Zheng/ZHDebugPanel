@@ -1,18 +1,22 @@
 <template>
   <div class="main-wrap">
     <Option :items="optionItems" @clickOptionItem="clickOptionItem"></Option>
-    <Content ref="content"></Content>
+    <Detail ref="detail"></Detail>
+    <Content :items="optionItems" ref="content"></Content>
   </div>
 </template>
 
 <script>
 import Vue from "vue";
+
 import ScrollOp from "./debugPanel/base/ScrollOp.js";
 import Mouse from "./debugPanel/base/Mouse.js";
 import DataTask from "./debugPanel/data/DataTask.js";
 import ListConfig from "./debugPanel/data/ListConfig.js";
+
 import Option from "./debugPanel/option/option.vue";
 import Content from "./debugPanel/content/content.vue";
+import Detail from "./debugPanel/detail/detail.vue";
 function preventDefault(e) {
   e.preventDefault();
 }
@@ -21,7 +25,8 @@ var vm = {
   name: "app",
   components: {
     Option,
-    Content
+    Content,
+    Detail
   },
   props: {},
   data() {
@@ -44,6 +49,24 @@ var vm = {
     }, 1000);
   },
   methods: {
+    configVue() {
+      Vue.config.errorHandler = (oriFunc => {
+        return function(err, vm, info) {
+          /**发送至Vue*/
+          if (oriFunc) oriFunc.call(null, err, vm, info);
+          /**发送至WebView*/
+          if (window.onerror) window.onerror.call(null, err);
+        };
+      })(Vue.config.errorHandler);
+    },
+    clickOptionItem(item) {
+      if (item.selected) return
+      this.optionItems.forEach(el => {
+        el.selected = false;
+      });
+      item.selected = true;
+      this.$refs.content.showList(item.listId);
+    },
     startTimer() {
       setInterval(() => {
         const second = new Date().getSeconds();
@@ -87,13 +110,13 @@ var vm = {
             }
           ],
           clickRow: secItem => {
-            this.$refs.content.$refs.detail.reloadItems(secItem.detailItems);
+            this.$refs.detail.reloadItems(secItem.detailItems);
           },
           pasteboardBlock: () => {}
         };
         // 追加数据
         this.addData("log-list", appItem, secItem);
-      }, 500);
+      }, 400);
     },
     addData(listId, appItem, secItem) {
       let listMap = null;
@@ -103,9 +126,7 @@ var vm = {
           listMap = el
         }
       });
-      if (!listMap) {
-        return;
-      }
+      if (!listMap) return;
 
       // 追加到全局数据管理
       const appDataItem = DataTask.fetchAppDataItem(appItem);
@@ -119,28 +140,11 @@ var vm = {
       // console.log(DataTask.fetchAppDataItem(appItem).logItems);
 
       // 如果当前列表正在显示，刷新列表
-      this.$refs.content.$refs[listId].addItem(
+      this.$refs.content.$refs[listId].addSecItem(
         secItem,
         listMap.limitCount,
         listMap.removePercent
       );
-    },
-    clickOptionItem(item) {
-      this.optionItems.forEach(el => {
-        el.selected = false;
-      });
-      item.selected = true;
-      this.$refs.content.showList(item.listId);
-    },
-    configVue() {
-      Vue.config.errorHandler = (oriFunc => {
-        return function(err, vm, info) {
-          /**发送至Vue*/
-          if (oriFunc) oriFunc.call(null, err, vm, info);
-          /**发送至WebView*/
-          if (window.onerror) window.onerror.call(null, err);
-        };
-      })(Vue.config.errorHandler);
     }
   }
 };

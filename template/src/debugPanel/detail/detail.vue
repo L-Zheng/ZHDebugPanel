@@ -1,36 +1,56 @@
 <template>
-  <div class="detail">
-    <div class="option-wrap">
+  <div
+    class="detail"
+    :style="{
+      top: layoutConfig.optionH + 'px',
+      width: layoutConfig.detailW,
+      height: '100%',
+      'border': layoutConfig.border
+    }"
+  >
+    <div class="option-wrap" 
+    :style="{
+      'border-bottom': items.length == 0 ? '' : layoutConfig.border
+    }">
       <div
         class="title-wrap"
         v-for="(item, idx) in items"
         :key="idx"
         @click="clickIndex(idx)"
         :style="{
-          color: item.selected ? '#0CC82E' : 'black',
+          color: item.selected ? colorConfig.selectColor : colorConfig.defaultColor,
         }"
       >
-        <div>{{item.title}}</div>
+        <span>{{ item.title }}</span>
       </div>
     </div>
-    <span class="content">{{selectItem.content}}</span>
+    <span class="content" :style="{
+      color: colorConfig.defaultColor
+    }">{{selectItem.content}}</span>
   </div>
 </template>
 <script>
 import JSTool from "../base/JSTool.js";
+import LayoutConfig from "../data/LayoutConfig.js";
+import Color from "../data/Color.js";
 var vm = {
   name: "app",
   components: {},
   props: {},
   data() {
     return {
+      layoutConfig: {},
+      colorConfig: {},
       items: [],
       lastSelectIdx: 0,
       selectItem: {},
       timer: null
     };
   },
-  created() {},
+  created() {
+    this.layoutConfig = LayoutConfig;
+    this.colorConfig = Color;
+  },
   computed: {},
   mounted() {},
   methods: {
@@ -66,25 +86,21 @@ export default vm;
   padding: 0px;
   position: fixed;
   right: 0px;
-  top: 40px;
-  width: 35%;
-  height: 100%;
   // background-color: cyan;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  border: 1px solid #999;
 }
 .option-wrap {
   margin: 0px;
   padding: 0px;
   width: 100%;
+  overflow-x: auto;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  border-bottom: 1px solid #999;
   // background-color: cyan;
 }
 .title-wrap {

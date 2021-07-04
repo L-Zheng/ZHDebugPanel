@@ -1,12 +1,20 @@
 <template>
-  <div class="option">
+  <div
+    class="option"
+    :style="{
+      height: layoutConfig.optionH + 'px', 
+      width: '100%', 
+      'background-color': colorConfig.bgColor, 
+      // 'border-bottom': layoutConfig.border
+    }"
+  >
     <div
       class="title-wrap"
       v-for="(item, index) in items"
       :key="index"
       :style="{
           'background-color': item.selected ? 'white' : '',
-          color: item.selected ? '#0CC82E' : 'black',
+          color: item.selected ? colorConfig.selectColor : colorConfig.defaultColor,
         }"
       @click="clickTitle(item)"
     >
@@ -15,6 +23,8 @@
   </div>
 </template>
 <script>
+import LayoutConfig from "../data/LayoutConfig.js";
+import Color from "../data/Color.js";
 var vm = {
   name: "app",
   components: {},
@@ -28,14 +38,20 @@ var vm = {
     }
   },
   data() {
-    return {};
+    return {
+      layoutConfig:{},
+      colorConfig: {},
+    };
   },
-  created() {},
+  created() {
+    this.layoutConfig = LayoutConfig;
+    this.colorConfig = Color;
+  },
   computed: {},
   mounted() {},
   methods: {
     clickTitle(item) {
-      this.$emit("clickOptionItem", item)
+      this.$emit("clickOptionItem", item);
     }
   }
 };
@@ -47,17 +63,13 @@ export default vm;
   position: fixed;
   top: 0px;
   left: 0px;
-  width: 100%;
-  height: 40px;
   margin: 0px;
   padding: 0px;
-  background-color: #EFEFF4;
   overflow-x: auto;
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
   align-items: center;
-  border-bottom: 1px solid #999;
 }
 .title-wrap {
   height: 100%;

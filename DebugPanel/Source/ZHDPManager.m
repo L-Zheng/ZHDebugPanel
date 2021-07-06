@@ -867,18 +867,42 @@ static id _instance;
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
         return;
     }
+    
+    ZHDPOutputColorType colorType = ZHDPOutputColorType_Default;
+    
+    //运行js解析  可能存在js对象 原生无法打印
+    JSContext *context = nil;
+    NSString *parseFuncName = @"zh_sdk_ios_parseJSObjToNativeValue";
+    NSString *parseErrorDesc = @"只接收纯数据输出, 当前数据中包含js对象, 原生解析失败";
+    JSValue *parseFunc = context ? [context objectForKeyedSubscript:parseFuncName] : nil;
+    if (parseFunc) {
+        if (parseFunc.isUndefined || !parseFunc.isObject) {
+            [context evaluateScript:[NSString stringWithFormat:@"var %@ = function (params) {try {const res = JSON.parse(JSON.stringify(params));return res;} catch (error) {return '%@';}};", parseFuncName, parseErrorDesc]];
+            parseFunc = [context objectForKeyedSubscript:parseFuncName];
+        }
+    }
+
     // 以下代码不可切换线程执行   JSContext在哪个线程  就在哪个线程执行   否则线程锁死
     NSArray *args = [JSContext currentArguments];
     NSMutableArray *res = [NSMutableArray array];
     for (JSValue *jsValue in args) {
-        [res addObject:[self jsValueToNative:jsValue]?:@""];
+        id parseRes = [self jsValueToNative:jsValue];
+        if ([parseRes isKindOfClass:NSArray.class] || [parseRes isKindOfClass:NSDictionary.class]) {
+            if (parseFunc) {
+                parseRes = [[parseFunc callWithArguments:@[parseRes]] toObject];
+                if (parseRes && [parseRes isKindOfClass:NSString.class] && [parseRes isEqualToString:parseErrorDesc]) {
+                    colorType = ZHDPOutputColorType_Error;
+                }
+            }
+        }
+        [res addObject:parseRes?:@""];
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if (ZHDPMg().status != ZHDPManagerStatus_Open) {
             return;
         }
-        [self zh_test_addLogSafe:ZHDPOutputColorType_Default args:res.copy];
+        [self zh_test_addLogSafe:colorType args:res.copy];
     });
 }
 - (void)zh_test_addLogSafe:(ZHDPOutputColorType)colorType args:(NSArray *)args{

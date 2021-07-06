@@ -864,6 +864,9 @@ static id _instance;
 }
 
 - (void)zh_test_addLog{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
     // 以下代码不可切换线程执行   JSContext在哪个线程  就在哪个线程执行   否则线程锁死
     NSArray *args = [JSContext currentArguments];
     NSMutableArray *res = [NSMutableArray array];
@@ -1406,11 +1409,11 @@ static id _instance;
 }
 
 - (void)zh_test_addException:(NSString *)title stack:(NSString *)stack{
-    if (!title || ![title isKindOfClass:NSString.class] || title.length == 0) {
-        return;
-    }
     dispatch_async(dispatch_get_main_queue(), ^{
         if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+            return;
+        }
+        if (!title || ![title isKindOfClass:NSString.class] || title.length == 0) {
             return;
         }
         ZHDPOutputColorType type = ZHDPOutputColorType_Error;

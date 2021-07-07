@@ -2,9 +2,9 @@
   <div
     class="option"
     :style="{
-      height: layoutConfig.optionH + 'px', 
-      width: '100%', 
-      'background-color': colorConfig.bgColor, 
+      height: layoutConfig.optionH + 'px',
+      width: '100%',
+      'background-color': colorConfig.bgColor,
       // 'border-bottom': layoutConfig.border
     }"
   >
@@ -13,9 +13,11 @@
       v-for="(item, index) in items"
       :key="index"
       :style="{
-          'background-color': item.selected ? 'white' : '',
-          color: item.selected ? colorConfig.selectColor : colorConfig.defaultColor,
-        }"
+        'background-color': item.selected ? 'white' : '',
+        color: item.selected
+          ? colorConfig.selectColor
+          : colorConfig.defaultColor,
+      }"
       @click="clickTitle(item)"
     >
       <span>{{ item.title }}</span>
@@ -32,14 +34,14 @@ var vm = {
     items: {
       type: Array,
       required: true,
-      default: function() {
+      default: function () {
         return [];
-      }
-    }
+      },
+    },
   },
   data() {
     return {
-      layoutConfig:{},
+      layoutConfig: {},
       colorConfig: {},
     };
   },
@@ -52,8 +54,8 @@ var vm = {
   methods: {
     clickTitle(item) {
       this.$emit("clickOptionItem", item);
-    }
-  }
+    },
+  },
 };
 export default vm;
 </script>

@@ -18,7 +18,7 @@ class JSTool {
     debounce(fn, delay) {
         var func = () => {
             // 每当用户输入的时候把前一个 setTimeout clear 掉
-            clearTimeout(JSTool.timer); 
+            clearTimeout(JSTool.timer);
             // 然后又创建一个新的 setTimeout, 这样就能保证interval 间隔内如果时间持续触发，就不会执行 fn 函数
             JSTool.timer = setTimeout(() => {
                 fn.apply(this, arguments);
@@ -27,16 +27,16 @@ class JSTool {
         func()
         return func
     }
-    throttle(fn,delay) {
+    throttle(fn, delay) {
         var func = () => {
             // 在函数开头判断标记是否为true，不为true则return
             if (!JSTool.canRun) return;
             // 立即设置为false
             JSTool.canRun = false;
             // 将外部传入的函数的执行放在setTimeout中
-            setTimeout(() => { 
-            // 最后在setTimeout执行完毕后再把标记设置为true(关键)表示可以执行下一次循环了。
-            // 当定时器没有执行的时候标记永远是false，在开头被return掉
+            setTimeout(() => {
+                // 最后在setTimeout执行完毕后再把标记设置为true(关键)表示可以执行下一次循环了。
+                // 当定时器没有执行的时候标记永远是false，在开头被return掉
                 fn.apply(this, arguments);
                 JSTool.canRun = true;
             }, delay);
@@ -44,7 +44,7 @@ class JSTool {
         func()
         return func
     }
-    dataType(data){
+    dataType(data) {
         return Object.prototype.toString.call(data)
     }
     isFunction(myFunc) {
@@ -83,7 +83,7 @@ class JSTool {
     isError(value) {
         return JSTool.Type.isError(value)
     }
-    
+
     fetchData(json, key, type) {
         const emptyData = function (type) {
             if (type == 'Object') return {}

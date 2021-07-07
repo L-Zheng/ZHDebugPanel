@@ -18,7 +18,17 @@ class DataTask {
      NSMutableArray <ZHDPListSecItem *> *storageItems;
  */
     static AllMap = {}
-    fetchAllAppDataItems(listId) {
+    static selectAppItemMap = null
+    fetchAllAppDataItems() {
+        const map = DataTask.AllMap
+        const keys = Object.keys(map)
+        let res = []
+        keys.forEach(el => {
+            res.push(map[el])
+        });
+        return res
+    }
+    fetchAllSecItems(listId) {
         let listMap = null;
         const items = ListConfig.fetchItems();
         items.forEach(el => {
@@ -26,7 +36,7 @@ class DataTask {
                 listMap = el
             }
         });
-        if (!listMap) return;
+        if (!listMap) return [];
 
         const map = DataTask.AllMap
         const keys = Object.keys(map)
@@ -35,13 +45,14 @@ class DataTask {
             res = res.concat(listMap.itemsFunc(map[el]))
         });
         // 按照进入内存的时间 升序排列
-        res.sort((a, b) => {return a.enterMemoryTime - b.enterMemoryTime}); 
+        res.sort((a, b) => { return a.enterMemoryTime - b.enterMemoryTime });
+
         return res
     }
     fetchAppDataItem(appItem) {
-        if (!JSTool.isJson(appItem)) return
+        if (!JSTool.isJson(appItem)) return null
         const appId = appItem.appId;
-        if (!appId || !JSTool.isString(appId)) return
+        if (!appId || !JSTool.isString(appId)) return null
 
         var appDataItem = DataTask.AllMap[appId]
         if (!appDataItem) {
@@ -51,6 +62,7 @@ class DataTask {
                 networkItems: [],
                 storageItems: [],
                 memoryItems: [],
+                timelineItems: [],
                 exceptionItems: [],
                 imItems: [],
                 sdkErrorItems: [],
@@ -73,6 +85,12 @@ class DataTask {
                 items.splice(0, removeCount);
             }
         }
+    }
+    selectAppItem(appItem) {
+        DataTask.selectAppItemMap = appItem
+    }
+    fetchSelectAppItem() {
+        return DataTask.selectAppItemMap
     }
 }
 export default new DataTask();

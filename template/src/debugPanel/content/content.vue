@@ -1,22 +1,65 @@
 <template>
   <div
-    class="content" id="content"
+    class="content"
+    id="content"
     :style="{
-      'top': layoutConfig.optionH + 'px',
+      top: layoutConfig.optionH + 'px',
       // 'margin': layoutConfig.optionH + 'px' + ' 0px' + ' 0px' + ' 0px',
       width: layoutConfig.contentW,
       height: contentPercentH,
-      'border': layoutConfig.border
+      border: layoutConfig.border,
     }"
   >
     <!-- <List v-for="(item, idx) in items" :key="idx" :ref="item.listId" :listH="contentH"></List> -->
-    <List ref="log-list" :listId="'log-list'" :listH="contentH"></List>
-    <List ref="network-list" :listId="'network-list'" :listH="contentH"></List>
-    <List ref="storage-list" :listId="'storage-list'" :listH="contentH"></List>
-    <List ref="memory-list" :listId="'memory-list'" :listH="contentH"></List>
-    <List ref="exception-list" :listId="'exception-list'" :listH="contentH"></List>
-    <List ref="im-list" :listId="'im-list'" :listH="contentH"></List>
-    <List ref="sdkError-list" :listId="'sdkError-list'" :listH="contentH"></List>
+
+    <List
+      ref="log-list"
+      :listId="'log-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="network-list"
+      :listId="'network-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="storage-list"
+      :listId="'storage-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="memory-list"
+      :listId="'memory-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="timeline-list"
+      :listId="'timeline-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="exception-list"
+      :listId="'exception-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="im-list"
+      :listId="'im-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="sdkError-list"
+      :listId="'sdkError-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
   </div>
 </template>
 <script>
@@ -28,42 +71,47 @@ import List from "../content/list.vue";
 var vm = {
   name: "app",
   components: {
-    List
+    List,
   },
   props: {
     items: {
       type: Array,
       required: true,
-      default: function() {
+      default: function () {
         return [];
-      }
-    }
+      },
+    },
   },
   data() {
     return {
       layoutConfig: {},
       colorConfig: {},
       contentH: 0,
-      contentPercentH: 0
+      listH: 0,
+      contentPercentH: 0,
     };
   },
   created() {
     this.layoutConfig = LayoutConfig;
     this.colorConfig = Color;
-    this.getContentH()
+    this.getContentH();
   },
   computed: {},
   mounted() {
     // 此代码无效
-    // window.οnresize = function() {  
-    // } 
-    window.addEventListener('resize', () =>{
-       this.getContentH()
-    }, false)
-    },
+    // window.οnresize = function() {
+    // }
+    window.addEventListener(
+      "resize",
+      () => {
+        this.getContentH();
+      },
+      false
+    );
+  },
   methods: {
     showList(ref) {
-      this.items.forEach(item => {
+      this.items.forEach((item) => {
         const list = this.$refs[item.listId];
         if (list) {
           list.hide();
@@ -71,16 +119,18 @@ var vm = {
       });
       this.$refs[ref].show();
     },
-    getContentH(){
+    getContentH() {
       // return '80%'
       const bodyRect = HtmlWindow.client();
       const windowH = bodyRect.height;
-      const otherH = this.layoutConfig.listOptionH + this.layoutConfig.optionH
-      this.contentH = (windowH - otherH - 3)
-      this.contentPercentH = this.contentH * 1.0 / (windowH * 1.0) * 100 + '%'
-      return this.contentPercentH
-    }
-  }
+      const otherH = this.layoutConfig.listOptionH + this.layoutConfig.optionH;
+      this.contentH = windowH - otherH - 3;
+      this.listH = this.contentH - this.layoutConfig.searchH;
+      this.contentPercentH =
+        ((this.contentH * 1.0) / (windowH * 1.0)) * 100 + "%";
+      return this.contentPercentH;
+    },
+  },
 };
 export default vm;
 </script>

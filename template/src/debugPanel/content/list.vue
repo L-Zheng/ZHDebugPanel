@@ -1,11 +1,45 @@
 <template>
-  <div class="list-wrap" id="list-wrap" :style="{display: isShow ? 'flex' : 'none' }">
-    <div class="list">
+  <div
+    class="list-wrap"
+    :id="listId + '-wrap'"
+    :style="{ display: isShow ? 'flex' : 'none' }"
+  >
+    <div
+      class="input-wrap"
+      :id="listId + 'input-wrap'"
+      :style="{
+        width: layoutConfig.contentW,
+        top: searchTop + 'px',
+        height: layoutConfig.searchH + 'px',
+      }"
+    >
+      <input
+        class="input"
+        ref="input"
+        type="text"
+        placeholder="输入以查找"
+        v-on:input="inputChange"
+      />
+      <div
+        :style="{
+          width: '100%',
+          'border-bottom': layoutConfig.border,
+        }"
+      ></div>
+    </div>
+    <div
+      class="list"
+      :id="listId"
+      :style="{
+        'margin-top': layoutConfig.searchH + 'px',
+        height: listH + 'px',
+      }"
+    >
       <div
         class="row-wrap"
         v-for="(item, idx) in items"
         :key="idx"
-        :id="'row-wrap-id-' + idx"
+        :id="listId + '-row-wrap-id-' + idx"
         @click="clickRow(item)"
       >
         <div
@@ -13,24 +47,33 @@
           v-for="(rowItem, rowIdx) in item.rowItems"
           :key="rowIdx"
           :style="{
-      'border-bottom': layoutConfig.border
-    }"
+            'border-bottom': layoutConfig.border,
+          }"
         >
-          <div
+          <pre
             class="col"
             v-for="(colItem, colIdx) in rowItem.colItems"
             :key="colIdx"
             :style="{
               width: colItem.percent,
               color: colItem.color,
-              'border-right': colIdx < rowItem.colItems.length - 1 ? '1px solid #999' : 'none',
-              'background-color1': colItem.backgroundColor
-              }"
-          >{{colItem.title}}</div>
+              'border-right':
+                colIdx < rowItem.colItems.length - 1
+                  ? '1px solid #999'
+                  : 'none',
+              'background-color1': colItem.backgroundColor,
+            }"
+            >{{ getColItemTitle(colItem) }}
+          </pre>
         </div>
       </div>
     </div>
     <ListOption :items="listOptionItems"></ListOption>
+    <Apps
+      ref="apps"
+      @selectAppItem="selectAppItem"
+      @selectAll="selectAll"
+    ></Apps>
   </div>
 </template>
 <script>
@@ -42,23 +85,32 @@ import Mouse from "../base/Mouse.js";
 import HtmlWindow from "../base/HtmlWindow.js";
 import Dom from "../base/Dom.js";
 import JSTool from "../base/JSTool.js";
+import MySocket from "../base/Socket.js";
 import ListOption from "../content/listOption.vue";
+import Apps from "./apps.vue";
+import ListConfig from "../data/ListConfig.js";
 var vm = {
   name: "app",
   components: {
-    ListOption
+    ListOption,
+    Apps,
   },
   props: {
+    listWrapH: {
+      type: Number,
+      required: false,
+      default: 0,
+    },
     listH: {
       type: Number,
       required: false,
-      default: 0
+      default: 0,
     },
     listId: {
       type: String,
       required: true,
-      default: ""
-    }
+      default: "",
+    },
   },
   data() {
     return {
@@ -75,63 +127,125 @@ var vm = {
       mouseScrollEndTimer: null,
       execScrollTimer: null,
       removeSecItemTimer: null,
-      reloadListFrequentlyTimer: null
+      reloadListFrequentlyTimer: null,
+      originLocationIdx: -1,
+      searchTop: 0,
+      searchKeyword: null,
     };
   },
   created() {
     this.layoutConfig = LayoutConfig;
     this.colorConfig = Color;
-    this.listOptionItems = [
-      {
-        icon: 'icon-shaixuan',
-        highlight: false,
-        click: () => {
-          // 事件要防抖
-        }
-      },
-      {
-        icon: 'icon-chazhao',
-        highlight: false,
-        click: () => {}
-      },
-      {
-        icon: 'icon-shuaxin',
-        highlight: false,
-        click: () => {}
-      },
-      {
-        icon: 'icon-iconfontshanchu6',
-        highlight: false,
-        click: () => {}
-      },
-      {
-        icon: 'icon-56zhiding',
-        highlight: false,
-        click: () => {}
-      },
-      {
-        icon: 'icon-56zhiding-copy',
-        highlight: false,
-        click: () => {}
-      }
-    ]
+    this.createListOptionItems();
     // 监听手机端的touch滑动事件
     // https://blog.csdn.net/For_My_Own_Voice/article/details/81537292
     // h5 监听滚动结束
     // https://www.baidu.com/s?wd=h5%20%E7%9B%91%E5%90%AC%E6%BB%9A%E5%8A%A8%E7%BB%93%E6%9D%9F&rsv_spt=1&rsv_iqid=0xbd0068860000f2b7&issp=1&f=8&rsv_bp=1&rsv_idx=2&ie=utf-8&tn=baiduhome_pg&rsv_enter=1&rsv_dl=tb&rsv_sug3=27&rsv_sug1=16&rsv_sug7=100&rsv_sug2=0&rsv_btype=i&inputT=9932&rsv_sug4=9933
     // https://blog.csdn.net/guohao326/article/details/94636502
-    ScrollOp.registerScrollEvent(e => {
+    ScrollOp.registerScrollEvent((e) => {
       this.scrollStart(e);
     });
-    Mouse.registerMouseScrollEvent(e => {
+    Mouse.registerMouseScrollEvent((e) => {
       this.mouseScrollStart(e);
     });
   },
   computed: {},
-  mounted() {},
+  mounted() {
+    this.searchTop = HtmlWindow.clientRealRect(
+      Dom.getElementById("content")
+    ).top;
+  },
   methods: {
+    inputChange() {
+      const res = this.$refs.input.value;
+      this.searchKeyword = res ? res : null;
+      this.reloadListWhenSearch();
+    },
+    selectAppItem(item) {
+      this.updateListOptionItemsTitle(0, item.appName);
+      this.reloadListWhenSelectApp();
+    },
+    selectAll() {
+      const count = this.listOptionItems.length;
+      for (let index = 0; index < count; index++) {
+        const el = this.listOptionItems[index];
+        el.title = "";
+        el.selected = false;
+      }
+      this.reloadListWhenSelectApp();
+    },
+    updateListOptionItemsTitle(idx, title) {
+      const count = this.listOptionItems.length;
+      for (let index = 0; index < count; index++) {
+        const el = this.listOptionItems[index];
+        if (index == idx) {
+          el.title = title;
+          if (title) {
+            el.selected = true;
+          }
+        }
+      }
+    },
+    createListOptionItems() {
+      // 事件要防抖
+      this.listOptionItems = [
+        {
+          icon: "icon-shaixuan",
+          title: "",
+          selected: false,
+          highlight: false,
+          click: () => {
+            this.$refs.apps.show(this.listId);
+          },
+        },
+        {
+          icon: "icon-shuaxin",
+          title: "",
+          selected: false,
+          highlight: false,
+          click: () => {
+            this.reloadListWhenRefresh();
+          },
+        },
+        {
+          icon: "icon-iconfontshanchu6",
+          title: "",
+          selected: false,
+          highlight: false,
+          click: () => {
+            this.clearSecItems();
+          },
+        },
+        {
+          icon: "icon-56zhiding",
+          title: "",
+          selected: false,
+          highlight: false,
+          click: () => {
+            this.scrollListToTopCode();
+          },
+        },
+        {
+          icon: "icon-56zhiding-copy",
+          title: "",
+          selected: false,
+          highlight: false,
+          click: () => {
+            this.scrollListToBottomCode();
+          },
+        },
+      ];
+    },
+    getColItemTitle(colItem) {
+      return colItem.title;
+      // if (JSTool.isArray(title) || JSTool.isObject(title)) {
+      //   return JSON.stringify(title, null, 2);
+      // }
+      return title;
+    },
     mouseScrollStart(e) {
       if (!this.isShow) return;
+      if (this.$refs.apps.fetchIsShow()) return;
       e = e || window.event;
       //先判断浏览器IE，谷歌滑轮事件 e.wheelDelta
       //Firefox滑轮事件 e.detail
@@ -175,32 +289,105 @@ var vm = {
     },
     scrollEnd() {},
     show() {
+      if (this.isShow) {
+        return;
+      }
       this.isShow = true;
+      this.$nextTick(() => {
+        this.scrollToOriginLocation();
+        this.reloadListWhenShow();
+      });
     },
     hide() {
+      if (!this.isShow) {
+        return;
+      }
+      this.calculateOriginLocationIdx();
       this.isShow = false;
     },
+    verifyFilterCondition(secItem) {
+      if (!secItem) {
+        return false;
+      }
+      // 筛选appId
+      const cAppItem = secItem.appDataItem.appItem;
+      const selectAppItem = DataTask.fetchSelectAppItem();
+      if (cAppItem && selectAppItem) {
+        if (selectAppItem.appId != cAppItem.appId) {
+          return false;
+        }
+      }
+      // 筛选搜索关键字
+      const keyword = this.searchKeyword;
+      if (!keyword) {
+        return true;
+      }
+      // 搜索某一组
+      let colItems = secItem.colItems;
+      for (let index = 0; index < colItems.length; index++) {
+        const el = colItems[index];
+        if (el.title) {
+          if (el.title.toLowerCase().indexOf(keyword.toLowerCase()) != -1) {
+            return true;
+          }
+        }
+      }
+      // 搜索某一行
+      const rowItems = secItem.rowItems;
+      for (let index = 0; index < rowItems.length; index++) {
+        const el1 = rowItems[index];
+        colItems = el1.colItems;
+        for (let j = 0; j < colItems.length; j++) {
+          const el2 = colItems[j];
+          if (el2.title) {
+            if (el2.title.toLowerCase().indexOf(keyword.toLowerCase()) != -1) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
+    filterItems(secItems) {
+      if (!secItems || !JSTool.isArray(secItems)) {
+        return [];
+      }
+      const resItems = [];
+      secItems.forEach((element) => {
+        if (this.verifyFilterCondition(element)) {
+          resItems.push(element);
+        }
+      });
+      return resItems;
+    },
     fetchAllItems() {
-      return DataTask.fetchAllAppDataItems(this.listId);
+      const res = DataTask.fetchAllSecItems(this.listId);
+      return res ? res : [];
     },
     updateSecItemWhenScrollEnd() {
       if (this.scrollStatus != 0) return;
 
       const arr = this.items_temp;
       if (arr.length <= 0) return;
-      arr.forEach(el => {
+      arr.forEach((el) => {
         el();
       });
       this.items_temp.splice(0, this.items_temp.length);
-      this.reloadList()
+      this.reloadList();
     },
     // 滚动期间不允许追加数据  监听onscroll,
-    addSecItem(item, limitCount, removePercent) {
+    addSecItem(secItem, limitCount, removePercent) {
       if (!this.isShow) return;
-      if (!JSTool.isJson(item)) return;
-      // if (this.items.length > 30) return;
+      if (!JSTool.isJson(secItem)) return;
       const addIn = () => {
-        DataTask.addAndCleanItems(this.items, item, limitCount, removePercent);
+        if (this.verifyFilterCondition(secItem)) {
+          DataTask.addAndCleanItems(
+            this.items,
+            secItem,
+            limitCount,
+            removePercent
+          );
+        }
       };
       if (this.scrollStatus != 0) {
         this.items_temp.push(addIn);
@@ -229,6 +416,27 @@ var vm = {
       }
     },
     clearSecItems() {
+      // 清理全局数据
+      let listMap = null;
+      const items = ListConfig.fetchItems();
+      items.forEach((el) => {
+        if (el.listId == this.listId) {
+          listMap = el;
+        }
+      });
+      if (!listMap) return [];
+
+      const selectAppItem = DataTask.fetchSelectAppItem();
+      const removeAll = selectAppItem ? false : true;
+      // console.log(DataTask.fetchAllAppDataItems())
+      const appDataItems = removeAll
+        ? DataTask.fetchAllAppDataItems()
+        : DataTask.fetchAppDataItem(selectAppItem);
+      appDataItems.forEach((el) => {
+        DataTask.cleanAllItems(listMap.itemsFunc(el));
+      });
+      // console.log(DataTask.fetchAllAppDataItems())
+
       if (this.items.length == 0) return;
       this.items.splice(0, this.items.length);
       this.allowScrollAuto = true;
@@ -238,14 +446,14 @@ var vm = {
       clearTimeout(this.removeSecItemTimer);
       this.removeSecItemTimer = setTimeout(() => {
         this.removeSecItemInstant();
-      }, 250);
+      }, 1000);
     },
     removeSecItemInstant() {
       if (this.removeItems_temp.length == 0) {
         return;
       }
       const arr = this.removeItems_temp;
-      arr.forEach(el => {
+      arr.forEach((el) => {
         const removeI = this.items.indexOf(el);
         if (removeI != -1) {
           this.items.splice(removeI, 1);
@@ -264,21 +472,46 @@ var vm = {
       this.reloadListWhenShow();
     },
     reloadListWhenRefresh() {
-      this.reloadListWhenShow();
+      let fetchRes = this.checkSpecialList();
+      if (!fetchRes) {
+        this.reloadListWhenShow();
+        return;
+      }
+      this.clearSecItems();
+      MySocket.sendData({
+        msgType: 9,
+        msgSubType: fetchRes.sendType,
+      });
+    },
+    checkSpecialList() {
+      let fetchRes = null;
+
+      const listIds = ListConfig.refreshListIds();
+      for (let index = 0; index < listIds.length; index++) {
+        const el = listIds[index];
+        if (el.listId == this.listId) {
+          fetchRes = el;
+          break;
+        }
+      }
+      return fetchRes;
     },
     reloadListWhenShow() {
-      const items = this.fetchAllItems();
-      if (!items) {
-        items = [];
+      let fetchRes = this.checkSpecialList();
+      if (!fetchRes) {
+        this.items = this.filterItems(this.fetchAllItems());
+        this.reloadList();
+        return;
       }
-      this.items = items;
-      this.reloadList();
+      if (this.items.length <= 0) {
+        this.reloadListWhenRefresh();
+      }
     },
     reloadListFrequently() {
       clearTimeout(this.reloadListFrequentlyTimer);
       this.reloadListFrequentlyTimer = setTimeout(() => {
         this.reloadList();
-      }, 250);
+      }, 150);
     },
     reloadList() {
       if (!this.allowScrollAuto) {
@@ -288,109 +521,215 @@ var vm = {
         this.scrollListToBottomAuto();
       });
     },
+    calculateListTopAdjoinDom() {
+      // 计算list上边相邻组件的位置
+      return HtmlWindow.clientRealRect(
+        Dom.getElementById(this.listId + "input-wrap")
+      );
+    },
+    calculateScroll() {
+      const rowDomRect =
+        this.items.length <= 0
+          ? { bottom: 0 }
+          : HtmlWindow.clientRealRect(
+              Dom.getElementById(
+                this.listId + "-row-wrap-id-" + (this.items.length - 1)
+              )
+            );
+
+      const opAdjoinRect = this.calculateListTopAdjoinDom();
+      const listRect = HtmlWindow.clientRealRect(
+        Dom.getElementById(this.listId)
+      );
+      // 浏览器向上滑动为负值
+      const listWrapH = this.listWrapH;
+      // const listH = listWrapH - this.calculateListTopAdjoinDom().height;
+      const listH = this.listH;
+      const listOffSetTopY = -(listRect.top - opAdjoinRect.bottom);
+      let listOffSetBottomY = 0;
+      if (rowDomRect.bottom - opAdjoinRect.bottom <= listH) {
+        listOffSetBottomY = 0;
+      } else {
+        listOffSetBottomY = rowDomRect.bottom - opAdjoinRect.bottom - listH;
+      }
+      const listContentH = listOffSetTopY + listH + listOffSetBottomY;
+      // console.log(
+      //   'listRectTop',
+      //   listRect.top,
+      //   'opAdjoinRectBottom',
+      //   opAdjoinRect.bottom,
+      //   'listH: ',
+      //   listH,
+      //   'listWrapH: ',
+      //   listWrapH,
+      //   'listOffSetTopY: ',
+      //   listOffSetTopY,
+      //   'listOffSetBottomY: ',
+      //   listOffSetBottomY,
+      //   'listContentH: ',
+      //   listContentH,
+      //   listContentH == listOffSetTopY + listOffSetBottomY + listH
+      // );
+      return {
+        listH,
+        listWrapH,
+        listOffSetTopY,
+        listOffSetBottomY,
+        listContentH,
+      };
+    },
+    calculateOriginLocationIdx() {
+      // console.log("calculateOriginLocationIdx 1", this.listId);
+      if (this.allowScrollAuto || this.items.length <= 0) {
+        this.originLocationIdx = -1;
+        return;
+      }
+      const {
+        listH,
+        listWrapH,
+        listOffSetTopY,
+        listOffSetBottomY,
+        listContentH,
+      } = this.calculateScroll();
+
+      // console.log("calculateOriginLocationIdx 2", this.listId);
+      if (listContentH <= 0 || listH <= 0) {
+        this.originLocationIdx = -1;
+        return;
+      }
+      // console.log("calculateOriginLocationIdx 3", this.listId);
+      if (listContentH <= listH) {
+        this.originLocationIdx = -1;
+        return;
+      }
+      // console.log("calculateOriginLocationIdx 4", this.listId);
+      const opAdjoinRect = this.calculateListTopAdjoinDom();
+      const totalCount = this.items.length;
+      let targetIdx = -1;
+      for (let idx = 0; idx < totalCount; idx++) {
+        if (idx >= totalCount - 1) {
+          continue;
+        }
+        const rowDomRect = HtmlWindow.clientRealRect(
+          Dom.getElementById(this.listId + "-row-wrap-id-" + idx)
+        );
+        const nextRowDomRect = HtmlWindow.clientRealRect(
+          Dom.getElementById(this.listId + "-row-wrap-id-" + (idx + 1))
+        );
+        // console.log(
+        //   idx,
+        //   rowDomRect.top,
+        //   opAdjoinRect.bottom,
+        //   rowDomRect.top - opAdjoinRect.bottom
+        // );
+        if (rowDomRect.top - opAdjoinRect.bottom >= 0) {
+          targetIdx = idx;
+          break;
+        }
+        if (
+          rowDomRect.top - opAdjoinRect.bottom < 0 &&
+          nextRowDomRect.top - opAdjoinRect.bottom >= 0
+        ) {
+          targetIdx = idx;
+          break;
+        }
+      }
+      console.log("targetIdx", targetIdx);
+      this.originLocationIdx = targetIdx;
+    },
+    scrollToOriginLocation() {
+      if (this.items.length <= 0) {
+        return;
+      }
+      let targetIdx = this.originLocationIdx;
+      if (targetIdx == -1) {
+        targetIdx = this.items.length - 1;
+      }
+      const rowDomId = this.listId + "-row-wrap-id-" + targetIdx;
+      ScrollOp.scrollDomToTopById(rowDomId, false);
+    },
     updateScrollAuto() {
       if (this.scrollStatus != 0) {
         this.allowScrollAuto = false;
-        // console.log(this.allowScrollAuto, "1");
+        // console.log('allowScrollAuto 1', this.allowScrollAuto);
         return;
       }
       if (this.items.length <= 0) {
         this.allowScrollAuto = true;
-        // console.log(this.allowScrollAuto, "2");
+        // console.log('allowScrollAuto 2', this.allowScrollAuto);
         return;
       }
-      const rowDomRect = HtmlWindow.clientRealRect(
-        Dom.getElementById("row-wrap-id-" + (this.items.length - 1))
-      );
-      const listRect = HtmlWindow.clientRealRect(
-        Dom.getElementById("list-wrap")
-      );
-      const contentRect = HtmlWindow.clientRealRect(
-        Dom.getElementById("content")
-      );
-      // 浏览器向上滑动为负值
-      const listH = this.listH;
-      const listOffSetTopY = -(listRect.top - contentRect.top);
-      let listOffSetBottomY = 0;
-      if (rowDomRect.bottom - contentRect.top <= listH) {
-        listOffSetBottomY = 0;
-      } else {
-        listOffSetBottomY = rowDomRect.bottom - contentRect.top - listH;
-      }
-      const listContentH = listOffSetTopY + listH + listOffSetBottomY;
-      // console.log(listH, listOffSetTopY, listOffSetBottomY, listContentH);
+      const {
+        listH,
+        listWrapH,
+        listOffSetTopY,
+        listOffSetBottomY,
+        listContentH,
+      } = this.calculateScroll();
       if (listContentH <= 0 || listH <= 0) {
         this.allowScrollAuto = true;
-        // console.log(this.allowScrollAuto, "3");
+        // console.log('allowScrollAuto 3', this.allowScrollAuto);
         return;
       }
       if (listContentH <= listH) {
         this.allowScrollAuto = true;
-        // console.log(this.allowScrollAuto, "4");
+        // console.log('allowScrollAuto 4', this.allowScrollAuto);
         return;
       }
       if (listOffSetTopY >= listContentH - listH - 10) {
         this.allowScrollAuto = true;
-        // console.log(this.allowScrollAuto, "5");
+        // console.log('allowScrollAuto 5', this.allowScrollAuto);
         return;
       }
       this.allowScrollAuto = false;
-      // console.log(this.allowScrollAuto, "6");
+      // console.log('allowScrollAuto 6', this.allowScrollAuto);
     },
     scrollListToBottomAuto() {
+      // console.log('scrollListToBottomAuto')
       this.cancelScrollEvent();
       this.execScrollTimer = setTimeout(() => {
+        // console.log('scrollListToBottomAutoInternal')
         this.scrollListToBottomAutoInternal();
-      }, 250);
+      }, 150);
     },
     scrollListToBottomAutoInternal() {
       if (!this.allowScrollAuto || this.scrollStatus != 0) {
         return;
       }
+      // console.log('scrollListToBottomInstant')
       this.scrollListToBottomInstant();
     },
     scrollListToBottomCode() {
       this.cancelScrollEvent();
       this.execScrollTimer = setTimeout(() => {
         this.scrollListToBottomInstant();
-      }, 250);
+      }, 100);
     },
     scrollListToBottomInstant() {
       this.allowScrollAuto = true;
       if (this.items.length <= 0) return;
-      const rowDomId = "row-wrap-id-" + (this.items.length - 1);
+      const rowDomId = this.listId + "-row-wrap-id-" + (this.items.length - 1);
       ScrollOp.scrollDomToBottomById(rowDomId);
+      // console.log('scrollDomToBottomById')
     },
     scrollListToTopCode() {
       this.cancelScrollEvent();
       this.execScrollTimer = setTimeout(() => {
         this.scrollListToTopInstant();
-      }, 250);
+      }, 100);
     },
     scrollListToTopInstant() {
       if (this.items.length <= 0) return;
-      const rowDomId = "row-wrap-id-" + 0;
+      const rowDomId = this.listId + "-row-wrap-id-" + 0;
       ScrollOp.scrollDomToBottomById(rowDomId);
-      const rowDomRect = HtmlWindow.clientRealRect(
-        Dom.getElementById("row-wrap-id-" + (this.items.length - 1))
-      );
-      const listRect = HtmlWindow.clientRealRect(
-        Dom.getElementById("list-wrap")
-      );
-      const contentRect = HtmlWindow.clientRealRect(
-        Dom.getElementById("content")
-      );
-      // 浏览器向上滑动为负值
-      const listH = this.listH;
-      const listOffSetTopY = -(listRect.top - contentRect.top);
-      let listOffSetBottomY = 0;
-      if (rowDomRect.bottom - contentRect.top <= listH) {
-        listOffSetBottomY = 0;
-      } else {
-        listOffSetBottomY = rowDomRect.bottom - contentRect.top - listH;
-      }
-      const listContentH = listOffSetTopY + listH + listOffSetBottomY;
 
+      const {
+        listH,
+        listWrapH,
+        listOffSetTopY,
+        listOffSetBottomY,
+        listContentH,
+      } = this.calculateScroll();
       if (listContentH <= 0 || listH <= 0) {
         this.allowScrollAuto = true;
         return;
@@ -406,8 +745,8 @@ var vm = {
     },
     clickRow(item) {
       item.clickRow(item);
-    }
-  }
+    },
+  },
 };
 export default vm;
 </script>
@@ -423,11 +762,33 @@ export default vm;
   justify-content: flex-start;
   // background-color: orange;
 }
-.list {
+.input-wrap {
   margin: 0px;
   padding: 0px;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+.input {
+  margin: 0px;
+  padding: 0px 0px 0px 5px;
   width: 100%;
   height: 100%;
+  border-width: 0px;
+  // border: '0px solid #999';
+}
+.list {
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  padding: 0px;
+  width: 100%;
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
@@ -455,5 +816,28 @@ export default vm;
 .col {
   margin: 0px;
   padding: 0px 5px;
+  font-family: normal;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
 }
+// pre标签默认样式
+.pre-default {
+  display: block;
+  font-family: monospace;
+  white-space: pre;
+  margin: 1em 0px;
+}
+/*
+white-space: pre，white-space的值描述：
+
+normal：默认。空白会被浏览器忽略。
+pre：空白会被浏览器保留。其行为方式类似 HTML 中的 <pre>标签。
+nowrap：文本不会换行，文本会在在同一行上继续，直到遇到 <br> 标签为止。
+pre-wrap：保留空白符序列，但是正常地进行换行。
+pre-line：合并空白符序列，但是保留换行符。
+inherit：规定应该从父元素继承 white-space 属性的值。
+*/
 </style>

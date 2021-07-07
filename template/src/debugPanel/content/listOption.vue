@@ -2,11 +2,11 @@
   <div
     class="list-option"
     :style="{
-      height: layoutConfig.listOptionH + 'px', 
-      width: layoutConfig.contentW, 
-      'background-color': colorConfig.bgColor, 
-       'border-right': layoutConfig.border, 
-       'border-left': layoutConfig.border
+      height: layoutConfig.listOptionH + 'px',
+      width: layoutConfig.contentW,
+      'background-color': colorConfig.bgColor,
+      'border-right': layoutConfig.border,
+      'border-left': layoutConfig.border,
     }"
   >
     <div
@@ -14,12 +14,15 @@
       v-for="(item, index) in items"
       :key="index"
       :style="{
-          'background-color': item.highlight ? colorConfig.highlightColor: '',
-          color: item.selected ? colorConfig.selectColor : colorConfig.defaultColor,
-        }"
+        'background-color': item.highlight ? colorConfig.highlightColor : '',
+        color: item.selected
+          ? colorConfig.selectColor
+          : colorConfig.defaultColor,
+      }"
       @click="clickTitle(item)"
     >
-      <span :class="`iconfont ${item.icon}`"></span>
+      <div :class="`iconfont ${item.icon}`"></div>
+      <div class="title">{{ item.title }}</div>
     </div>
   </div>
 </template>
@@ -33,15 +36,15 @@ var vm = {
     items: {
       type: Array,
       required: false,
-      default: function() {
+      default: function () {
         return [];
-      }
-    }
+      },
+    },
   },
   data() {
     return {
       layoutConfig: {},
-      colorConfig: {}
+      colorConfig: {},
     };
   },
   created() {
@@ -58,8 +61,8 @@ var vm = {
       }, 200);
       item.click();
       // this.$emit("clickOptionItem", item);
-    }
-  }
+    },
+  },
 };
 export default vm;
 </script>
@@ -84,8 +87,11 @@ export default vm;
   padding: 0px;
   margin: 0px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+.title {
+  font-size: 5px;
 }
 </style>

@@ -4,6 +4,9 @@
     <Option :items="optionItems" @clickOptionItem="clickOptionItem"></Option>
     <Detail ref="detail"></Detail>
     <Content :items="optionItems" ref="content"></Content>
+    <Connect
+      ref="connect" @startConnect="startConnect"
+    ></Connect>
   </div>
 </template>
 
@@ -21,6 +24,7 @@ import ListConfig from "./debugPanel/data/ListConfig.js";
 import ToastPop from "./debugPanel/toastPop/toastPop.vue";
 import Option from "./debugPanel/option/option.vue";
 import Content from "./debugPanel/content/content.vue";
+import Connect from "./debugPanel/content/connect.vue";
 import Detail from "./debugPanel/detail/detail.vue";
 function preventDefault(e) {
   e.preventDefault();
@@ -32,6 +36,7 @@ var vm = {
     ToastPop,
     Option,
     Content,
+    Connect,
     Detail,
   },
   props: {},
@@ -49,11 +54,12 @@ var vm = {
   },
   computed: {},
   mounted() {
+      this.$refs.connect.show()
     setTimeout(() => {
       this.clickOptionItem(this.optionItems[0]);
       // 建立socket连接 开始接收数据
       // this.startTimer();
-      this.startConnectSocket();
+      // this.startConnectSocket();
     }, 1000);
     // this.$refs.toastPop.show("啊啊啊啊啊啊");
   },
@@ -89,21 +95,49 @@ var vm = {
         return param;
       } else return param;
     },
-    startConnectSocket() {
-      const urlParams = this.getUrlParamsFromUrl();
-      // console.log(urlParams);
-      const socketUrl = urlParams["socketUrl"];
+    readFile() {
+      const selectedFile =
+        "/Users/em/Desktop/My/Develop/Code/ZHCode/GitHubCode/ZHDebugPanel/template/release/pages.json";
+
+      const input = window.document.getElementById("file-input");
+      input.addEventListener(
+        "change",
+        () => {
+          console.log("input.files", input.files[0]);
+          const reader = new FileReader();
+          reader.readAsText(input.files[0], "utf8"); // input.files[0]为第一个文件
+          reader.onload = () => {
+            console.log(
+              "reader.result",
+              reader.result,
+              JSTool.dataType(reader.result)
+            );
+            console.log(JSON.parse(reader.result));
+          };
+        },
+        false
+      );
+    },
+    startConnect(socketUrl){
+      console.log('socketUrl', socketUrl)
+      this.startConnectSocket(socketUrl)
+    },
+    startConnectSocket(socketUrl) {
+      // const urlParams = this.getUrlParamsFromUrl();
+      // // console.log(urlParams);
+      // const socketUrl = urlParams["socketUrl"];
       if (!socketUrl) return;
 
       const socket = new WebSocket(socketUrl);
       socket.addEventListener("open", (msg) => {
-        // console.log("socket opened");
+        console.log("socket opened");
         socket.send(
           JSON.stringify({
             msgType: -1,
             clientId: "h5Client",
           })
         );
+      this.$refs.connect.hide()
       });
       socket.addEventListener("close", (msg) => {});
       socket.addEventListener("error", (msg) => {});

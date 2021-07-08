@@ -7,7 +7,7 @@
         class="input"
         ref="input"
         type="text"
-        placeholder="已复制到剪切板, 粘贴链接地址(ws://xxx.xxx)"
+        placeholder="粘贴链接地址(ws://xxx.xxx), 允许访问剪切板以自动填充"
       />
       </div>
       <div class="connect-header" @click="startConnect">
@@ -20,6 +20,7 @@
 import LayoutConfig from "../data/LayoutConfig.js";
 import Color from "../data/Color.js";
 import DataTask from "../data/DataTask.js";
+import JSTool from "../base/JSTool.js";
 var vm = {
   name: "app",
   components: {},
@@ -48,6 +49,20 @@ var vm = {
       this.connectWrapAnimateClass = "connect-wrap-show";
       this.connectAnimateClass = "connect-show";
       this.isShow = true;
+      setTimeout(() => {
+        navigator.clipboard.readText().then((e) => {
+          // console.log('clipboard', e)
+          if (e && JSTool.isString(e)) {
+            this.$refs.input.value = e;
+            this.$nextTick(() => {
+                this.startConnect()
+            });
+          }
+        }).catch(err => {
+          this.$emit('clipboardPermiss', false)
+          console.log('clipboard', err)
+        })
+      }, 200);
     },
     hide() {
       if (!this.isShow) {

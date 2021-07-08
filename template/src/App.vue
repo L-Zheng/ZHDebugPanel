@@ -5,7 +5,7 @@
     <Detail ref="detail"></Detail>
     <Content :items="optionItems" ref="content"></Content>
     <Connect
-      ref="connect" @startConnect="startConnect"
+      ref="connect" @clipboardPermiss="clipboardPermiss" @startConnect="startConnect"
     ></Connect>
   </div>
 </template>
@@ -118,6 +118,11 @@ var vm = {
         false
       );
     },
+    clipboardPermiss(permission){
+      if (!permission) {
+          this.$refs.toastPop.show("剪切板权限被禁止, 自动填充失败");
+      }
+    },
     startConnect(socketUrl){
       console.log('socketUrl', socketUrl)
       this.startConnectSocket(socketUrl)
@@ -131,6 +136,7 @@ var vm = {
       const socket = new WebSocket(socketUrl);
       socket.addEventListener("open", (msg) => {
         console.log("socket opened");
+        this.$refs.toastPop.show("连接成功");
         socket.send(
           JSON.stringify({
             msgType: -1,
@@ -139,8 +145,14 @@ var vm = {
         );
       this.$refs.connect.hide()
       });
-      socket.addEventListener("close", (msg) => {});
-      socket.addEventListener("error", (msg) => {});
+      socket.addEventListener("close", (msg) => {
+        this.$refs.toastPop.show("连接失败或关闭");
+        console.log('socket close', msg)
+      });
+      socket.addEventListener("error", (msg) => {
+        this.$refs.toastPop.show("连接错误");
+        console.log('socket error', msg)
+      });
       socket.addEventListener("message", (msg) => {
         let receiveData = msg.data;
         if (!JSTool.isString(receiveData)) {

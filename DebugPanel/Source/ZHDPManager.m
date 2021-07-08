@@ -22,6 +22,8 @@
 }
 @property (nonatomic,strong) NSTimer *timer;
 @property (nonatomic,strong) NSDateFormatter *dateFormat;
+@property (nonatomic,copy) void (^clickToastBlock) (void);
+@property (nonatomic,assign) BOOL debugPanelH5Enable;
 @end
 
 @implementation ZHDPManager
@@ -29,6 +31,7 @@
 #pragma mark - config
 
 - (void)config{
+    self.debugPanelH5Enable = YES;
 }
 
 #pragma mark - basic
@@ -181,6 +184,13 @@
     if (!_window) return;
     [self.window hideFloat];
     [self.window showDebugPanel];
+    
+    if (0) {
+        [ZHDPMg() showToast:@"点击以使用同步输出" duration:2.0 clickBlock:^{
+            [ZHDPMg() switchFloat];
+        } complete:nil];
+        self.debugPanelH5Enable = NO;
+    }
 }
 
 #pragma mark - timer
@@ -288,60 +298,115 @@
 
 - (NSDictionary *)outputColorMap{
     return @{
-        @(ZHDPOutputColorType_Error): [UIColor colorWithRed:220.0/255.0 green:20.0/255.0 blue:60.0/255.0 alpha:1],
-        @(ZHDPOutputColorType_Warning): [UIColor colorWithRed:255.0/255.0 green:215.0/255.0 blue:0.0/255.0 alpha:1],
-        @(ZHDPOutputColorType_Default): [UIColor blackColor]
+        @(ZHDPOutputColorType_Error): @"#DC143C",
+        @(ZHDPOutputColorType_Warning): @"#FFD700",
+        @(ZHDPOutputColorType_Default): @"#000000"
     };
 }
 - (UIColor *)fetchOutputColor:(ZHDPOutputColorType)type{
     NSDictionary *map = [self outputColorMap];
-    UIColor *res = [map objectForKey:@(type)];
-    if (!res) {
-        res = [map objectForKey:@(ZHDPOutputColorType_Default)];
+    NSString *str = [map objectForKey:@(type)];
+    if (!str || ![str isKindOfClass:NSString.class] || str.length == 0) {
+        str = [map objectForKey:@(ZHDPOutputColorType_Default)];
     }
-    return res;
+    return [self zhdp_str2Color:str];
+}
+- (UIColor *)zhdp_str2Color:(NSString *)str {
+    NSString *colorString = [[str stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] lowercaseString];
+    if ([colorString hasPrefix:@"0x"] || [colorString hasPrefix:@"#"]) {
+        return [self zhdp_colorFromHexString:colorString];
+    }
+    
+    if ([colorString hasSuffix:@"color"]) {
+        NSString *selectorStr = [colorString stringByReplacingOccurrencesOfString:@"color" withString:@"Color"];
+        NSMethodSignature *signature = [[UIColor class] methodSignatureForSelector:NSSelectorFromString(selectorStr)];
+        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+        invocation.target = [UIColor class];
+        invocation.selector = NSSelectorFromString(selectorStr);
+        [invocation invoke];
+        
+        UIColor *color = nil;
+        [invocation getReturnValue:&color];
+        
+        return color;
+    }
+    
+    return nil;
+}
+- (UIColor *)zhdp_colorFromHexString:(NSString *)hexString{
+    unsigned rgbValue = 0;
+    hexString = [hexString stringByReplacingOccurrencesOfString:@"#" withString:@""];
+    NSScanner *scanner = [NSScanner scannerWithString:hexString];
+    [scanner scanHexInt:&rgbValue];
+    
+    // 包含透明度
+    if (hexString.length == 8) {
+        CGFloat r = ((rgbValue & 0xFF000000) >> 24);
+        CGFloat g = ((rgbValue & 0xFF0000) >> 16);
+        CGFloat b = ((rgbValue & 0xFF00) >> 8);
+        CGFloat a = ((rgbValue & 0xFF)) * 1.0 / 255.0;
+        return [UIColor colorWithRed:(r * 1.0)/255.0f green:(g * 1.0)/255.0f blue:(b * 1.0)/255.0f alpha:a];
+    }
+    
+    return [UIColor colorWithRed:(((rgbValue & 0xFF0000) >> 16) * 1.0)/255.0f green:(((rgbValue & 0xFF00) >> 8) * 1.0)/255.0f blue:((rgbValue & 0xFF) * 1.0)/255.0f alpha:1.0];
 }
 
 #pragma mark - toast
 
-- (void)showToast:(NSString *)title{
-    CGSize size = CGSizeMake(150, 30);
-    UIView *container = self.window.debugPanel;
-    CGFloat X = (container.bounds.size.width - size.width) * 0.5;
-    
-    CGRect startFrame = (CGRect){{X, -size.height}, size};
-    CGRect endFrame = (CGRect){{X, 5}, size};
-    
-    UILabel *label = [[UILabel alloc] initWithFrame:startFrame];
+- (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^) (void))clickBlock complete:(void (^) (void))complete{
+    self.clickToastBlock = clickBlock;
+
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
     
     label.userInteractionEnabled = YES;
-    UIGestureRecognizer *tapGes = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(skipToWeChatApp)];
+    UIGestureRecognizer *tapGes = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(clickToast)];
     [label addGestureRecognizer:tapGes];
-    
+
     label.text = title;
     label.font = [self defaultFont];
     label.textAlignment = NSTextAlignmentCenter;
+    label.numberOfLines = 0;
+    label.adjustsFontSizeToFitWidth = YES;
     label.textColor = [self selectColor];
 //    label.alpha = 0.7;
     label.backgroundColor = [UIColor whiteColor];
     label.layer.masksToBounds = YES;
     label.clipsToBounds = YES;
+    
+    UIView *container = self.window.debugPanel;
+    CGSize size = [label.text boundingRectWithSize:CGSizeMake(container.bounds.size.width - 10, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: label.font} context:nil].size;
+    size.width += 10;
+    size.height += 10;
+    if (size.width < 150) size.width = 150;
+    if (size.height < 30) size.height = 30;
+    CGFloat X = (container.bounds.size.width - size.width) * 0.5;
+    
+    CGRect startFrame = (CGRect){{X, -size.height}, size};
+    CGRect endFrame = (CGRect){{X, 5}, size};
+    
     label.layer.cornerRadius = size.height * 0.5;
     [container addSubview:label];
+    
+    label.frame = startFrame;
+    
     [UIView animateWithDuration:0.25 animations:^{
         label.frame = endFrame;
     } completion:^(BOOL finished) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(duration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [UIView animateWithDuration:0.25 animations:^{
                 label.frame = startFrame;
             } completion:^(BOOL finished) {
                 [label removeFromSuperview];
             }];
+            if (complete) complete();
         });
     }];
 }
-- (void)skipToWeChatApp{
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"weixin://"]];
+- (void)clickToast{
+    if (self.clickToastBlock) {
+        self.clickToastBlock();
+        self.clickToastBlock = nil;
+    }
 }
 
 #pragma mark - data
@@ -453,16 +518,15 @@
     }
     return [[NSAttributedString alloc] initWithAttributedString:attStr];
 }
-- (ZHDPListColItem *)createColItem:(NSString *)title percent:(CGFloat)percent X:(CGFloat)X colorType:(ZHDPOutputColorType)colorType{
+- (ZHDPListColItem *)createColItem:(NSString *)formatData percent:(CGFloat)percent X:(CGFloat)X colorType:(ZHDPOutputColorType)colorType{
 
-    title = title?:@"";
+    formatData = formatData?:@"";
     NSMutableAttributedString *tAtt = nil;
 
     NSUInteger limit = 200;
-    NSUInteger titleLength = title.length;
-    if ([title isKindOfClass:NSAttributedString.class]) {
-        tAtt = [[NSMutableAttributedString alloc] initWithAttributedString:(NSAttributedString *)title];
-        NSUInteger titleLength = [(NSAttributedString *)title string].length;
+    if ([formatData isKindOfClass:NSAttributedString.class]) {
+        tAtt = [[NSMutableAttributedString alloc] initWithAttributedString:(NSAttributedString *)formatData];
+        NSUInteger titleLength = [(NSAttributedString *)formatData string].length;
         if (titleLength >= limit) {
             tAtt = [[NSMutableAttributedString alloc] initWithAttributedString:[tAtt attributedSubstringFromRange:NSMakeRange(0, limit - 1)]];
             [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n...点击展开" attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self selectColor]}]];
@@ -470,12 +534,12 @@
     }else{
         tAtt = [[NSMutableAttributedString alloc] init];
         
-        NSUInteger titleLength = title.length;
+        NSUInteger titleLength = formatData.length;
         if (titleLength < limit) {
-            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
+            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:formatData attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
         }else{
-            title = [title substringToIndex:limit - 1];
-            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
+            formatData = [formatData substringToIndex:limit - 1];
+            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:formatData attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
             [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n...点击展开" attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self selectColor]}]];
         }
     }
@@ -529,14 +593,21 @@
     }
     return nil;
 }
-
+- (NSString *)removeEscapeCharacter:(NSString *)str{
+    if (!str || ![str isKindOfClass:NSString.class] || str.length == 0) {
+        return str;
+    }
+    return [str stringByReplacingOccurrencesOfString:@"\\" withString:@""];
+}
 - (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem{
     if (secItem.pasteboardBlock) {
         NSString *str = secItem.pasteboardBlock();
         // 去除转义字符
-        str = [str stringByReplacingOccurrencesOfString:@"\\" withString:@""];
+        str = [self removeEscapeCharacter:str];
         [[UIPasteboard generalPasteboard] setString:str];
-        [self showToast:@"已复制，点击分享"];
+        [self showToast:@"已复制，点击分享" duration:1.0 clickBlock:^{
+            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"weixin://"]];
+        } complete:nil];
     }
 }
 
@@ -546,9 +617,13 @@
 - (NSString *)opSecItemsMapKey_space{
     return @"spaceBlock";
 }
+- (NSString *)opSecItemsMapKey_sendSocket{
+    return @"sendSocketBlock";
+}
 - (NSDictionary *)opSecItemsMap{
     NSString *itemsKey = [self opSecItemsMapKey_items];
     NSString *spaceKey = [self opSecItemsMapKey_space];
+    NSString *sendSocketKey = [self opSecItemsMapKey_sendSocket];
     return @{
         NSStringFromClass(ZHDPListLog.class): @{
                 itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
@@ -556,6 +631,9 @@
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
                     return appDataItem.logSpaceItem;
+                },
+                sendSocketKey: ^NSString *(void){
+                    return @"log-list";
                 }
         },
         NSStringFromClass(ZHDPListNetwork.class): @{
@@ -564,6 +642,9 @@
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
                     return appDataItem.networkSpaceItem;
+                },
+                sendSocketKey: ^NSString *(void){
+                    return @"network-list";
                 }
         },
         NSStringFromClass(ZHDPListStorage.class): @{
@@ -572,6 +653,9 @@
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
                     return appDataItem.storageSpaceItem;
+                },
+                sendSocketKey: ^NSString *(void){
+                    return @"storage-list";
                 }
         },
         NSStringFromClass(ZHDPListMemory.class): @{
@@ -580,6 +664,9 @@
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
                     return appDataItem.memorySpaceItem;
+                },
+                sendSocketKey: ^NSString *(void){
+                    return @"memory-list";
                 }
         },
         NSStringFromClass(ZHDPListIM.class): @{
@@ -588,6 +675,9 @@
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
                     return appDataItem.imSpaceItem;
+                },
+                sendSocketKey: ^NSString *(void){
+                    return @"im-list";
                 }
         },
         NSStringFromClass(ZHDPListException.class): @{
@@ -596,6 +686,9 @@
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
                     return appDataItem.exceptionSpaceItem;
+                },
+                sendSocketKey: ^NSString *(void){
+                    return @"exception-list";
                 }
         }
     };
@@ -627,6 +720,57 @@
 }
 // self.window  window一旦创建就会自动显示在屏幕上
 // 如果当前列表正在显示，刷新列表
+- (void)sendSocketClientSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem colorType:(ZHDPOutputColorType)colorType{
+    if (!secItem) {
+        return;
+    }
+    return;
+    NSMutableArray *rowItems = [NSMutableArray array];
+    for (ZHDPListRowItem *rowItem in secItem.rowItems) {
+        NSMutableArray *colItems = [NSMutableArray array];
+        for (ZHDPListColItem *colItem in rowItem.colItems) {
+            [colItems addObject:@{
+                @"title": [self removeEscapeCharacter:colItem.attTitle.string?:@""],
+                @"percent": [[NSString stringWithFormat:@"%.f", colItem.percent * 100] stringByAppendingString:@"%"],
+                @"color": [[self outputColorMap] objectForKey:@(colorType)]?:@"#000000"
+            }];
+        }
+        [rowItems addObject:@{
+            @"colItems": colItems.copy
+        }];
+    }
+    NSMutableArray *detailItems = [NSMutableArray array];
+    for (ZHDPListDetailItem *detailItem in secItem.detailItems) {
+        [detailItems addObject:@{
+            @"title": [self removeEscapeCharacter:detailItem.title?:@""],
+            @"content": [self removeEscapeCharacter:detailItem.content.string?:@""],
+            @"selected": @(NO)
+        }];
+    }
+    
+    NSString *(^block) (void) = [[[self opSecItemsMap] objectForKey:NSStringFromClass(listClass)] objectForKey:[self opSecItemsMapKey_sendSocket]];
+    NSString *listId = block ? block() : @"";
+    
+    if (!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) {
+        return;
+    }
+        
+    NSDictionary *res = @{
+        @"listId": listId?:@"",
+        @"appItem": @{
+                @"appId": ((!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) ? @"App" : appItem.appId),
+                @"appName": (!appItem.appName || ![appItem.appName isKindOfClass:NSString.class] || appItem.appName.length == 0) ? @"App" : appItem.appName
+        },
+        @"msg": @{
+                @"enterMemoryTime": @(secItem.enterMemoryTime),
+                @"open": @(YES),
+                @"colItems": @[],
+                @"rowItems": rowItems.copy,
+                @"detailItems": detailItems.copy
+        }
+    };
+}
+
 - (void)addSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem{
     
     ZHDPManager *dpMg = ZHDPMg();
@@ -861,6 +1005,8 @@ static id _instance;
     };
     // 添加数据
     [self addSecItemToList:ZHDPListIM.class appItem:appItem secItem:secItem];
+    // 发送socket
+    [self sendSocketClientSecItemToList:ZHDPListIM.class appItem:appItem secItem:secItem colorType:ZHDPOutputColorType_Default];
 }
 
 - (void)zh_test_addLog{
@@ -987,6 +1133,8 @@ static id _instance;
     };
     // 添加数据
     [self addSecItemToList:ZHDPListLog.class appItem:appItem secItem:secItem];
+    // 发送socket
+    [self sendSocketClientSecItemToList:ZHDPListLog.class appItem:appItem secItem:secItem colorType:colorType];
 }
 
 - (void)zh_test_addNetwork:(NSDate *)startDate request:(NSURLRequest *)request response:(NSURLResponse *)response responseData:(NSData *)responseData{
@@ -1209,6 +1357,8 @@ static id _instance;
     };
     // 添加数据
     [self addSecItemToList:ZHDPListNetwork.class appItem:appItem secItem:secItem];
+    // 发送socket
+    [self sendSocketClientSecItemToList:ZHDPListNetwork.class appItem:appItem secItem:secItem colorType:colorType];
 }
 
 - (void)zh_test_reloadStorage{
@@ -1317,6 +1467,8 @@ static id _instance;
     };
     // 添加数据
     [self addSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem];
+    // 发送socket
+    [self sendSocketClientSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem colorType:ZHDPOutputColorType_Default];
 }
 
 - (void)zh_test_reloadMemory{
@@ -1430,6 +1582,8 @@ static id _instance;
     };
     // 添加数据
     [self addSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem];
+    // 发送socket
+    [self sendSocketClientSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem colorType:ZHDPOutputColorType_Default];
 }
 
 - (void)zh_test_addException:(NSString *)title stack:(NSString *)stack{
@@ -1528,6 +1682,8 @@ static id _instance;
     
     // 添加数据
     [self addSecItemToList:ZHDPListException.class appItem:appItem secItem:secItem];
+    // 发送socket
+    [self sendSocketClientSecItemToList:ZHDPListException.class appItem:appItem secItem:secItem colorType:colorType];
 }
 @end
 

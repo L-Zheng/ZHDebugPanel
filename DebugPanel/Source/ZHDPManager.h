@@ -87,14 +87,12 @@ typedef NS_ENUM(NSInteger, ZHDPOutputColorType) {
 
 #pragma mark - toast
 
-- (void)showToast:(NSString *)title;
+- (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^) (void))clickBlock complete:(void (^) (void))complete;
 
 #pragma mark - data
 
-- (id)jsValueToNative:(JSValue *)jsValue;
 - (void)convertToString:(id)title block:(void (^) (NSString *conciseStr, NSString *detailStr))block;
 - (NSAttributedString *)createDetailAttStr:(NSArray *)titles descs:(NSArray *)descs;
-- (ZHDPListColItem *)createColItem:(NSString *)title percent:(CGFloat)percent X:(CGFloat)X colorType:(ZHDPOutputColorType)colorType;
 
 - (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem;
 

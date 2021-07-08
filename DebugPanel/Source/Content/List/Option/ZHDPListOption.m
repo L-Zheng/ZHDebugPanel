@@ -29,7 +29,7 @@
 - (void)layoutSubviews{
     [super layoutSubviews];
     
-    CGFloat W = self.bounds.size.width * 1.0 / 7.0;
+    CGFloat W = self.items.count > 0 ? self.bounds.size.width * 1.0 / (self.items.count * 1.0) : self.bounds.size.width;
     CGFloat H = self.bounds.size.height;
     UICollectionViewLayout *layout = self.collectionView.collectionViewLayout;
     if ([layout isKindOfClass:UICollectionViewFlowLayout.class]) {

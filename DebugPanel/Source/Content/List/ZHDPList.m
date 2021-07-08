@@ -196,8 +196,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     NSMutableArray *res = [NSMutableArray array];
     
     __weak __typeof__(self) weakSelf = self;
-    NSArray *icons = @[@"\ue68b", @"\ue60b", @"\ue636", @"\ue61d", @"\ue630", @"\ue691", @"\ue60c", @"\ue681"];
-    NSArray *descs = @[@"筛选", @"查找", @"刷新", @"删除", @"顶部", @"底部", @"隐藏", @"退出"];
+    NSArray *icons = @[@"\ue68b", @"\ue60b", @"\ue636", @"\ue61d", @"\ue630", @"\ue691", @"\ue62d", @"\ue60c", @"\ue681"];
+    NSArray *descs = @[@"筛选", @"查找", @"刷新", @"删除", @"顶部", @"底部", @"同步输出", @"隐藏", @"退出"];
     NSArray *blocks = @[
         ^{
             [weakSelf.apps show];
@@ -222,6 +222,18 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
          ^{
              [weakSelf.oprate hide];
              [weakSelf scrollListToBottomCode];
+         },
+         ^{
+             if (!0) {
+                 [ZHDPMg() showToast:@"本地调试服务未连接\n同步输出不可用\n可运行run ios(socket)连接" duration:2.0 clickBlock:^{
+                 } complete:nil];
+                 [weakSelf.oprate hide];
+                 return;
+             }
+             [ZHDPMg() showToast:@"将隐藏此窗口\n启用同步输出" duration:1.0 clickBlock:nil complete:^{
+                 [weakSelf.oprate hide];
+                 [ZHDPMg() switchFloat];
+             }];
          },
          ^{
              [ZHDPMg() switchFloat];

@@ -1,9 +1,9 @@
-#包装成小程序
-echo '\n👉：包装成小程序\n'
+
+echo '\n👉：拷贝到release文件夹\n'
 rm -rf 'release'
 mkdir -p 'release'
 cp -R 'dist/' 'release/'
-cp -R 'pages.json' 'release/pages.json'
+# cp -R 'pages.json' 'release/pages.json'
 rm -rf 'release/favicon.ico'
 
 cp -R 'static' 'dist/static'

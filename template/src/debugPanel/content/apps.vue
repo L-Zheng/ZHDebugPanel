@@ -107,7 +107,7 @@ var vm = {
         }
       });
       if (fundCliItem) {
-        resItems = [fundCliItem].concat.resItems;
+        resItems = [fundCliItem].concat(resItems);
       }
       this.items = resItems;
     },

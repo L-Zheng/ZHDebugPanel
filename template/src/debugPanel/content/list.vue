@@ -431,7 +431,13 @@ var vm = {
       // console.log(DataTask.fetchAllAppDataItems())
       const appDataItems = removeAll
         ? DataTask.fetchAllAppDataItems()
-        : DataTask.fetchAppDataItem(selectAppItem);
+        : (() => {
+            const selectAppDataItem = DataTask.fetchAppDataItem(selectAppItem);
+            if (selectAppDataItem) {
+              return [selectAppDataItem];
+            }
+            return [];
+          })();
       appDataItems.forEach((el) => {
         DataTask.cleanAllItems(listMap.itemsFunc(el));
       });

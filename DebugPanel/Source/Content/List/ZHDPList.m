@@ -263,9 +263,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     }
     
     [self.oprate reloadWithItems:items];
-    NSMutableArray *optionItems = items.mutableCopy;
-    [optionItems removeLastObject];
-    [self.option reloadWithItems:optionItems.copy];
+    [self.option reloadWithItems:items];
 }
 
 #pragma mark - apps

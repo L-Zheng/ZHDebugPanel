@@ -509,10 +509,10 @@
     NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
     style.lineSpacing = 5;
     for (NSUInteger i = 0; i < titles.count; i++) {
-        NSString *title = titles[i];
+        NSString *title = [self removeEscapeCharacter:titles[i]];
         [attStr appendAttributedString:([title isKindOfClass:NSAttributedString.class] ? (NSAttributedString *)title : [[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [ZHDPMg() defaultBoldFont], NSForegroundColorAttributeName: [ZHDPMg() selectColor], NSParagraphStyleAttributeName: style}])];
         if (i < descs.count){
-            NSString *desc = descs[i];
+            NSString *desc = [self removeEscapeCharacter:descs[i]];
             [attStr appendAttributedString:([desc isKindOfClass:NSAttributedString.class] ? (NSAttributedString *)desc : [[NSAttributedString alloc] initWithString:desc attributes:@{NSFontAttributeName: [ZHDPMg() defaultFont], NSForegroundColorAttributeName: [ZHDPMg() defaultColor], NSParagraphStyleAttributeName: style}])];
         }
     }
@@ -1191,8 +1191,8 @@ static id _instance;
     NSTimeInterval durationDouble = fabs(endTimeDouble - startTimeDouble);
 //    model.startTime = [NSString stringWithFormat:@"%f", startTimeDouble];
 //    model.endTime = [NSString stringWithFormat:@"%f", endTimeDouble];
-    NSString *duration = [NSString stringWithFormat:@"%.3fs", durationDouble];
     
+    NSString *duration = [NSString stringWithFormat:@"%.3fms", durationDouble * 1000];
     NSString *appId = nil;
     NSString *appEnv = nil;
     NSString *appPath = nil;
@@ -1221,12 +1221,12 @@ static id _instance;
     appItem.appId = @"App";
     appItem.appName =  @"App";
     
-    NSArray *args = @[urlStrRemoveParams?:@"", method?:@"", statusCode?:@"", duration?:@""];
+    NSArray *args = @[urlStrRemoveParams?:@"", method?:@"", statusCode?:@""];
     // 内容
     NSInteger count = args.count;
     CGFloat freeW = [dpMg basicW] - ([dpMg marginW] * (count + 1));
-    NSArray *otherPercents = @[@(0.65 * freeW / [dpMg basicW]), @(0.10 * freeW / [dpMg basicW]), @(0.10 * freeW / [dpMg basicW]), @(0.15 * freeW / [dpMg basicW])];
-    
+    NSArray *otherPercents = @[@(0.80 * freeW / [dpMg basicW]), @(0.10 * freeW / [dpMg basicW]), @(0.10 * freeW / [dpMg basicW])];
+
     // 每一行中的各个分段数据
     NSMutableArray <ZHDPListColItem *> *colItems = [NSMutableArray array];
     
@@ -1250,7 +1250,7 @@ static id _instance;
     // 弹窗详情数据
     NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
     ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    NSArray *titles = @[@"URL: ", @"\nMethod: ", @"\nStatus Code: ", @"\nStart Time: ", @"\nEnd Time: ", @"\nDuration:"];
+    NSArray *titles = @[@"URL: ", @"\nMethod: ", @"\nStatus Code: ", @"\nStart Time: ", @"\nEnd Time: ", @"\nDuration: "];
     NSArray *descs = @[urlStr?:@"",
                        method?:@"",
                        statusCode?:@"",

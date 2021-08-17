@@ -48,10 +48,10 @@
     W = self.pasteboardBtn.frame.origin.x - X;
     H = 30;
     Y = 0;
-    UICollectionViewLayout *layout = self.collectionView.collectionViewLayout;
-    if ([layout isKindOfClass:UICollectionViewFlowLayout.class]) {
-        ((UICollectionViewFlowLayout *)layout).itemSize = CGSizeMake(50, H);
-    }
+//    UICollectionViewLayout *layout = self.collectionView.collectionViewLayout;
+//    if ([layout isKindOfClass:UICollectionViewFlowLayout.class]) {
+//        ((UICollectionViewFlowLayout *)layout).itemSize = CGSizeMake(50, H);
+//    }
     self.collectionView.frame = CGRectMake(X, Y, W, H);
     
     X = 0;
@@ -254,6 +254,14 @@
     label.text = [NSString stringWithFormat:@"%@", item.title];
     label.textColor = item.isSelected ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
     return cell;
+}
+- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath{
+    CGFloat H = collectionView.bounds.size.height;
+    ZHDPListDetailItem *item = self.items[indexPath.item];
+    if (item.fitWidth <= 0) {
+        item.fitWidth = [item.title boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, H) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: [ZHDPMg() defaultFont]} context:nil].size.width;
+    }
+    return CGSizeMake(item.fitWidth + 2 * 8, H);
 }
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
     [collectionView deselectItemAtIndexPath:indexPath animated:YES];

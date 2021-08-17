@@ -57,6 +57,7 @@
 @property (nonatomic,copy) NSString *title;
 @property (nonatomic,copy) NSAttributedString *content;
 @property (nonatomic,assign,getter=isSelected) BOOL selected;
+@property (nonatomic,assign) CGFloat fitWidth;
 @end
 
 // list中每一组的信息

@@ -141,8 +141,8 @@
 }
 - (void)panGesture:(UIPanGestureRecognizer *)panGes{
     UIView *superview = self.debugPanel.superview;
-    CGFloat superW = superview.frame.size.width;
-    CGFloat superH = superview.frame.size.height;
+//    CGFloat superW = superview.frame.size.width;
+//    CGFloat superH = superview.frame.size.height;
     
     if (panGes.state == UIGestureRecognizerStateBegan) {
         self.gesStartPoint = [panGes locationInView:superview];

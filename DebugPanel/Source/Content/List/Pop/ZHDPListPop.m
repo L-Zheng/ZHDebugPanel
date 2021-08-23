@@ -166,7 +166,7 @@
 - (void)panGesture:(UIPanGestureRecognizer *)panGes{
     UIView *superview = self.superview;
     CGFloat superW = superview.frame.size.width;
-    CGFloat superH = superview.frame.size.height;
+//    CGFloat superH = superview.frame.size.height;
     __weak __typeof__(self) weakSelf = self;
     
     if (panGes.state == UIGestureRecognizerStateBegan) {
@@ -174,11 +174,11 @@
         self.gesStartFrame = self.frame;
     } else if (panGes.state == UIGestureRecognizerStateChanged){
 
-        CGPoint velocity = [panGes velocityInView:superview];
-        NSLog(@"%.f",velocity.x);
+//        CGPoint velocity = [panGes velocityInView:superview];
+//        NSLog(@"%.f",velocity.x);
         CGPoint p = [panGes locationInView:superview];
         CGFloat offsetX = p.x - self.gesStartPoint.x;
-        CGFloat offSetY = p.y - self.gesStartPoint.y;
+//        CGFloat offSetY = p.y - self.gesStartPoint.y;
         
         CGRect realRect = CGRectZero;
         

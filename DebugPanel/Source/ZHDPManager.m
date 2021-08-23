@@ -353,7 +353,7 @@
 
 #pragma mark - toast
 
-- (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^) (void))clickBlock complete:(void (^) (void))complete{
+- (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^__nullable) (void))clickBlock complete:(void (^__nullable) (void))complete{
     self.clickToastBlock = clickBlock;
 
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];

@@ -31,7 +31,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputColorType) {
 + (instancetype)shareManager;
 @property (nonatomic,assign) ZHDPManagerStatus status;
 @property (nonatomic,strong) ZHDPDataTask *dataTask;
-@property (nonatomic,strong) ZHDPWindow *window;
+@property (nullable,nonatomic,strong) ZHDPWindow *window;
 
 #pragma mark - network
 
@@ -87,7 +87,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputColorType) {
 
 #pragma mark - toast
 
-- (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^) (void))clickBlock complete:(void (^) (void))complete;
+- (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^__nullable) (void))clickBlock complete:(void (^__nullable) (void))complete;
 
 #pragma mark - data
 

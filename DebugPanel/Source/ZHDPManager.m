@@ -555,7 +555,7 @@
     
     return colItem;
 }
-- (id)parseDataFromRequestBody:(NSData *)data{
+- (id)parseObjFromData:(NSData *)data{
     if (!data || ![data isKindOfClass:NSData.class]) {
         return nil;
     }
@@ -574,7 +574,22 @@
     } @catch (NSException *exception) {
     } @finally {
     }
+
+    if (res && [res isKindOfClass:NSString.class] && ((NSString *)res).length > 0) {
+        return res;
+    }
     
+    // string解析失败
+    return nil;
+}
+- (id)parseDataFromRequestBody:(NSData *)data{
+    id res = [self parseObjFromData:data];
+    if (!res) {
+        return nil;
+    }
+    if ([NSJSONSerialization isValidJSONObject:res]) {
+        return res;
+    }
     if (!res || ![res isKindOfClass:NSString.class] || ((NSString *)res).length == 0) {
         return nil;
     }
@@ -582,16 +597,18 @@
     // 转json
     NSURLComponents *comp = [[NSURLComponents alloc] init];
     comp.query = res;
-    res = [NSMutableDictionary dictionary];
+    NSMutableDictionary *resMap = [NSMutableDictionary dictionary];
     for (NSURLQueryItem *item in comp.queryItems) {
         if (item.name.length && item.value.length) {
-            [res setObject:item.value forKey:item.name];
+            [resMap setObject:item.value forKey:item.name];
         }
     }
-    if (res && [res isKindOfClass:NSDictionary.class] && ((NSDictionary *)res).allKeys.count > 0) {
-        return ((NSDictionary *)res).copy;
+    if (resMap.allKeys.count > 0) {
+        return resMap.copy;
     }
-    return nil;
+    
+    // 转json失败
+    return res;
 }
 - (NSString *)removeEscapeCharacter:(NSString *)str{
     if (!str || ![str isKindOfClass:NSString.class] || str.length == 0) {
@@ -1293,13 +1310,7 @@ static id _instance;
     titles = @[@"Response Data: \n"];
     descs = @[
         (^NSString *(){
-            if (!responseData) {
-                return @"";
-            }
-            id obj = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingFragmentsAllowed error:nil];
-            if (!obj) {
-                return @"";
-            }
+            id obj = [self parseObjFromData:responseData]?:@"";
             __block NSString *res = nil;
             [self convertToString:obj block:^(NSString *conciseStr, NSString *detailStr) {
                 res = detailStr;

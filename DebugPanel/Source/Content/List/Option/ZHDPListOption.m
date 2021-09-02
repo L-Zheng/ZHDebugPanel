@@ -133,7 +133,7 @@
         _collectionView.alwaysBounceHorizontal = YES;
         _collectionView.alwaysBounceVertical = NO;
         _collectionView.directionalLockEnabled = YES;
-        _collectionView.pagingEnabled = YES;
+//        _collectionView.pagingEnabled = YES;
         
         [_collectionView registerClass:[ZHDPListOprateCollectionViewCell class] forCellWithReuseIdentifier:self.collectionCellIdentifier];
     }

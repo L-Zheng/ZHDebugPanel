@@ -9,6 +9,39 @@
 #import "ZHDPListDetail.h"
 #import "ZHDPList.h"// 列表
 #import "ZHDPManager.h"// 调试面板管理
+@interface ZHDPListDetailCollectionViewCell()
+@property (nonatomic, strong) UILabel *label;
+@end
+@implementation ZHDPListDetailCollectionViewCell
+
+- (instancetype)initWithFrame:(CGRect)frame{
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.contentView.backgroundColor = [UIColor clearColor];
+    //    cell.contentView.backgroundColor = [UIColor colorWithRed:arc4random_uniform(255.0)/255.0 green:arc4random_uniform(255.0)/255.0 blue:arc4random_uniform(255.0)/255.0 alpha:0.5];
+        
+        [self.contentView addSubview:self.label];
+    }
+    return self;
+}
+- (void)layoutSubviews{
+    [super layoutSubviews];
+    self.label.frame = self.contentView.bounds;
+}
+- (void)configItem:(ZHDPListDetailItem *)item{
+    self.label.text = [NSString stringWithFormat:@"%@", item.title];
+    self.label.textColor = item.isSelected ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
+}
+- (UILabel *)label {
+    if (!_label) {
+        _label = [[UILabel alloc] initWithFrame:CGRectZero];
+        _label.textAlignment = NSTextAlignmentLeft;
+        _label.adjustsFontSizeToFitWidth = YES;
+        _label.font = [ZHDPMg() defaultFont];
+    }
+    return _label;
+}
+@end
 
 @interface ZHDPListDetail ()<UICollectionViewDataSource,UICollectionViewDelegate>
 @property (nonatomic, retain) NSArray <ZHDPListDetailItem *> *items;
@@ -237,22 +270,12 @@
     return self.items.count;
 }
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
-    UICollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:self.collectionCellIdentifier forIndexPath:indexPath];
+    ZHDPListDetailCollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:self.collectionCellIdentifier forIndexPath:indexPath];
     cell.backgroundColor = [UIColor clearColor];
     //    cell.contentView.backgroundColor = [UIColor colorWithRed:arc4random_uniform(255.0)/255.0 green:arc4random_uniform(255.0)/255.0 blue:arc4random_uniform(255.0)/255.0 alpha:1.0];
     cell.contentView.backgroundColor = [UIColor clearColor];
-    UILabel *label = [cell viewWithTag:999];
-    if (!label) {
-        label = [[UILabel alloc] initWithFrame:cell.bounds];
-        label.tag = 999;
-        label.font = [ZHDPMg() defaultFont];
-        label.textAlignment = NSTextAlignmentLeft;
-        label.adjustsFontSizeToFitWidth = YES;
-        [cell addSubview:label];
-    }
     ZHDPListDetailItem *item = self.items[indexPath.item];
-    label.text = [NSString stringWithFormat:@"%@", item.title];
-    label.textColor = item.isSelected ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
+    [cell configItem:item];
     return cell;
 }
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath{
@@ -291,7 +314,7 @@
         _collectionView.alwaysBounceHorizontal = YES;
         _collectionView.directionalLockEnabled = YES;
         
-        [_collectionView registerClass:[UICollectionViewCell class] forCellWithReuseIdentifier:self.collectionCellIdentifier];
+        [_collectionView registerClass:[ZHDPListDetailCollectionViewCell class] forCellWithReuseIdentifier:self.collectionCellIdentifier];
     }
     return _collectionView;
 }

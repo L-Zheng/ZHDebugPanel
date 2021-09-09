@@ -23,16 +23,12 @@
 @property (nonatomic,strong) NSTimer *timer;
 @property (nonatomic,strong) NSDateFormatter *dateFormat;
 @property (nonatomic,copy) void (^clickToastBlock) (void);
-@property (nonatomic,assign) BOOL debugPanelH5Enable;
+@property (nonatomic,assign) BOOL debugPanelH5Disable;
+@property (nonatomic,strong) ZHDPNetworkTask *networkTask;
+@property (nonatomic,strong) NSLock *lock;
 @end
 
 @implementation ZHDPManager
-
-#pragma mark - config
-
-- (void)config{
-    self.debugPanelH5Enable = YES;
-}
 
 #pragma mark - basic
 
@@ -84,19 +80,14 @@
 
 #pragma mark - open close
 
-- (void)openOnlyFunction{
-    if (self.status == ZHDPManagerStatus_Open) {
-        return;
-    }
-    self.status = ZHDPManagerStatus_Open;
-}
 - (void)open{
+    dispatch_async(dispatch_get_main_queue(), ^{
     if (self.status == ZHDPManagerStatus_Open) {
         return;
     }
     self.status = ZHDPManagerStatus_Open;
     [self startMonitorMpLog];
-    [self.networkTask interceptNetwork];
+    [[self createNetworkTask] interceptNetwork];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(receiveImMessage:) name:@"ZHSDKImMessageToConsoleNotification" object:nil];
     
     if ([self fetchKeyWindow]) {
@@ -105,27 +96,51 @@
     }
     
     [self addTimer:0.5];
+    });
 }
 - (void)openInternal{
+    dispatch_async(dispatch_get_main_queue(), ^{
     if (self.status != ZHDPManagerStatus_Open) {
         return;
     }
     [self.window showFloat:[self fetchFloatTitle]];
     [self.window hideDebugPanel];
+    });
 }
 - (void)close{
+    __weak __typeof__(_window) _weakWindow = _window;
+    dispatch_async(dispatch_get_main_queue(), ^{
     if (self.status != ZHDPManagerStatus_Open) {
         return;
     }
     self.status = ZHDPManagerStatus_Close;
     [self removeTimer];
     [self stopMonitorMpLog];
-    if (_networkTask) [self.networkTask cancelNetwork];
+    [[self fetchNetworkTask] cancelNetwork];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"ZHSDKImMessageToConsoleNotification" object:nil];
     
-    if (!_window) return;
+    if (!_weakWindow) return;
     self.window.hidden = YES;
     self.window = nil;
+    });
+}
+
+#pragma mark - network
+
+- (ZHDPNetworkTask *)fetchNetworkTask{
+    [self.lock lock];
+    ZHDPNetworkTask *res = self.networkTask;
+    [self.lock unlock];
+    return res;
+}
+- (ZHDPNetworkTask *)createNetworkTask{
+    [self.lock lock];
+    if (!self.networkTask) {
+        self.networkTask = [[ZHDPNetworkTask alloc] init];
+    }
+    ZHDPNetworkTask *res = self.networkTask;
+    [self.lock unlock];
+    return res;
 }
 
 #pragma mark - window
@@ -189,7 +204,7 @@
         [ZHDPMg() showToast:@"点击以使用同步输出" duration:2.0 clickBlock:^{
             [ZHDPMg() switchFloat];
         } complete:nil];
-        self.debugPanelH5Enable = NO;
+        self.debugPanelH5Disable = YES;
     }
 }
 
@@ -876,15 +891,6 @@
     }
 }
 
-#pragma mark - getter
-
-- (ZHDPNetworkTask *)networkTask{
-    if (!_networkTask) {
-        _networkTask = [[ZHDPNetworkTask alloc] init];
-    }
-    return _networkTask;
-}
-
 #pragma mark - share
 
 - (instancetype)init{
@@ -892,7 +898,7 @@
         // 只加载一次的资源
         static dispatch_once_t onceToken;
         dispatch_once(&onceToken, ^{
-            [self config];
+            self.lock = [[NSLock alloc] init];
         });
     }
     return self;
@@ -1178,7 +1184,7 @@ static id _instance;
     NSDictionary *headers = request.allHTTPHeaderFields;
     NSDictionary *responseHeaders = httpResponse.allHeaderFields;
     NSDictionary *paramsInBody = [self parseDataFromRequestBody:request.HTTPBody];
-    NSDictionary *paramsInBodyStream = [self parseDataFromRequestBody:[dpMg.networkTask convertToDataByInputStream:request.HTTPBodyStream]];
+    NSDictionary *paramsInBodyStream = [self parseDataFromRequestBody:[[dpMg fetchNetworkTask] convertToDataByInputStream:request.HTTPBodyStream]];
     NSString *urlStr = url.absoluteString;
     NSString *host = [request valueForHTTPHeaderField:@"host"];
     if (host) {

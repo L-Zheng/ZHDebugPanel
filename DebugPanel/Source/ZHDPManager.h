@@ -33,10 +33,6 @@ typedef NS_ENUM(NSInteger, ZHDPOutputColorType) {
 @property (nonatomic,strong) ZHDPDataTask *dataTask;
 @property (nullable,nonatomic,strong) ZHDPWindow *window;
 
-#pragma mark - network
-
-@property (nonatomic,strong) ZHDPNetworkTask *networkTask;
-
 #pragma mark - basic
 
 - (CGFloat)basicW;
@@ -56,6 +52,10 @@ typedef NS_ENUM(NSInteger, ZHDPOutputColorType) {
 
 - (void)open;
 - (void)close;
+
+#pragma mark - network
+
+- (ZHDPNetworkTask *)fetchNetworkTask;
 
 #pragma mark - window
 

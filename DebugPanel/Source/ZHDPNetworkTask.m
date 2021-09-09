@@ -178,7 +178,7 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     // return YES:拦截   return NO:不拦截
     
     
-    if (!ZHDPMg().networkTask.interceptEnable) {
+    if (![ZHDPMg() fetchNetworkTask].interceptEnable) {
         return NO;
     }
     
@@ -338,7 +338,7 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 
 
 @interface ZHDPNetworkTask ()
-@property (nonatomic,strong) ZHDPNetworkTaskProtocol *taskProtocol;
+//@property (nonatomic,strong) ZHDPNetworkTaskProtocol *taskProtocol;
 @end
 @implementation ZHDPNetworkTask
 
@@ -375,12 +375,12 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     return data;
 }
 
-- (ZHDPNetworkTaskProtocol *)taskProtocol{
-    if (!_taskProtocol) {
-        _taskProtocol = [[ZHDPNetworkTaskProtocol alloc] init];
-    }
-    return _taskProtocol;
-}
+//- (ZHDPNetworkTaskProtocol *)taskProtocol{
+//    if (!_taskProtocol) {
+//        _taskProtocol = [[ZHDPNetworkTaskProtocol alloc] init];
+//    }
+//    return _taskProtocol;
+//}
 
 @end
 

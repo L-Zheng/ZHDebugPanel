@@ -22,7 +22,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     ZHDPScrollStatus_DraggingDecelerate      = 2,//拖拽后减速
 };
 
-@interface ZHDPList () <UITableViewDataSource,UITableViewDelegate>
+@interface ZHDPList ()
 
 @property (nonatomic,retain) NSMutableArray *items_temp;
 @property (nonatomic,retain) NSMutableArray *removeItems_temp;
@@ -108,14 +108,34 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
         return NO;
     }
     
+    ZHDPFilterItem *filterItem = self.apps.selectItem;
+    
     // 筛选appId
-    ZHDPAppItem *selectAppItem = self.apps.selectItem;
+    ZHDPAppItem *selectAppItem = filterItem.appItem;
     ZHDPAppItem *cAppItem = secItem.appDataItem.appItem;
     if (selectAppItem && cAppItem) {
         if (![selectAppItem.appId isEqualToString:cAppItem.appId]) {
             return NO;
         }
     }
+    
+    // 筛选page
+    NSString *selectPage = filterItem.page;
+    NSString *cPage = secItem.filterItem.page;
+    if (selectPage && [selectPage isKindOfClass:NSString.class] && selectPage.length > 0) {
+        if (!cPage || ![cPage isKindOfClass:NSString.class] || cPage.length == 0 ||
+            ![selectPage isEqualToString:cPage]) {
+            return NO;
+        }
+    }
+    
+    // 筛选日志类型
+    ZHDPOutputType selectType = filterItem.outputItem.type;
+    if (selectType != ZHDPOutputType_All &&
+        selectType != secItem.filterItem.outputItem.type) {
+        return NO;
+    }
+    
     
     // 筛选搜索关键字
     NSString *keyword = self.search.keyWord;
@@ -212,8 +232,10 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
          },
          ^{
              [weakSelf.oprate hide];
-             [ZHDPMg() clearSecItemsList:weakSelf.class appItem:self.apps.selectItem];
-//             [ZHDPMg() removeSecItemsList:weakSelf.class secItems:weakSelf.items.copy];
+//             [ZHDPMg() clearSecItemsList:weakSelf.class appItem:self.apps.selectItem.appItem];
+             [weakSelf deleteStore:weakSelf.items.copy];
+             [ZHDPMg() removeSecItemsList:weakSelf.class secItems:weakSelf.items.copy instant:NO];
+             weakSelf.allowScrollAuto = YES;
          },
          ^{
              [weakSelf.oprate hide];
@@ -255,10 +277,10 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 - (void)relaodOprate{
     NSArray <ZHDPListOprateItem *> *items = [self fetchOprateItems];
     
-    ZHDPAppItem *selectAppItem = self.apps.selectItem;
-    if (selectAppItem && items.count > 0) {
+    ZHDPFilterItem *filterItem = self.apps.selectItem;
+    if ((filterItem.appItem || (filterItem.outputItem.type != ZHDPOutputType_All)) && items.count > 0) {
         ZHDPListOprateItem *item = items.firstObject;
-        item.desc = selectAppItem.appName;
+        item.desc = filterItem.appItem.appName?:filterItem.outputItem.desc;
         item.textColor = [ZHDPMg() selectColor];
     }
     
@@ -268,7 +290,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 
 #pragma mark - apps
 
-- (void)selectListApps:(ZHDPAppItem *)item{
+- (void)selectListApps:(ZHDPFilterItem *)item{
     [self relaodOprate];
     [self.apps hide];
     [self reloadListWhenSelectApp];
@@ -314,26 +336,26 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     block();
     [self reloadList];
 }
-- (void)removeSecItems:(NSArray <ZHDPListSecItem *> *)secItems{
+- (void)removeSecItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant{
     if (!secItems || ![secItems isKindOfClass:NSArray.class] || secItems.count == 0 || self.items.count == 0) {
         return;
     }
     [self.removeItems_temp addObjectsFromArray:secItems];
-    [self removeSecItemFrequently];
+    instant ? [self removeSecItemInstant] : [self removeSecItemFrequently];
 }
-- (void)removeSecItem:(ZHDPListSecItem *)secItem{
-    if (!secItem || ![secItem isKindOfClass:ZHDPListSecItem.class] || self.items.count == 0) return;
-    if ([self.items containsObject:secItem]) {
-        [self.removeItems_temp addObject:secItem];
-        [self removeSecItemFrequently];
-    }
-}
-- (void)clearSecItems{
-    if (self.items.count == 0) return;
-    [self.items removeAllObjects];
-    self.allowScrollAuto = YES;
-    [self reloadList];
-}
+//- (void)removeSecItem:(ZHDPListSecItem *)secItem{
+//    if (!secItem || ![secItem isKindOfClass:ZHDPListSecItem.class] || self.items.count == 0) return;
+//    if ([self.items containsObject:secItem]) {
+//        [self.removeItems_temp addObject:secItem];
+//        [self removeSecItemFrequently];
+//    }
+//}
+//- (void)clearSecItems{
+//    if (self.items.count == 0) return;
+//    [self.items removeAllObjects];
+//    self.allowScrollAuto = YES;
+//    [self reloadList];
+//}
 - (void)removeSecItemFrequently{
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(removeSecItemInstant) object:nil];
     [self performSelector:@selector(removeSecItemInstant) withObject:nil afterDelay:0.25];
@@ -380,6 +402,11 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     
     [self.tableView reloadData];
     [self scrollListToBottomAuto];
+}
+
+#pragma mark - delete store
+
+- (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
 }
 
 #pragma mark - scroll
@@ -482,6 +509,19 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 }
 
 #pragma mark - UITableViewDelegate
+
+// 编辑
+- (UITableViewCellEditingStyle)tableView:(UITableView *)tableView editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return UITableViewCellEditingStyleDelete;
+}
+- (NSString *)tableView:(UITableView *)tableView titleForDeleteConfirmationButtonForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return @"删除";
+}
+- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath{
+    if (UITableViewCellEditingStyleDelete == editingStyle) {
+        [ZHDPMg() removeSecItemsList:self.class secItems:@[self.items[indexPath.section]] instant:YES];
+    }
+}
 
 // 存在问题  tableView为多组一行(行高为1像素)模式  调用滚动函数scrollToRowAtIndexPath  有可能滚动不到最底部
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
@@ -636,7 +676,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     if (!_apps) {
         _apps = [[ZHDPListApps alloc] initWithFrame:CGRectZero];
         __weak __typeof__(self) weakSelf = self;
-        _apps.selectBlock = ^(ZHDPAppItem * _Nonnull item) {
+        _apps.selectBlock = ^(ZHDPFilterItem * _Nonnull item) {
             [weakSelf selectListApps:item];
         };
         _apps.list = self;

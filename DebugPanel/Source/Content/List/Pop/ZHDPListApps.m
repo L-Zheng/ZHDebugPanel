@@ -9,13 +9,18 @@
 #import "ZHDPListApps.h"
 #import "ZHDPManager.h"// 调试面板管理
 #import "ZHDPList.h"// 列表
+#import "ZHDPFilterApp.h"
+#import "ZHDPFilterPage.h"
+#import "ZHDPFilterType.h"
 
-@interface ZHDPListApps ()<UITableViewDataSource,UITableViewDelegate>
+@interface ZHDPListApps ()
 @property (nonatomic,strong) UILabel *topTipLabel;
-@property (nonatomic,strong) UITableView *tableView;
-@property (nonatomic,retain) NSArray <ZHDPAppItem *> *items;
-@property (nonatomic,strong) UILabel *tipLabel;
 @property (nonatomic,strong) UIButton *selectAllBtn;
+@property (nonatomic,strong) UIButton *cancelBtn;
+@property (nonatomic,strong) UIButton *sureBtn;
+@property (nonatomic,strong) ZHDPFilterApp *filterApp;
+@property (nonatomic,strong) ZHDPFilterPage *filterPage;
+@property (nonatomic,strong) ZHDPFilterType *filterType;
 @end
 
 @implementation ZHDPListApps
@@ -39,21 +44,28 @@
     CGFloat H = 44;
     self.topTipLabel.frame = CGRectMake(X, Y, W, H);
     
+    
+    CGFloat splitScale = 1.0 / 3.0;
+    
     X = self.shadowView.frame.origin.x;
     H = 44;
     Y = self.shadowView.frame.size.height - H;
-    W = self.shadowView.frame.size.width;
+    W = self.shadowView.frame.size.width * splitScale;
     self.selectAllBtn.frame = CGRectMake(X, Y, W, H);
+    
+    self.sureBtn.frame = CGRectMake(CGRectGetMaxX(self.selectAllBtn.frame), Y, W, H);
+    
+    self.cancelBtn.frame = CGRectMake(CGRectGetMaxX(self.sureBtn.frame), Y, W, H);
     
     X = self.shadowView.frame.origin.x;
     Y = CGRectGetMaxY(self.topTipLabel.frame);
-    W = self.shadowView.frame.size.width;
+    W = self.shadowView.frame.size.width * splitScale;
     H = self.selectAllBtn.frame.origin.y - Y;
-    self.tableView.frame = CGRectMake(X, Y, W, H);
+    self.filterApp.frame = CGRectMake(X, Y, W, H);
     
-    self.tipLabel.frame = CGRectMake(0, 0, self.shadowView.frame.size.width, 44);
+    self.filterPage.frame = CGRectMake(CGRectGetMaxX(self.filterApp.frame), Y, W, H);
     
-    [self reloadListFrequently];
+    self.filterType.frame = CGRectMake(CGRectGetMaxX(self.filterPage.frame), Y, W, H);
 }
 - (void)willMoveToSuperview:(UIView *)newSuperview{
     [super willMoveToSuperview:newSuperview];
@@ -71,7 +83,7 @@
     return 0;
 }
 - (CGFloat)defaultPopW{
-    return 200;
+    return 300;
 }
 - (CGFloat)minPopW{
     return 0;
@@ -137,8 +149,6 @@
     return YES;
 }
 - (void)reloadList{
-    self.tableView.tableFooterView = (self.items.count <= 0 ? self.tipLabel : [UIView new]);
-    [self.tableView reloadData];
 }
 
 #pragma mark - config
@@ -149,42 +159,75 @@
 - (void)configUI{
     [super configUI];
     [self addSubview:self.topTipLabel];
-    [self addSubview:self.tableView];
+    [self addSubview:self.filterApp];
+    [self addSubview:self.filterPage];
+    [self addSubview:self.filterType];
     [self addSubview:self.selectAllBtn];
+    [self addSubview:self.cancelBtn];
+    [self addSubview:self.sureBtn];
 }
 
 #pragma mark - data
 
 - (void)reloadSecItems{
     NSArray <ZHDPListSecItem *> *secItems = [self.list fetchAllItems]?:@[];
-    ZHDPAppItem *fundCliItem = nil;
-    NSMutableArray *appIds = [NSMutableArray array];
-    NSMutableArray *items = [NSMutableArray array];
+    
+    NSMutableDictionary *map = [NSMutableDictionary dictionary];
     for (ZHDPListSecItem *secItem in secItems) {
-        ZHDPAppItem *appItem = secItem.appDataItem.appItem;
-        NSString *appId = appItem.appId;
-        if (!appId || ![appId isKindOfClass:NSString.class] || appId.length == 0) {
-            continue;
+        @autoreleasepool {
+            ZHDPFilterItem *filterItem = secItem.filterItem;
+            ZHDPAppItem *appItem = filterItem.appItem;
+            NSString *appId = appItem.appId;
+            if (!appId || ![appId isKindOfClass:NSString.class] || appId.length == 0) {
+                continue;
+            }
+            ZHDPFilterListItem *listItem = [map objectForKey:appId];
+            if (!listItem) {
+                listItem = [[ZHDPFilterListItem alloc] init];
+                [map setObject:listItem forKey:appId];
+            }
+            listItem.appItem = appItem;
+            
+            if (!filterItem.page || ![filterItem.page isKindOfClass:NSString.class] || filterItem.page.length == 0) {
+                continue;
+            }
+            
+            NSMutableArray *subItems = [NSMutableArray arrayWithArray:listItem.pageFilterItems?:@[]];
+            
+            BOOL contain = NO;
+            for (ZHDPFilterItem *filterItemTemp in subItems) {
+                if ((!filterItemTemp.page && !filterItem.page) ||
+                    [filterItemTemp.page isEqualToString:filterItem.page]) {
+                    contain = YES;
+                    break;
+                }
+            }
+            if (contain) continue;
+            
+            [subItems addObject:filterItem];
+            listItem.pageFilterItems = subItems.copy;
         }
-        if ([appIds containsObject:appId]) continue;
-        [appIds addObject:appId];
-        if (appItem.isFundCli) {
-            fundCliItem = appItem;
+    }
+    NSMutableArray *newListItems = [NSMutableArray array];
+    NSArray *listItems = map.allValues;
+    ZHDPFilterListItem *fundCliItem = nil;
+    for (ZHDPFilterListItem *listItem in listItems) {
+        if (listItem.appItem.isFundCli) {
+            fundCliItem = listItem;
         }else{
-            [items addObject:appItem];
+            [newListItems addObject:listItem];
         }
     }
     if (fundCliItem) {
-        [items insertObject:fundCliItem atIndex:0];
+        [newListItems insertObject:fundCliItem atIndex:0];
     }
-    // 修改了self.items要立即刷新
-    self.items = items.copy;
-    [self reloadListInstant];
+    [self.filterApp reloadItems:newListItems];
+    [self.filterType reloadItems];
 }
 
 #pragma mark - select
 
-- (void)selectAppItem:(ZHDPAppItem *)item{
+- (void)selectItem:(ZHDPFilterItem *)item{
     self.selectItem = item;
     if (self.selectBlock) self.selectBlock(self.selectItem);
 }
@@ -192,46 +235,64 @@
 #pragma mark - click
 
 - (void)selectAllBtnClick:(UIButton *)btn{
-    [self selectAppItem:nil];
+    [self.filterApp selectAllBtnClick];
+    [self.filterPage selectAllBtnClick];
+    [self.filterType selectAllBtnClick];
+    [self selectItem:nil];
 }
-
-#pragma mark - UITableViewDelegate
-
-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
-    return self.items.count;
+- (void)cancelBtnClick:(UIButton *)btn{
+    [self hide];
 }
-- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
-    return 44;
-}
-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
-    NSString *cellID = [NSString stringWithFormat:@"%@_UITableViewCell", NSStringFromClass(self.class)];
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
-    if (!cell) {
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID];
-        cell.clipsToBounds = YES;
-        cell.backgroundColor = [UIColor clearColor];
-        cell.contentView.backgroundColor = [UIColor clearColor];
-        cell.backgroundView = [UIView new];
-        
-        cell.textLabel.font = [ZHDPMg() defaultFont];
-        cell.textLabel.numberOfLines = 0;
-        cell.textLabel.adjustsFontSizeToFitWidth = YES;
+- (void)sureBtnClick:(UIButton *)btn{
+    ZHDPFilterItem *item = [[ZHDPFilterItem alloc] init];
+    item.appItem = self.filterApp.selectItem.appItem;
+    if (!item.appItem) {
+        item.page = nil;
+    }else{
+        if (!self.filterPage.selectItem) {
+            item.page = nil;
+        }else{
+            if ([item.appItem.appId isEqualToString:self.filterPage.selectItem.appItem.appId]) {
+                item.page = self.filterPage.selectItem.page;
+            }else{
+                item.page = nil;
+            }
+        }
     }
-    ZHDPAppItem *appItem = self.items[indexPath.row];
-    cell.textLabel.text = appItem.appName;
-    
-    NSString *appId = self.selectItem.appId;
-    cell.textLabel.textColor = [appId isEqualToString:appItem.appId] ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
-    return cell;
-}
-- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
-    [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    
-    [self selectAppItem:self.items[indexPath.row]];
+    item.outputItem = self.filterType.selectItem;
+    [self selectItem:item];
 }
 
 #pragma mark - getter
 
+- (ZHDPFilterApp *)filterApp{
+    if (!_filterApp) {
+        _filterApp = [[ZHDPFilterApp alloc] initWithFrame:CGRectZero];
+        __weak __typeof__(self) __self = self;
+        _filterApp.selectBlock = ^(ZHDPFilterListItem * _Nonnull item) {
+            [__self.filterPage reloadItem:item];
+        };
+    }
+    return _filterApp;
+}
+- (ZHDPFilterPage *)filterPage{
+    if (!_filterPage) {
+        _filterPage = [[ZHDPFilterPage alloc] initWithFrame:CGRectZero];
+        _filterPage.selectBlock = ^(ZHDPFilterItem * _Nonnull item) {
+            
+        };
+    }
+    return _filterPage;
+}
+- (ZHDPFilterType *)filterType{
+    if (!_filterType) {
+        _filterType = [[ZHDPFilterType alloc] initWithFrame:CGRectZero];
+        _filterType.selectBlock = ^(ZHDPOutputItem * _Nonnull item) {
+            
+        };
+    }
+    return _filterType;
+}
 - (UILabel *)topTipLabel {
     if (!_topTipLabel) {
         _topTipLabel = [[UILabel alloc] initWithFrame:CGRectZero];
@@ -244,49 +305,34 @@
     }
     return _topTipLabel;
 }
-- (UITableView *)tableView {
-    if (!_tableView) {
-        _tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
-        _tableView.backgroundColor = [UIColor clearColor];
-        
-        _tableView.directionalLockEnabled = YES;
-        _tableView.delegate = self;
-        _tableView.dataSource = self;
-        
-        _tableView.layer.borderColor = [ZHDPMg() defaultLineColor].CGColor;
-        _tableView.layer.borderWidth = [ZHDPMg() defaultLineW];
-        
-        _tableView.separatorInset = UIEdgeInsetsZero;
-        _tableView.separatorStyle = UITableViewCellSeparatorStyleSingleLine;
-    }
-    return _tableView;
-}
-- (UILabel *)tipLabel {
-    if (!_tipLabel) {
-        _tipLabel = [[UILabel alloc] initWithFrame:CGRectZero];
-        _tipLabel.font = [ZHDPMg() defaultFont];
-        _tipLabel.textAlignment = NSTextAlignmentCenter;
-        _tipLabel.text = @"内容为空";
-        _tipLabel.numberOfLines = 0;
-        _tipLabel.textColor = [UIColor blackColor];
-        _tipLabel.backgroundColor = [UIColor clearColor];
-        _tipLabel.adjustsFontSizeToFitWidth = NO;
-    }
-    return _tipLabel;
-}
 - (UIButton *)selectAllBtn{
     if (!_selectAllBtn) {
-        _selectAllBtn = [[UIButton alloc] initWithFrame:CGRectZero];
-        _selectAllBtn.backgroundColor = [UIColor clearColor];
-        _selectAllBtn.titleLabel.font = [ZHDPMg() defaultBoldFont];
-        _selectAllBtn.titleLabel.adjustsFontSizeToFitWidth = YES;
-        
-        [_selectAllBtn setTitle:@"选择全部" forState:UIControlStateNormal];
-        [_selectAllBtn setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-        
-        [_selectAllBtn addTarget:self action:@selector(selectAllBtnClick:) forControlEvents:UIControlEventTouchUpInside];
+        _selectAllBtn = [self createBtn:@"选择全部" action:@selector(selectAllBtnClick:)];
     }
     return _selectAllBtn;
 }
-
+- (UIButton *)cancelBtn{
+    if (!_cancelBtn) {
+        _cancelBtn = [self createBtn:@"取消" action:@selector(cancelBtnClick:)];
+    }
+    return _cancelBtn;
+}
+- (UIButton *)sureBtn{
+    if (!_sureBtn) {
+        _sureBtn = [self createBtn:@"确定" action:@selector(sureBtnClick:)];
+    }
+    return _sureBtn;
+}
+- (UIButton *)createBtn:(NSString *)title action:(SEL)action{
+    UIButton *btn = [[UIButton alloc] initWithFrame:CGRectZero];
+    btn.backgroundColor = [UIColor clearColor];
+    btn.titleLabel.font = [ZHDPMg() defaultBoldFont];
+    btn.titleLabel.adjustsFontSizeToFitWidth = YES;
+    
+    [btn setTitle:title forState:UIControlStateNormal];
+    [btn setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    
+    [btn addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+    return btn;
+}
 @end

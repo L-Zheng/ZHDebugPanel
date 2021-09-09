@@ -29,6 +29,60 @@
 }
 @end
 
+// 某条日志的输出类型
+@implementation ZHDPOutputItem
++ (NSDictionary *)outputMap{
+    return @{
+        @(ZHDPOutputType_Log): @{
+                @"color": @"#000000",
+                @"desc": @"log"
+        },
+        @(ZHDPOutputType_Info): @{
+                @"color": @"#000000",
+                @"desc": @"info"
+        },
+        @(ZHDPOutputType_Debug): @{
+                @"color": @"#000000",
+                @"desc": @"debug"
+        },
+        @(ZHDPOutputType_Warning): @{
+                @"color": @"#FFD700",
+                @"desc": @"warning"
+        },
+        @(ZHDPOutputType_Error): @{
+                @"color": @"#DC143C",
+                @"desc": @"error"
+        }
+    };
+}
++ (NSArray <ZHDPOutputItem *> *)allItems{
+    NSMutableArray *arr = [NSMutableArray array];
+    NSArray *types = [self outputMap].allKeys;
+    for (NSNumber *typeNum in types) {
+        ZHDPOutputItem *item = [[ZHDPOutputItem alloc] init];
+        item.type = typeNum.integerValue;
+        [arr addObject:item];
+    }
+    return arr.copy;
+}
++ (NSString *)colorStrByType:(ZHDPOutputType)type{
+    return [[[self outputMap] objectForKey:@(type)] objectForKey:@"color"];
+}
+- (NSString *)colorStr{
+    return [self.class colorStrByType:self.type]?:@"#000000";
+}
+- (NSString *)desc{
+    return [[[self.class outputMap] objectForKey:@(self.type)] objectForKey:@"desc"];
+}
+@end
+
+// 某条日志的简要信息
+@implementation ZHDPFilterItem
+@end
+
+@implementation ZHDPFilterListItem
+@end
+
 // list中每一行中每一分段的信息
 @implementation ZHDPListColItem
 @end

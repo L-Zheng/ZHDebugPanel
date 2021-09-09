@@ -40,5 +40,29 @@
 //    }
     [super reloadListWhenShow];
 }
+#pragma mark - delete store
+
+- (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
+//    for (ZHDPListSecItem *secItem in secItems) {
+//        @autoreleasepool {
+//            if (secItem.rowItems.count == 0 ||  secItem.rowItems.firstObject.colItems.count == 0) {
+//                continue;
+//            }
+//            NSString *key =  secItem.rowItems.firstObject.colItems.firstObject.attTitle.string;
+//            [[ZHMemoryManager shareManager] removeMemorySync:@{@"key": key?:@""} appId:nil extraInfo:nil];
+//        }
+//    }
+}
+
+#pragma mark - UITableViewDelegate
+
+- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath{
+    // 删除
+    [self deleteStore:@[self.items[indexPath.section]]];
+    
+    [super tableView:tableView commitEditingStyle:editingStyle forRowAtIndexPath:indexPath];
+}
+
+
 
 @end

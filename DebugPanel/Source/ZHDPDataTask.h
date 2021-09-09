@@ -10,6 +10,7 @@
 #import <UIKit/UIKit.h>
 @class ZHDPManager;// 调试面板管理
 @class ZHDPAppDataItem;// 某个app的数据
+@class ZHDPAppItem;
 
 /* 数据结构
  @{
@@ -39,8 +40,38 @@
 @property (nonatomic,copy) NSString *title;
 @end
 
+// 某条日志的输出类型
+typedef NS_ENUM(NSInteger, ZHDPOutputType) {
+    ZHDPOutputType_All     = 0,
+    ZHDPOutputType_Log     = 1,
+    ZHDPOutputType_Info     = 2,
+    ZHDPOutputType_Debug     = 3,
+    ZHDPOutputType_Warning      = 4,
+    ZHDPOutputType_Error      = 5,
+};
+@interface ZHDPOutputItem : NSObject
++ (NSArray <ZHDPOutputItem *> *)allItems;
++ (NSString *)colorStrByType:(ZHDPOutputType)type;
+@property (nonatomic,assign) ZHDPOutputType type;
+@property (nonatomic,copy,readonly) NSString *colorStr;
+@property (nonatomic,copy,readonly) NSString *desc;
+@end
+
+// 某条日志的简要信息
+@interface ZHDPFilterItem : NSObject
+@property (nonatomic,strong) ZHDPAppItem *appItem;// 属于哪个app
+@property (nonatomic,copy) NSString *page;// 属于哪个页面
+@property (nonatomic,strong) ZHDPOutputItem *outputItem;// 日志类型
+@end
+
+@interface ZHDPFilterListItem : NSObject
+@property (nonatomic,strong) ZHDPAppItem *appItem;// 属于哪个app
+@property (nonatomic,retain) NSArray <ZHDPFilterItem *> *pageFilterItems;
+@end
+
 // list中每一行中每一分段的信息
 @interface ZHDPListColItem : NSObject
+@property (nonatomic,strong) ZHDPFilterItem *filterItem;
 @property (nonatomic,copy) NSAttributedString *attTitle;
 @property (nonatomic,assign) CGFloat percent;
 @property (nonatomic,strong) NSValue *rectValue;
@@ -48,6 +79,7 @@
 
 // list中每一行的信息
 @interface ZHDPListRowItem : NSObject
+@property (nonatomic,strong) ZHDPFilterItem *filterItem;
 @property (nonatomic,retain) NSArray <ZHDPListColItem *> *colItems;
 @property (nonatomic,assign) CGFloat rowH;
 @end
@@ -63,6 +95,7 @@
 // list中每一组的信息
 @interface ZHDPListSecItem : NSObject
 @property (nonatomic,weak) ZHDPAppDataItem *appDataItem;
+@property (nonatomic,strong) ZHDPFilterItem *filterItem;
 
 @property (nonatomic,assign) NSTimeInterval enterMemoryTime;
 @property (nonatomic,assign,getter=isOpen) BOOL open;

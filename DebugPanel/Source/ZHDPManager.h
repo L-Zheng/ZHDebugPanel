@@ -20,12 +20,6 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
     ZHDPManagerStatus_Close      = 2
 };
 
-typedef NS_ENUM(NSInteger, ZHDPOutputColorType) {
-    ZHDPOutputColorType_Default     = 0,
-    ZHDPOutputColorType_Warning      = 1,
-    ZHDPOutputColorType_Error      = 2,
-};
-
 @interface ZHDPManager : NSObject
 
 + (instancetype)shareManager;
@@ -82,9 +76,6 @@ typedef NS_ENUM(NSInteger, ZHDPOutputColorType) {
 - (CGFloat)defaultLineW;
 - (CGFloat)defaultCornerRadius;
 
-- (NSDictionary *)outputColorMap;
-- (UIColor *)fetchOutputColor:(ZHDPOutputColorType)type;
-
 #pragma mark - toast
 
 - (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^__nullable) (void))clickBlock complete:(void (^__nullable) (void))complete;
@@ -98,8 +89,8 @@ typedef NS_ENUM(NSInteger, ZHDPOutputColorType) {
 
 - (NSArray <ZHDPListSecItem *> *)fetchAllAppDataItems:(Class)listClass;
 - (void)addSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem;
-- (void)removeSecItemsList:(Class)listClass secItems:(NSArray <ZHDPListSecItem *> *)secItems;
-- (void)clearSecItemsList:(Class)listClass appItem:(ZHDPAppItem *)appItem;
+- (void)removeSecItemsList:(Class)listClass secItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant;
+//- (void)clearSecItemsList:(Class)listClass appItem:(ZHDPAppItem *)appItem;
 
 @end
 

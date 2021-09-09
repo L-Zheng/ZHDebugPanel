@@ -13,7 +13,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface ZHDPList : ZHDPComponent
+@interface ZHDPList : ZHDPComponent <UITableViewDataSource,UITableViewDelegate>
 @property (nonatomic,strong) ZHDPListItem *item;
 
 @property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *items;
@@ -35,9 +35,9 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma mark - reload
 
 - (void)addSecItem:(ZHDPListSecItem *)item spaceItem:(ZHDPDataSpaceItem *)spaceItem;
-- (void)removeSecItems:(NSArray <ZHDPListSecItem *> *)secItems;
-- (void)removeSecItem:(ZHDPListSecItem *)secItem;
-- (void)clearSecItems;
+- (void)removeSecItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant;
+//- (void)removeSecItem:(ZHDPListSecItem *)secItem;
+//- (void)clearSecItems;
 - (void)reloadListWhenShow;
 - (void)reloadList;
 - (void)scrollListToBottomCode;

@@ -311,18 +311,10 @@
     return 10.0;
 }
 
-- (NSDictionary *)outputColorMap{
-    return @{
-        @(ZHDPOutputColorType_Error): @"#DC143C",
-        @(ZHDPOutputColorType_Warning): @"#FFD700",
-        @(ZHDPOutputColorType_Default): @"#000000"
-    };
-}
-- (UIColor *)fetchOutputColor:(ZHDPOutputColorType)type{
-    NSDictionary *map = [self outputColorMap];
-    NSString *str = [map objectForKey:@(type)];
+- (UIColor *)fetchOutputColor:(ZHDPOutputType)type{
+    NSString *str = [ZHDPOutputItem colorStrByType:type];
     if (!str || ![str isKindOfClass:NSString.class] || str.length == 0) {
-        str = [map objectForKey:@(ZHDPOutputColorType_Default)];
+        str = [ZHDPOutputItem colorStrByType:ZHDPOutputType_Log];
     }
     return [self zhdp_str2Color:str];
 }
@@ -533,7 +525,7 @@
     }
     return [[NSAttributedString alloc] initWithAttributedString:attStr];
 }
-- (ZHDPListColItem *)createColItem:(NSString *)formatData percent:(CGFloat)percent X:(CGFloat)X colorType:(ZHDPOutputColorType)colorType{
+- (ZHDPListColItem *)createColItem:(NSString *)formatData percent:(CGFloat)percent X:(CGFloat)X colorType:(ZHDPOutputType)colorType{
 
     formatData = formatData?:@"";
     NSMutableAttributedString *tAtt = nil;
@@ -752,7 +744,7 @@
 }
 // self.window  window一旦创建就会自动显示在屏幕上
 // 如果当前列表正在显示，刷新列表
-- (void)sendSocketClientSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem colorType:(ZHDPOutputColorType)colorType{
+- (void)sendSocketClientSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem colorType:(ZHDPOutputType)colorType{
     if (!secItem) {
         return;
     }
@@ -764,7 +756,7 @@
             [colItems addObject:@{
                 @"title": [self removeEscapeCharacter:colItem.attTitle.string?:@""],
                 @"percent": [[NSString stringWithFormat:@"%.f", colItem.percent * 100] stringByAppendingString:@"%"],
-                @"color": [[self outputColorMap] objectForKey:@(colorType)]?:@"#000000"
+                @"color": [ZHDPOutputItem colorStrByType:colorType]?:@"#000000"
             }];
         }
         [rowItems addObject:@{
@@ -827,7 +819,7 @@
         }
     }
 }
-- (void)removeSecItemsList:(Class)listClass secItems:(NSArray <ZHDPListSecItem *> *)secItems{
+- (void)removeSecItemsList:(Class)listClass secItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant{
     if (!secItems || ![secItems isKindOfClass:NSArray.class] || secItems.count == 0) {
         return;
     }
@@ -854,11 +846,12 @@
         if (_window && self.window.debugPanel.status == ZHDebugPanelStatus_Show) {
             ZHDPList *list = self.window.debugPanel.content.selectList;
             if (1) {
-                [list removeSecItem:secItem];
+                [list removeSecItems:@[secItem] instant:instant];
             }
         }
     }
 }
+/*
 - (void)clearSecItemsList:(Class)listClass appItem:(ZHDPAppItem *)appItem{
     NSDictionary *map = [self opSecItemsMap];
     NSMutableArray * (^itemsBlock) (ZHDPAppDataItem *) = [[map objectForKey:NSStringFromClass(listClass)] objectForKey:[self opSecItemsMapKey_items]];
@@ -890,6 +883,7 @@
         }
     }
 }
+*/
 
 #pragma mark - share
 
@@ -971,6 +965,14 @@ static id _instance;
     appItem.appId = @"App";
     appItem.appName = @"App";
     
+    // 此条日志的过滤信息
+    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
+    filterItem.appItem = appItem;
+    filterItem.page = nil;
+    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
+    outputItem.type = ZHDPOutputType_Log;
+    filterItem.outputItem = outputItem;
+    
     // 内容
     NSInteger count = args.count;
     CGFloat freeW = [dpMg basicW] - ([dpMg marginW] * (count + 1));
@@ -994,7 +996,8 @@ static id _instance;
             detail = detailStr;
         }];
         // 添加参数
-        ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputColorType_Default];
+        ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
+        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1010,10 +1013,12 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
+    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
     
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
+    secItem.filterItem = filterItem;
     secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
     secItem.open = YES;
     secItem.colItems = @[];
@@ -1029,7 +1034,7 @@ static id _instance;
     // 添加数据
     [self addSecItemToList:ZHDPListIM.class appItem:appItem secItem:secItem];
     // 发送socket
-    [self sendSocketClientSecItemToList:ZHDPListIM.class appItem:appItem secItem:secItem colorType:ZHDPOutputColorType_Default];
+    [self sendSocketClientSecItemToList:ZHDPListIM.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
 }
 
 - (void)zh_test_addLog{
@@ -1037,7 +1042,7 @@ static id _instance;
         return;
     }
     
-    ZHDPOutputColorType colorType = ZHDPOutputColorType_Default;
+    ZHDPOutputType colorType = ZHDPOutputType_Log;
     
     //运行js解析  可能存在js对象 原生无法打印
     JSContext *context = nil;
@@ -1060,7 +1065,7 @@ static id _instance;
             if (parseFunc) {
                 parseRes = [[parseFunc callWithArguments:@[parseRes]] toObject];
                 if (parseRes && [parseRes isKindOfClass:NSString.class] && [parseRes isEqualToString:parseErrorDesc]) {
-                    colorType = ZHDPOutputColorType_Error;
+                    colorType = ZHDPOutputType_Error;
                 }
             }
         }
@@ -1074,7 +1079,7 @@ static id _instance;
         [self zh_test_addLogSafe:colorType args:res.copy];
     });
 }
-- (void)zh_test_addLogSafe:(ZHDPOutputColorType)colorType args:(NSArray *)args{
+- (void)zh_test_addLogSafe:(ZHDPOutputType)colorType args:(NSArray *)args{
     
     ZHDPManager *dpMg = ZHDPMg();
     
@@ -1091,6 +1096,14 @@ static id _instance;
     ZHDPAppItem *appItem = [[ZHDPAppItem alloc] init];
     appItem.appId = @"App";
     appItem.appName = @"App";
+    
+    // 此条日志的过滤信息
+    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
+    filterItem.appItem = appItem;
+    filterItem.page = nil;
+    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
+    outputItem.type = colorType;
+    filterItem.outputItem = outputItem;
     
     // 内容
     NSInteger count = args.count;
@@ -1122,6 +1135,7 @@ static id _instance;
         }];
         // 添加参数
         colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
+        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1137,10 +1151,12 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
+    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
 
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
+    secItem.filterItem = filterItem;
     secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
     secItem.open = YES;
     secItem.colItems = @[];
@@ -1206,7 +1222,7 @@ static id _instance;
     
     NSString *method = request.HTTPMethod;
     NSString *statusCode = [NSString stringWithFormat:@"%ld",(NSInteger)httpResponse.statusCode];
-    ZHDPOutputColorType colorType = ((statusCode.integerValue < 200 || statusCode.integerValue >= 300) ? ZHDPOutputColorType_Error :  ZHDPOutputColorType_Default);
+    ZHDPOutputType colorType = ((statusCode.integerValue < 200 || statusCode.integerValue >= 300) ? ZHDPOutputType_Error :  ZHDPOutputType_Log);
 
     NSDate *endDate = [NSDate date];
     NSTimeInterval startTimeDouble = [startDate timeIntervalSince1970];
@@ -1244,6 +1260,14 @@ static id _instance;
     appItem.appId = @"App";
     appItem.appName =  @"App";
     
+    // 此条日志的过滤信息
+    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
+    filterItem.appItem = appItem;
+    filterItem.page = appPath;
+    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
+    outputItem.type = colorType;
+    filterItem.outputItem = outputItem;
+    
     NSArray *args = @[urlStrRemoveParams?:@"", method?:@"", statusCode?:@""];
     // 内容
     NSInteger count = args.count;
@@ -1266,6 +1290,7 @@ static id _instance;
         }];
         // 添加参数
         ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:colorType];
+        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
     }
@@ -1350,16 +1375,18 @@ static id _instance;
     item.title = @"小程序";
     titles = @[@"小程序信息: \n"].mutableCopy;
         
-    descs = @[[self jsonToString:@{@"appName": appItem.appName?:@"", @"appId": appItem.appId?:@""}]?:@""].mutableCopy;
+    descs = @[[self jsonToString:@{@"appName": appItem.appName?:@"", @"appId": appItem.appId?:@"", @"path": appPath?:@""}]?:@""].mutableCopy;
     item.content = [dpMg createDetailAttStr:titles descs:descs];
     [detailItems addObject:item];
     
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
+    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
 
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
+    secItem.filterItem = filterItem;
     secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
     secItem.open = YES;
     secItem.colItems = @[];
@@ -1428,6 +1455,14 @@ static id _instance;
     appItem.appId = @"App";
     appItem.appName = @"App";
     
+    // 此条日志的过滤信息
+    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
+    filterItem.appItem = appItem;
+    filterItem.page = nil;
+    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
+    outputItem.type = ZHDPOutputType_Log;
+    filterItem.outputItem = outputItem;
+    
     // 内容
     NSInteger count = args.count;
     CGFloat freeW = [dpMg basicW] - ([dpMg marginW] * (count + 1));
@@ -1449,7 +1484,8 @@ static id _instance;
             detail = detailStr;
         }];
         // 添加参数
-        ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputColorType_Default];
+        ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
+        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1466,10 +1502,12 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
+    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
 
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
+    secItem.filterItem = filterItem;
     secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
     secItem.open = YES;
     secItem.colItems = @[];
@@ -1485,7 +1523,7 @@ static id _instance;
     // 添加数据
     [self addSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem];
     // 发送socket
-    [self sendSocketClientSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem colorType:ZHDPOutputColorType_Default];
+    [self sendSocketClientSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
 }
 
 - (void)zh_test_reloadMemory{
@@ -1543,6 +1581,14 @@ static id _instance;
     appItem.appId = appId ?: @"App";
     appItem.appName = @"App";
     
+    // 此条日志的过滤信息
+    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
+    filterItem.appItem = appItem;
+    filterItem.page = nil;
+    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
+    outputItem.type = ZHDPOutputType_Log;
+    filterItem.outputItem = outputItem;
+    
     // 内容
     NSInteger count = args.count;
     CGFloat freeW = [dpMg basicW] - ([dpMg marginW] * (count + 1));
@@ -1564,7 +1610,8 @@ static id _instance;
             detail = detailStr;
         }];
         // 添加参数
-        ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputColorType_Default];
+        ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
+        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1581,10 +1628,12 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
+    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
     
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
+    secItem.filterItem = filterItem;
     secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
     secItem.open = YES;
     secItem.colItems = @[];
@@ -1600,7 +1649,7 @@ static id _instance;
     // 添加数据
     [self addSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem];
     // 发送socket
-    [self sendSocketClientSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem colorType:ZHDPOutputColorType_Default];
+    [self sendSocketClientSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
 }
 
 - (void)zh_test_addException:(NSString *)title stack:(NSString *)stack{
@@ -1611,11 +1660,11 @@ static id _instance;
         if (!title || ![title isKindOfClass:NSString.class] || title.length == 0) {
             return;
         }
-        ZHDPOutputColorType type = ZHDPOutputColorType_Error;
+        ZHDPOutputType type = ZHDPOutputType_Error;
         [self zh_test_addExceptionSafe:@"App" colorType:type args:@[title] stack:stack];
     });
 }
-- (void)zh_test_addExceptionSafe:(NSString *)appId colorType:(ZHDPOutputColorType)colorType args:(NSArray *)args stack:(NSString *)stack{
+- (void)zh_test_addExceptionSafe:(NSString *)appId colorType:(ZHDPOutputType)colorType args:(NSArray *)args stack:(NSString *)stack{
     ZHDPManager *dpMg = ZHDPMg();
     
     if (dpMg.status != ZHDPManagerStatus_Open) {
@@ -1630,6 +1679,14 @@ static id _instance;
     ZHDPAppItem *appItem = [[ZHDPAppItem alloc] init];
     appItem.appId = appId ?: @"App";
     appItem.appName = @"App";
+    
+    // 此条日志的过滤信息
+    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
+    filterItem.appItem = appItem;
+    filterItem.page = nil;
+    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
+    outputItem.type = colorType;
+    filterItem.outputItem = outputItem;
     
     // 内容
     NSInteger count = args.count;
@@ -1660,6 +1717,7 @@ static id _instance;
         }];
         // 添加参数
         colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
+        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1679,10 +1737,12 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
+    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
     
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
+    secItem.filterItem = filterItem;
     secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
     secItem.open = YES;
     secItem.colItems = @[];

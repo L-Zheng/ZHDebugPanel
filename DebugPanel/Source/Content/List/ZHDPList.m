@@ -310,6 +310,9 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 - (void)updateSecItemWhenScrollEnd{
     if (self.scrollStatus != ZHDPScrollStatus_Idle) return;
     
+    [self addSecItemFrequently];
+}
+- (void)addSecItemInstant{
     NSArray *arr = self.items_temp.copy;
     if (arr.count <= 0) return;
     
@@ -318,6 +321,15 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
         block();
     }
     [self reloadList];
+}
+- (void)addSecItemFrequently:(void (^) (void))block{
+    if (!block) return;
+    [self.items_temp addObject:block];
+    [self addSecItemFrequently];
+}
+- (void)addSecItemFrequently{
+    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(addSecItemInstant) object:nil];
+    [self performSelector:@selector(addSecItemInstant) withObject:nil afterDelay:0.25];
 }
 - (void)addSecItem:(ZHDPListSecItem *)item spaceItem:(ZHDPDataSpaceItem *)spaceItem{
     if (!item || ![item isKindOfClass:ZHDPListSecItem.class]) return;
@@ -333,8 +345,9 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
         [self.items_temp addObject:block];
         return;
     }
-    block();
-    [self reloadList];
+    [self addSecItemFrequently:block];
+//    block();
+//    [self reloadList];
 }
 - (void)removeSecItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant{
     if (!secItems || ![secItems isKindOfClass:NSArray.class] || secItems.count == 0 || self.items.count == 0) {
@@ -388,10 +401,6 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     NSArray <ZHDPListSecItem *> *items = [self fetchAllItems]?:@[];
     self.items = [[self filterItems:items.copy]?:@[] mutableCopy];
     [self reloadList];
-}
-- (void)reloadListFrequently{
-    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(reloadList) object:nil];
-    [self performSelector:@selector(reloadList) withObject:nil afterDelay:0.25];
 }
 - (void)reloadList{
     self.tableView.tableFooterView = (self.items.count <= 0 ? self.tipLabel : nil);

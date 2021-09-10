@@ -16,12 +16,7 @@
 #import "ZHDPListException.h"// Exception列表
 
 @interface ZHDPContent ()
-@property (nonatomic, strong) ZHDPListLog *logList;
-@property (nonatomic, strong) ZHDPListNetwork *networkList;
-@property (nonatomic, strong) ZHDPListIM *imList;
-@property (nonatomic, strong) ZHDPListStorage *storageList;
-@property (nonatomic, strong) ZHDPListMemory *memoryList;
-@property (nonatomic, strong) ZHDPListException *exceptionList;
+@property (nonatomic, retain) NSArray *allList;
 @end
 
 @implementation ZHDPContent
@@ -53,8 +48,35 @@
 
 #pragma mark - lists
 
-- (NSArray <ZHDPList *> *)allLists{
-    return @[self.logList, self.networkList, self.storageList, self.memoryList, self.exceptionList, self.imList];
+- (NSArray <ZHDPList *> *)fetchAllLists{
+    if (self.allList) return self.allList;
+    
+    NSArray *arr = @[
+        @[ZHDPListLog.class, @"Log"],
+        @[ZHDPListNetwork.class, @"Network"],
+        @[ZHDPListStorage.class, @"Storage"],
+        @[ZHDPListMemory.class, @"Memory"],
+        @[ZHDPListException.class, @"Exception"],
+        @[ZHDPListIM.class, @"IM"],
+    ];
+    NSMutableArray *res = [NSMutableArray array];
+    for (NSArray *temp in arr) {
+        [res addObject:[self createList:temp[0] title:temp[1]]];
+    }
+    self.allList = res.copy;
+    return self.allList;
+}
+- (ZHDPList *)createList:(Class)class title:(NSString *)title{
+    ZHDPList *list = [[class alloc] initWithFrame:CGRectZero];
+    list.item = [ZHDPListItem itemWithTitle:title];
+    __weak __typeof__(list) __list = list;
+    __weak __typeof__(self) __self = self;
+    list.reloadListBlock = ^(NSArray<ZHDPListSecItem *> * _Nonnull items) {
+        if (__self.reloadListBlock) {
+            __self.reloadListBlock(__list, items);
+        }
+    };
+    return list;
 }
 - (void)selectList:(ZHDPList *)list{
     if (!list || [self.selectList isEqual:list]) return;
@@ -74,50 +96,4 @@
     [self addSubview:self.selectList];
     self.selectList.frame = self.bounds;
 }
-
-#pragma mark - getter
-
-- (ZHDPListLog *)logList{
-    if (!_logList) {
-        _logList = [[ZHDPListLog alloc] initWithFrame:CGRectZero];
-        _logList.item = [ZHDPListItem itemWithTitle:@"Log"];
-    }
-    return _logList;
-}
-- (ZHDPListNetwork *)networkList{
-    if (!_networkList) {
-        _networkList = [[ZHDPListNetwork alloc] initWithFrame:CGRectZero];
-        _networkList.item = [ZHDPListItem itemWithTitle:@"Network"];
-    }
-    return _networkList;
-}
-- (ZHDPListIM *)imList{
-    if (!_imList) {
-        _imList = [[ZHDPListIM alloc] initWithFrame:CGRectZero];
-        _imList.item = [ZHDPListItem itemWithTitle:@"IM"];
-    }
-    return _imList;
-}
-- (ZHDPListStorage *)storageList{
-    if (!_storageList) {
-        _storageList = [[ZHDPListStorage alloc] initWithFrame:CGRectZero];
-        _storageList.item = [ZHDPListItem itemWithTitle:@"Storage"];
-    }
-    return _storageList;
-}
-- (ZHDPListMemory *)memoryList{
-    if (!_memoryList) {
-        _memoryList = [[ZHDPListMemory alloc] initWithFrame:CGRectZero];
-        _memoryList.item = [ZHDPListItem itemWithTitle:@"Memory"];
-    }
-    return _memoryList;
-}
-- (ZHDPListException *)exceptionList{
-    if (!_exceptionList) {
-        _exceptionList = [[ZHDPListException alloc] initWithFrame:CGRectZero];
-        _exceptionList.item = [ZHDPListItem itemWithTitle:@"Exception"];
-    }
-    return _exceptionList;
-}
-
 @end

@@ -10,11 +10,12 @@
 @class ZHDPList;// 列表
 
 @interface ZHDPOptionItem : NSObject
+@property (nonatomic,copy,readonly) NSString *showTitle;
 @property (nonatomic,copy) NSString *title;
+@property (nonatomic,assign) NSInteger itemsCount;
 @property (nonatomic,assign,getter=isSelected) BOOL selected;
 @property (nonatomic,weak) ZHDPList *list;
 @property (nonatomic,strong) UIFont *font;
-@property (nonatomic,assign) CGFloat fitWidth;
 @end
 
 @interface ZHDPOptionCollectionViewCell : UICollectionViewCell
@@ -27,5 +28,6 @@
 @property (nonatomic,strong) ZHDPOptionItem *selectItem;
 @property (nonatomic, retain) NSArray <ZHDPOptionItem *> *items;
 - (void)reloadWithItems:(NSArray <ZHDPOptionItem *> *)items;
+- (void)reloadCollectionViewFrequently;
 - (void)selectIndexPath:(NSIndexPath *)indexPath;
 @end

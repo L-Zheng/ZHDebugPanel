@@ -404,13 +404,14 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 }
 - (void)reloadList{
     self.tableView.tableFooterView = (self.items.count <= 0 ? self.tipLabel : nil);
-    if (!self.allowScrollAuto) {
-        [self.tableView reloadData];
-        return;
-    }
     
     [self.tableView reloadData];
-    [self scrollListToBottomAuto];
+    if (self.allowScrollAuto) {
+        [self scrollListToBottomAuto];
+    }
+    if (self.reloadListBlock) {
+        self.reloadListBlock(self.items.copy);
+    }
 }
 
 #pragma mark - delete store

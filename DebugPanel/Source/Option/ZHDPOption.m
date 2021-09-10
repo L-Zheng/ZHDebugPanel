@@ -11,7 +11,13 @@
 #import "ZHDPManager.h"// 调试面板管理
 
 @implementation ZHDPOptionItem
-
+- (NSString *)showTitle{
+    NSUInteger count = self.itemsCount;
+    if (count == 0) {
+        return self.title;
+    }
+    return [NSString stringWithFormat:@"%@(%ld)", self.title, count];
+}
 @end
 
 @interface ZHDPOptionCollectionViewCell()
@@ -44,7 +50,7 @@
 }
 
 - (void)configItem:(ZHDPOptionItem *)item{
-    self.label.text = [NSString stringWithFormat:@"%@", item.title];
+    self.label.text = [NSString stringWithFormat:@"%@", item.showTitle];
     self.label.font = item.font;
     self.label.textColor = item.isSelected ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
     self.label.backgroundColor = item.isSelected ? [UIColor whiteColor] : [UIColor clearColor];
@@ -229,7 +235,8 @@
 }
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath{
     ZHDPOptionItem *item = self.items[indexPath.item];
-    return CGSizeMake(item.fitWidth + 2 * 8, self.bounds.size.height);
+    CGFloat fitWidth = [item.showTitle boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, self.frame.size.height) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: item.font} context:nil].size.width;
+    return CGSizeMake(fitWidth + 2 * 8, self.bounds.size.height);
 }
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
     [collectionView deselectItemAtIndexPath:indexPath animated:YES];

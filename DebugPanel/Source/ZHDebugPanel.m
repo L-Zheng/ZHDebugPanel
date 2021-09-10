@@ -78,14 +78,13 @@
 - (void)reloadAndSelectOption:(NSInteger)idx{
     NSMutableArray <ZHDPOptionItem *> *items = [NSMutableArray array];
     
-    NSArray <ZHDPList *> *lists = [self.content allLists];
+    NSArray <ZHDPList *> *lists = [self.content fetchAllLists].copy;
     for (ZHDPList *list in lists) {
         ZHDPOptionItem *item = [[ZHDPOptionItem alloc] init];
         item.title = list.item.title;
         item.selected = NO;
         item.list = list;
         item.font = [UIFont systemFontOfSize:17];
-        item.fitWidth = [item.title boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, self.option.frame.size.height) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: item.font} context:nil].size.width;
         
         [items addObject:item];
     }
@@ -93,8 +92,20 @@
     [self.option reloadWithItems:items.copy];
     [self selectOption:idx];
 }
-
-#pragma mark - content
+- (void)reloadOptionItemByList:(ZHDPList *)list items:(NSArray *)items{
+    NSArray <ZHDPList *> *lists = [self.content fetchAllLists].copy;
+    NSUInteger idx = [lists indexOfObject:list];
+    if (idx == NSNotFound || idx >= lists.count) {
+        return;
+    }
+    NSArray *optionItems = self.option.items.copy;
+    if (idx >= optionItems.count) {
+        return;
+    }
+    ZHDPOptionItem *item = optionItems[idx];
+    item.itemsCount = items.count;
+    [self.option reloadCollectionViewFrequently];
+}
 
 #pragma mark - getter
 
@@ -113,6 +124,10 @@
     if (!_content) {
         _content = [[ZHDPContent alloc] initWithFrame:CGRectZero];
         _content.debugPanel = self;
+        __weak __typeof__(self) weakSelf = self;
+        _content.reloadListBlock = ^(ZHDPList * _Nonnull list, NSArray<ZHDPListSecItem *> * _Nonnull items) {
+            [weakSelf reloadOptionItemByList:list items:items];
+        };
     }
     return _content;
 }

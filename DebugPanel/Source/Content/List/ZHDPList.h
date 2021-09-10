@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic,strong) ZHDPListItem *item;
 
 @property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *items;
+@property (nonatomic,copy) void (^reloadListBlock) (NSArray <ZHDPListSecItem *> *items);
 @property (nonatomic,strong) UITableView *tableView;
 
 #pragma mark - search

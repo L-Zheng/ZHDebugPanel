@@ -20,8 +20,8 @@
 #pragma mark - reload
 
 - (void)reloadListWhenSelectApp{
+    [super reloadListClear];
     [ZHDPMg() zh_test_reloadMemory];
-    [super reloadListWhenShow];
 }
 - (void)reloadListWhenSearch{
     [super reloadListWhenShow];
@@ -30,28 +30,20 @@
     [super reloadListWhenShow];
 }
 - (void)reloadListWhenRefresh{
+    [super reloadListClear];
     [ZHDPMg() zh_test_reloadMemory];
-    [super reloadListWhenShow];
 }
 - (void)reloadListWhenShow{
+    [super reloadListClear];
 //    NSArray <ZHDPListSecItem *> *items = [self fetchAllItems]?:@[];
 //    if (items.count == 0) {
         [ZHDPMg() zh_test_reloadMemory];
 //    }
-    [super reloadListWhenShow];
 }
 #pragma mark - delete store
 
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
-//    for (ZHDPListSecItem *secItem in secItems) {
-//        @autoreleasepool {
-//            if (secItem.rowItems.count == 0 ||  secItem.rowItems.firstObject.colItems.count == 0) {
-//                continue;
-//            }
-//            NSString *key =  secItem.rowItems.firstObject.colItems.firstObject.attTitle.string;
-//            [[ZHMemoryManager shareManager] removeMemorySync:@{@"key": key?:@""} appId:nil extraInfo:nil];
-//        }
-//    }
+//    [ZHDPMg() fw_test_deleteMemoryStore:secItems];
 }
 
 #pragma mark - UITableViewDelegate

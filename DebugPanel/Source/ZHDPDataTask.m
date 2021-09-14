@@ -154,7 +154,7 @@
 - (ZHDPDataSpaceItem *)imSpaceItem{
     if (!_imSpaceItem) {
         ZHDPDataSpaceItem *item = [[ZHDPDataSpaceItem alloc] init];
-        item.count = 50;
+        item.count = 100;
         item.removePercent = 0.5;
         _imSpaceItem = item;
     }

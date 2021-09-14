@@ -397,6 +397,10 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 - (void)reloadListWhenRefresh{
     [self reloadListWhenShow];
 }
+- (void)reloadListClear{
+    self.items = [@[] mutableCopy];
+    [self reloadList];
+}
 - (void)reloadListWhenShow{
     NSArray <ZHDPListSecItem *> *items = [self fetchAllItems]?:@[];
     self.items = [[self filterItems:items.copy]?:@[] mutableCopy];

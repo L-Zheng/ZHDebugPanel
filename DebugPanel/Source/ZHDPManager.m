@@ -756,7 +756,8 @@
             [colItems addObject:@{
                 @"title": [self removeEscapeCharacter:colItem.attTitle.string?:@""],
                 @"percent": [[NSString stringWithFormat:@"%.f", colItem.percent * 100] stringByAppendingString:@"%"],
-                @"color": [ZHDPOutputItem colorStrByType:colorType]?:@"#000000"
+                @"color": [ZHDPOutputItem colorStrByType:colorType]?:@"#000000",
+                @"extraInfo": colItem.extraInfo?:@{}
             }];
         }
         [rowItems addObject:@{
@@ -778,14 +779,24 @@
     if (!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) {
         return;
     }
+    
+    NSDictionary *sendAppItem = @{
+        @"appId": ((!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) ? @"App" : appItem.appId),
+        @"appName": (!appItem.appName || ![appItem.appName isKindOfClass:NSString.class] || appItem.appName.length == 0) ? @"App" : appItem.appName
+    };
         
     NSDictionary *res = @{
         @"listId": listId?:@"",
-        @"appItem": @{
-                @"appId": ((!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) ? @"App" : appItem.appId),
-                @"appName": (!appItem.appName || ![appItem.appName isKindOfClass:NSString.class] || appItem.appName.length == 0) ? @"App" : appItem.appName
-        },
+        @"appItem": sendAppItem,
         @"msg": @{
+                @"filterItem": @{
+                        @"appItem": sendAppItem,
+                        @"page": secItem.filterItem.page?:@"",
+                        @"outputItem": @{
+                                @"type": @(secItem.filterItem.outputItem.type),
+                                @"desc": secItem.filterItem.outputItem.desc?:@""
+                        }
+                },
                 @"enterMemoryTime": @(secItem.enterMemoryTime),
                 @"open": @(YES),
                 @"colItems": @[],
@@ -997,7 +1008,6 @@ static id _instance;
         }];
         // 添加参数
         ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
-        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1013,7 +1023,6 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
     
     // 每一组数据
@@ -1135,7 +1144,6 @@ static id _instance;
         }];
         // 添加参数
         colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
-        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1151,7 +1159,6 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
 
     // 每一组数据
@@ -1290,7 +1297,6 @@ static id _instance;
         }];
         // 添加参数
         ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:colorType];
-        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
     }
@@ -1381,7 +1387,6 @@ static id _instance;
     
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
 
     // 每一组数据
@@ -1485,7 +1490,6 @@ static id _instance;
         }];
         // 添加参数
         ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
-        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1502,7 +1506,6 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
 
     // 每一组数据
@@ -1524,6 +1527,46 @@ static id _instance;
     [self addSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem];
     // 发送socket
     [self sendSocketClientSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
+}
+- (void)fw_test_deleteStorageStore:(NSArray <ZHDPListSecItem *> *)secItems{
+    for (ZHDPListSecItem *secItem in secItems) {
+        @autoreleasepool {
+            if (secItem.rowItems.count == 0 ||  secItem.rowItems.firstObject.colItems.count == 0) {
+                continue;
+            }
+            ZHDPListColItem *colItem = secItem.rowItems.firstObject.colItems.firstObject;
+            NSString *key = colItem.attTitle.string;
+            NSMutableDictionary *res = @{@"key":((key && [key isKindOfClass:NSString.class] && key.length) ? key : @"")}.mutableCopy;
+            [res addEntriesFromDictionary:@{
+                @"level": colItem.extraInfo[@"level"]?:@"",
+                @"prefix": colItem.extraInfo[@"prefix"]?:@""
+            }];
+//            [[ZHStorageManager shareInstance] removeStorageSync:res.copy appId:colItem.extraInfo[@"appId"]?:@""];
+        }
+    }
+}
+- (void)fw_test_deleteStorageStoreByData:(NSArray *)secItemsData{
+    for (NSDictionary *secItem in secItemsData) {
+        @autoreleasepool {
+            NSArray *rowItems = [secItem objectForKey:@"rowItems"];
+            if (rowItems.count == 0) {
+                continue;
+            }
+            NSArray *colItems = [rowItems.firstObject objectForKey:@"colItems"];
+            if (colItems.count == 0) {
+                continue;
+            }
+            NSString *key = [colItems.firstObject objectForKey:@"title"];
+            NSDictionary *extraInfo = [colItems.firstObject objectForKey:@"extraInfo"];
+            
+            NSMutableDictionary *res = @{@"key":((key && [key isKindOfClass:NSString.class] && key.length) ? key : @"")}.mutableCopy;
+            [res addEntriesFromDictionary:@{
+                @"level": extraInfo[@"level"]?:@"",
+                @"prefix": extraInfo[@"prefix"]?:@""
+            }];
+//            [[ZHStorageManager shareInstance] removeStorageSync:res.copy appId:extraInfo[@"appId"]?:@""];
+        }
+    }
 }
 
 - (void)zh_test_reloadMemory{
@@ -1611,7 +1654,6 @@ static id _instance;
         }];
         // 添加参数
         ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
-        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1628,7 +1670,6 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
     
     // 每一组数据
@@ -1650,6 +1691,33 @@ static id _instance;
     [self addSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem];
     // 发送socket
     [self sendSocketClientSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
+}
+- (void)fw_test_deleteMemoryStore:(NSArray <ZHDPListSecItem *> *)secItems{
+    for (ZHDPListSecItem *secItem in secItems) {
+        @autoreleasepool {
+            if (secItem.rowItems.count == 0 ||  secItem.rowItems.firstObject.colItems.count == 0) {
+                continue;
+            }
+            NSString *key =  secItem.rowItems.firstObject.colItems.firstObject.attTitle.string;
+//            [[ZHMemoryManager shareManager] removeMemorySync:@{@"key": key?:@""} appId:nil extraInfo:nil];
+        }
+    }
+}
+- (void)fw_test_deleteMemoryStoreByData:(NSArray *)secItemsData{
+    for (NSDictionary *secItem in secItemsData) {
+        @autoreleasepool {
+            NSArray *rowItems = [secItem objectForKey:@"rowItems"];
+            if (rowItems.count == 0) {
+                continue;
+            }
+            NSArray *colItems = [rowItems.firstObject objectForKey:@"colItems"];
+            if (colItems.count == 0) {
+                continue;
+            }
+            NSString *key = [colItems.firstObject objectForKey:@"title"];
+//            [[ZHMemoryManager shareManager] removeMemorySync:@{@"key": key?:@""} appId:nil extraInfo:nil];
+        }
+    }
 }
 
 - (void)zh_test_addException:(NSString *)title stack:(NSString *)stack{
@@ -1717,7 +1785,6 @@ static id _instance;
         }];
         // 添加参数
         colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
-        colItem.filterItem = filterItem;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
@@ -1737,7 +1804,6 @@ static id _instance;
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.filterItem = filterItem;
     rowItem.colItems = colItems.copy;
     
     // 每一组数据

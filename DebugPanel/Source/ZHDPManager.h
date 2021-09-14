@@ -107,7 +107,12 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (void)zh_test_addNetwork:(NSDate *)startDate request:(NSURLRequest *)request response:(NSURLResponse *)response responseData:(NSData *)responseData;
 
 - (void)zh_test_reloadStorage;
+- (void)fw_test_deleteStorageStore:(NSArray <ZHDPListSecItem *> *)secItems;
+- (void)fw_test_deleteStorageStoreByData:(NSArray *)secItemsData;
+
 - (void)zh_test_reloadMemory;
+- (void)fw_test_deleteMemoryStore:(NSArray <ZHDPListSecItem *> *)secItems;
+- (void)fw_test_deleteMemoryStoreByData:(NSArray *)secItemsData;
 
 - (void)zh_test_addException:(NSString *)title stack:(NSString *)stack;
 

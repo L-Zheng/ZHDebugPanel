@@ -50,6 +50,15 @@ var vm = {
       this.connectAnimateClass = "connect-show";
       this.isShow = true;
       setTimeout(() => {
+        const e = window.lbz_socketUrl;
+        if (e && JSTool.isString(e)) {
+          this.$refs.input.value = e;
+          this.$nextTick(() => {
+              this.startConnect()
+          });
+        }
+          return
+        // 不使用剪切板
         navigator.clipboard.readText().then((e) => {
           // console.log('clipboard', e)
           if (e && JSTool.isString(e)) {

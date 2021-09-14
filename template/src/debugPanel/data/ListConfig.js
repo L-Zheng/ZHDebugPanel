@@ -5,9 +5,13 @@ class ListConfig {
     return [{
       listId: 'storage-list',
       sendType: 1,
+      sendDeleteType: 10,
+      sendDeleteDataKey: 'deleteSecItems'
     }, {
       listId: 'memory-list',
       sendType: 2,
+      sendDeleteType: 20,
+      sendDeleteDataKey: 'deleteSecItems'
     }]
   }
   fetchItems() {
@@ -19,7 +23,7 @@ class ListConfig {
         itemsFunc: appDataItem => {
           return appDataItem.logItems;
         },
-        limitCount: 100,
+        limitCount: 200,
         removePercent: 0.5
       },
       {
@@ -39,7 +43,7 @@ class ListConfig {
         itemsFunc: appDataItem => {
           return appDataItem.storageItems;
         },
-        limitCount: 100,
+        limitCount: 200,
         removePercent: 0.5
       },
       {
@@ -48,6 +52,16 @@ class ListConfig {
         listId: "memory-list",
         itemsFunc: appDataItem => {
           return appDataItem.memoryItems;
+        },
+        limitCount: 200,
+        removePercent: 0.5
+      },
+      {
+        title: "Exception",
+        selected: false,
+        listId: "exception-list",
+        itemsFunc: appDataItem => {
+          return appDataItem.exceptionItems;
         },
         limitCount: 100,
         removePercent: 0.5
@@ -63,13 +77,13 @@ class ListConfig {
         removePercent: 0.5
       },
       {
-        title: "Exception",
+        title: "MpApiCaller",
         selected: false,
-        listId: "exception-list",
+        listId: "mpApiCaller-list",
         itemsFunc: appDataItem => {
-          return appDataItem.exceptionItems;
+          return appDataItem.mpApiCallerItems;
         },
-        limitCount: 100,
+        limitCount: 300,
         removePercent: 0.5
       },
       {

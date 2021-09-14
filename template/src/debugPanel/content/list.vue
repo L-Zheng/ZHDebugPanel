@@ -13,6 +13,10 @@
         height: layoutConfig.searchH + 'px',
       }"
     >
+    <div class="listCount" :style="{
+        height: layoutConfig.searchH + 'px',
+        color: colorConfig.selectColor,
+      }">{{items ? items.length + '' : ''}}</div>
       <input
         class="input"
         ref="input"
@@ -42,6 +46,14 @@
         :id="listId + '-row-wrap-id-' + idx"
         @click="clickRow(item)"
       >
+        <span class="iconfont icon-iconfontshanchu6 row-delete"
+        @click="clickDeleteRow(item, idx)"
+        :style="{
+          'background-color': deleteRowHighlight
+            ? colorConfig.highlightColor
+            : colorConfig.bgColor,
+        }"></span>
+      
         <div
           class="row"
           v-for="(rowItem, rowIdx) in item.rowItems"
@@ -128,9 +140,11 @@ var vm = {
       execScrollTimer: null,
       removeSecItemTimer: null,
       reloadListFrequentlyTimer: null,
+      addSecItemFrequentlyTimer: null,
       originLocationIdx: -1,
       searchTop: 0,
       searchKeyword: null,
+      deleteRowHighlight: false
     };
   },
   created() {
@@ -162,7 +176,11 @@ var vm = {
       this.reloadListWhenSearch();
     },
     selectAppItem(item) {
-      this.updateListOptionItemsTitle(0, item.appName);
+      console.log(item)
+      let title = item.appItem ? item.appItem.appName : ''
+      title = title + (item.page ? item.page : '')
+      title = title + (item.outputItem ? item.outputItem.desc : '')
+      this.updateListOptionItemsTitle(0, title);
       this.reloadListWhenSelectApp();
     },
     selectAll() {
@@ -213,7 +231,8 @@ var vm = {
           selected: false,
           highlight: false,
           click: () => {
-            this.clearSecItems();
+            this.deleteStore(this.items)
+            this.removeSecItems(this.items);
           },
         },
         {
@@ -309,14 +328,33 @@ var vm = {
       if (!secItem) {
         return false;
       }
+
       // 筛选appId
       const cAppItem = secItem.appDataItem.appItem;
-      const selectAppItem = DataTask.fetchSelectAppItem();
+      const filterItem = DataTask.fetchSelectAppItem();
+      const selectAppItem = (filterItem && filterItem.appItem) ? filterItem.appItem : null
       if (cAppItem && selectAppItem) {
         if (selectAppItem.appId != cAppItem.appId) {
           return false;
         }
       }
+      // 筛选page
+      const selectPage = filterItem ? filterItem.page : null;
+      const cPage = secItem.filterItem.page;
+      if (selectPage && selectPage.length > 0) {
+          if (!cPage || cPage.length == 0 ||
+              selectPage != cPage) {
+              return false;
+          }
+      }
+          
+      // 筛选日志类型
+      const selectType = (filterItem && filterItem.outputItem) ? filterItem.outputItem.type : 0;
+      if (selectType != 0 &&
+          selectType != secItem.filterItem.outputItem.type) {
+          return false;
+      }
+    
       // 筛选搜索关键字
       const keyword = this.searchKeyword;
       if (!keyword) {
@@ -366,14 +404,7 @@ var vm = {
     },
     updateSecItemWhenScrollEnd() {
       if (this.scrollStatus != 0) return;
-
-      const arr = this.items_temp;
-      if (arr.length <= 0) return;
-      arr.forEach((el) => {
-        el();
-      });
-      this.items_temp.splice(0, this.items_temp.length);
-      this.reloadList();
+      this.addSecItemInstant()
     },
     // 滚动期间不允许追加数据  监听onscroll,
     addSecItem(secItem, limitCount, removePercent) {
@@ -393,7 +424,26 @@ var vm = {
         this.items_temp.push(addIn);
         return;
       }
-      addIn();
+
+      this.items_temp.push(addIn);
+      this.addSecItemFrequently()
+
+      // addIn();
+      // this.reloadList();
+    },
+    addSecItemFrequently(){
+      clearTimeout(this.addSecItemFrequentlyTimer);
+      this.addSecItemFrequentlyTimer = setTimeout(() => {
+        this.addSecItemInstant();
+      }, 250);
+    },
+    addSecItemInstant(){
+      const arr = this.items_temp;
+      if (arr.length <= 0) return;
+      arr.forEach((el) => {
+        el();
+      });
+      this.items_temp.splice(0, this.items_temp.length);
       this.reloadList();
     },
     removeSecItems(secItems) {
@@ -408,6 +458,7 @@ var vm = {
       this.removeItems_temp = this.removeItems_temp.concat(secItems);
       this.removeSecItemFrequently();
     },
+    /*
     removeSecItem(secItem) {
       if (!secItem || !JSTool.isJson(secItem) || this.items.length == 0) return;
       if (this.items.indexOf(secItem) != -1) {
@@ -415,7 +466,8 @@ var vm = {
         this.removeSecItemFrequently();
       }
     },
-    clearSecItems() {
+    */
+    clearAllSecItems() {
       // 清理全局数据
       let listMap = null;
       const items = ListConfig.fetchItems();
@@ -426,22 +478,10 @@ var vm = {
       });
       if (!listMap) return [];
 
-      const selectAppItem = DataTask.fetchSelectAppItem();
-      const removeAll = selectAppItem ? false : true;
-      // console.log(DataTask.fetchAllAppDataItems())
-      const appDataItems = removeAll
-        ? DataTask.fetchAllAppDataItems()
-        : (() => {
-            const selectAppDataItem = DataTask.fetchAppDataItem(selectAppItem);
-            if (selectAppDataItem) {
-              return [selectAppDataItem];
-            }
-            return [];
-          })();
+      const appDataItems = DataTask.fetchAllAppDataItems()
       appDataItems.forEach((el) => {
         DataTask.cleanAllItems(listMap.itemsFunc(el));
       });
-      // console.log(DataTask.fetchAllAppDataItems())
 
       if (this.items.length == 0) return;
       this.items.splice(0, this.items.length);
@@ -452,15 +492,30 @@ var vm = {
       clearTimeout(this.removeSecItemTimer);
       this.removeSecItemTimer = setTimeout(() => {
         this.removeSecItemInstant();
-      }, 1000);
+      }, 250);
     },
     removeSecItemInstant() {
       if (this.removeItems_temp.length == 0) {
         return;
       }
+      let listMap = null;
+      const items = ListConfig.fetchItems();
+      items.forEach((el) => {
+        if (el.listId == this.listId) {
+          listMap = el;
+        }
+      });
+      if (!listMap) return;
+
       const arr = this.removeItems_temp;
       arr.forEach((el) => {
-        const removeI = this.items.indexOf(el);
+        const items = listMap.itemsFunc(el.appDataItem)
+        let removeI = items.indexOf(el) 
+        if (removeI != -1) {
+          items.splice(removeI, 1)
+        }
+
+        removeI = this.items.indexOf(el);
         if (removeI != -1) {
           this.items.splice(removeI, 1);
         }
@@ -468,26 +523,55 @@ var vm = {
       this.removeItems_temp.splice(0, this.removeItems_temp.length);
       this.reloadList();
     },
+    deleteStore(secItems){
+      if (!secItems || secItems.length == 0 ) {
+        return
+      }
+      const fetchRes = this.checkSpecialList();
+      if (!fetchRes) {
+        return
+      }
+      const newSecItems = []
+      secItems.forEach(secItem => {
+        newSecItems.push({
+          colItems: secItem.colItems,
+          rowItems: secItem.rowItems
+        })
+      });
+      // 向原生发送socket 删除该条memory storage
+      const dataKey = fetchRes.sendDeleteDataKey
+      const sendData = {
+        msgType: 9,
+        msgSubType: fetchRes.sendDeleteType
+      }
+      sendData[dataKey] = newSecItems;
+      // console.log(JSON.parse(JSON.stringify(sendData)))
+      MySocket.sendData(JSON.parse(JSON.stringify(sendData)));
+    },
     reloadListWhenSelectApp() {
+      let fetchRes = this.checkSpecialList();
+      if (fetchRes) {
+        this.clearAllSecItems()
+      }
       this.reloadListWhenShow();
     },
     reloadListWhenSearch() {
-      this.reloadListWhenShow();
+      this.reloadListWhenShow(true);
     },
     reloadListWhenCloseSearch() {
-      this.reloadListWhenShow();
+      this.reloadListWhenShow(true);
     },
     reloadListWhenRefresh() {
       let fetchRes = this.checkSpecialList();
-      if (!fetchRes) {
-        this.reloadListWhenShow();
+      if (fetchRes) {
+        this.clearAllSecItems();
+        MySocket.sendData({
+          msgType: 9,
+          msgSubType: fetchRes.sendType,
+        });
         return;
       }
-      this.clearSecItems();
-      MySocket.sendData({
-        msgType: 9,
-        msgSubType: fetchRes.sendType,
-      });
+      this.reloadListWhenShow();
     },
     checkSpecialList() {
       let fetchRes = null;
@@ -502,16 +586,19 @@ var vm = {
       }
       return fetchRes;
     },
-    reloadListWhenShow() {
-      let fetchRes = this.checkSpecialList();
-      if (!fetchRes) {
+    reloadListWhenShow(isSearch = false) {
+      if (isSearch){
         this.items = this.filterItems(this.fetchAllItems());
         this.reloadList();
         return;
       }
-      if (this.items.length <= 0) {
+      let fetchRes = this.checkSpecialList();
+      if (fetchRes) {
         this.reloadListWhenRefresh();
+        return;
       }
+      this.items = this.filterItems(this.fetchAllItems());
+      this.reloadList();
     },
     reloadListFrequently() {
       clearTimeout(this.reloadListFrequentlyTimer);
@@ -752,6 +839,16 @@ var vm = {
     clickRow(item) {
       item.clickRow(item);
     },
+    clickDeleteRow(item, idx) {
+      // this.deleteRowHighlight = true;
+      // setTimeout(() => {
+      //   this.deleteRowHighlight = false;
+      // }, 200);
+      if (item) {
+        this.deleteStore([item])
+        this.removeSecItems([item])
+      }
+    },
   },
 };
 export default vm;
@@ -768,7 +865,14 @@ export default vm;
   justify-content: flex-start;
   // background-color: orange;
 }
+.listCount{
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  padding-right: 5px;
+}
 .input-wrap {
+  z-index: 99;
   margin: 0px;
   padding: 0px;
   position: fixed;
@@ -803,12 +907,20 @@ export default vm;
   margin: 0px;
   padding: 0px;
   width: 100%;
+  position: relative;
 }
 .row-wrap :active {
   background-color: #efeff4;
 }
 .row-wrap :hover {
   background-color: #efeff4;
+}
+.row-delete{
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+  padding: 5px;
+  opacity: 0.5;
 }
 .row {
   margin: 0px;

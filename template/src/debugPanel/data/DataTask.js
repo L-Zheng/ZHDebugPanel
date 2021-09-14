@@ -63,6 +63,7 @@ class DataTask {
                 storageItems: [],
                 memoryItems: [],
                 timelineItems: [],
+                mpApiCallerItems: [],
                 exceptionItems: [],
                 imItems: [],
                 sdkErrorItems: [],
@@ -91,6 +92,30 @@ class DataTask {
     }
     fetchSelectAppItem() {
         return DataTask.selectAppItemMap
+    }
+    fetchAllOuputItem(){
+        return [
+            {
+                type: 1,
+                desc: 'log'
+            },
+            {
+                type: 2,
+                desc: 'info'
+            },
+            {
+                type: 3,
+                desc: 'debug'
+            },
+            {
+                type: 4,
+                desc: 'warning'
+            },
+            {
+                type: 5,
+                desc: 'error'
+            }
+        ]
     }
 }
 export default new DataTask();

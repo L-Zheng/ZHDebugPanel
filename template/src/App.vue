@@ -215,10 +215,33 @@ var vm = {
         const second = new Date().getSeconds();
         // 哪个应用的数据
         const appItem = {};
-        appItem.appId = "App";
-        appItem.appName = "App";
+        appItem.appId = "App-" +  + parseInt(Math.random() * 1000) % 6;
+        appItem.appName = appItem.appId;
         // 构造数据
+        const page = 'page-' + parseInt(Math.random() * 1000) % 11
+        const logType = parseInt(Math.random() * 1000) % 5 + 1
+        const logTypeDesc = {
+          1: 'log',
+          2: 'info',
+          3: 'debug',
+          4: 'warning',
+          5: 'error'
+        }[logType]
+        const logTypeColor = {
+          1: '#000000',
+          2: '#000000',
+          3: '#000000',
+          4: '#FFD700',
+          5: '#DC143C'
+        }[logType]
         const secItem = {
+          filterItem: {
+            appItem: appItem,
+            page: page,
+            outputItem: {
+              type: logType
+            }
+          },
           enterMemoryTime: new Date().getTime(),
           open: true,
           colItems: [],
@@ -228,25 +251,25 @@ var vm = {
                 {
                   title: "aa" + second,
                   percent: "40%",
-                  color: "red",
+                  color: logTypeColor,
                   backgroundColor: "red",
                 },
                 {
-                  title: "bb" + second,
+                  title: page,
                   percent: "20%",
-                  color: "black",
+                  color: logTypeColor,
                   backgroundColor: "blue",
                 },
                 {
-                  title: "cc" + second,
+                  title: appItem.appName,
                   percent: "20%",
-                  color: "black",
+                  color: logTypeColor,
                   backgroundColor: "blue",
                 },
                 {
-                  title: "dd" + second,
+                  title: logTypeDesc,
                   percent: "20%",
-                  color: "black",
+                  color: logTypeColor,
                   backgroundColor: "blue",
                 },
               ],
@@ -275,7 +298,7 @@ var vm = {
             },
           ],
           clickRow: (secItem) => {
-            this.$refs.detail.reloadItems(secItem.detailItems);
+            this.$refs.detail.reloadItems(secItem);
           },
           pasteboardBlock: () => {},
         };

@@ -429,37 +429,59 @@
  array：[JSValue toObject]= [NSArray class]    [jsValue isObject]=YES
  json：[JSValue toObject]= [NSDictionary class]    [jsValue isObject]=YES
  */
-- (id)jsValueToNative:(JSValue *)jsValue{
-    if (!jsValue) return nil;
+- (void)jsValueToNative:(JSValue *)jsValue complete:(void (^) (id res, NSString *type))complete{
+    if (!jsValue) {
+        if (complete) complete(@"[object Undefined]", @"[object Undefined]");
+        return;
+    }
     if (@available(iOS 9.0, *)) {
         if (jsValue.isDate) {
-            return [jsValue toDate];
+            if (complete) complete([jsValue toDate], @"[object Date]");
+            return;
         }
         if (jsValue.isArray) {
-            return [jsValue toArray];
+            if (complete) complete([jsValue toArray], @"[object Array]");
+            return;
         }
     }
     if (@available(iOS 13.0, *)) {
         if (jsValue.isSymbol) {
-            return nil;
+            if (complete) complete(@"[object Symbol]", @"[object Symbol]");
+            return;
         }
     }
     if (jsValue.isNull) {
-        return [NSNull null];
+        if (complete) complete([NSNull null], @"[object Null]");
+        return;
     }
     if (jsValue.isUndefined) {
-        return @"Undefined";
+        if (complete) complete(@"[object Undefined]", @"[object Undefined]");
+        return;
     }
     if (jsValue.isBoolean){
-        return [jsValue toBool] ? @"true" : @"false";
+        if (complete) complete([jsValue toBool] ? @"true" : @"false", @"[object Boolean]");
+        return;
     }
-    if (jsValue.isString || jsValue.isNumber){
-        return [jsValue toObject];
+    if (jsValue.isString){
+        if (complete) complete([jsValue toObject], @"[object String]");
+        return;
+    }
+    if (jsValue.isNumber){
+        if (complete) complete([jsValue toObject], @"[object Number]");
+        return;
     }
     if (jsValue.isObject){
-        return [jsValue toObject];
+        id res = [jsValue toObject];
+        if ([res isKindOfClass:NSArray.class]) {
+            if (complete) complete(res, @"[object Array]");
+            return;
+        }
+        if ([res isKindOfClass:NSDictionary.class]) {
+            if (complete) complete(res, @"[object Object]");
+            return;
+        }
     }
-    return [jsValue toObject];
+    if (complete) complete([jsValue toObject], @"[object 未知]");
 }
 - (NSString *)jsonToString:(id)json{
     if (!json) {
@@ -1051,7 +1073,7 @@ static id _instance;
         return;
     }
     
-    ZHDPOutputType colorType = ZHDPOutputType_Log;
+    __block ZHDPOutputType colorType = ZHDPOutputType_Log;
     
     //运行js解析  可能存在js对象 原生无法打印
     JSContext *context = nil;
@@ -1068,27 +1090,28 @@ static id _instance;
     // 以下代码不可切换线程执行   JSContext在哪个线程  就在哪个线程执行   否则线程锁死
     NSArray *args = [JSContext currentArguments];
     NSMutableArray *res = [NSMutableArray array];
+    NSMutableArray *resTypes = [NSMutableArray array];
     for (JSValue *jsValue in args) {
-        id parseRes = [self jsValueToNative:jsValue];
-        if ([parseRes isKindOfClass:NSArray.class] || [parseRes isKindOfClass:NSDictionary.class]) {
-            if (parseFunc) {
-                parseRes = [[parseFunc callWithArguments:@[parseRes]] toObject];
-                if (parseRes && [parseRes isKindOfClass:NSString.class] && [parseRes isEqualToString:parseErrorDesc]) {
+        [self jsValueToNative:jsValue complete:^(id resValue, NSString *type) {
+            if ([resValue isKindOfClass:NSArray.class] || [resValue isKindOfClass:NSDictionary.class]) {
+                resValue = [[parseFunc callWithArguments:@[resValue]] toObject];
+                if (resValue && [resValue isKindOfClass:NSString.class] && [resValue isEqualToString:parseErrorDesc]) {
                     colorType = ZHDPOutputType_Error;
                 }
             }
-        }
-        [res addObject:parseRes?:@""];
+            [res addObject:resValue?:@""];
+            [resTypes addObject:type?:@""];
+        }];
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if (ZHDPMg().status != ZHDPManagerStatus_Open) {
             return;
         }
-        [self zh_test_addLogSafe:colorType args:res.copy];
+        [self zh_test_addLogSafe:colorType args:res.copy argTypes:resTypes.copy];
     });
 }
-- (void)zh_test_addLogSafe:(ZHDPOutputType)colorType args:(NSArray *)args{
+- (void)zh_test_addLogSafe:(ZHDPOutputType)colorType args:(NSArray *)args argTypes:(NSArray *)argTypes{
     
     ZHDPManager *dpMg = ZHDPMg();
     
@@ -1147,7 +1170,7 @@ static id _instance;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
-        [titles addObject:[NSString stringWithFormat:@"%@参数%ld: \n", (i == 0 ? @"" : @"\n"), i]];
+        [titles addObject:[NSString stringWithFormat:@"%@参数%ld %@ : \n", (i == 0 ? @"" : @"\n"), i, argTypes[i]]];
         [descs addObject:detail?:@""];
     }
     

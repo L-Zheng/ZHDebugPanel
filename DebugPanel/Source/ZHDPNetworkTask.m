@@ -262,6 +262,7 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 - (NSOperationQueue *)opQueue{
     if (!_opQueue) {
         _opQueue = [[NSOperationQueue alloc] init];
+        _opQueue.maxConcurrentOperationCount = 1;
     }
     return _opQueue;
 }

@@ -155,11 +155,13 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     return result;
 }
 
-@interface ZHDPNetworkTaskProtocol ()<NSURLConnectionDelegate, NSURLConnectionDataDelegate>
+@interface ZHDPNetworkTaskProtocol ()<NSURLConnectionDelegate, NSURLConnectionDataDelegate, NSURLSessionDelegate, NSURLSessionTaskDelegate>
 @property (atomic, strong) NSURLConnection  *connection;
 @property (atomic, strong) NSURLResponse    *response;
 @property (atomic, strong) NSMutableData    *data;
 @property (atomic, strong) NSDate   *startDate;
+
+@property (nonnull,strong) NSURLSessionDataTask *task;
 @end
 
 @implementation ZHDPNetworkTaskProtocol
@@ -217,23 +219,86 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     self.data = [NSMutableData data];
     self.startDate = [NSDate date];
     
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    
     NSMutableURLRequest *mutableReqeust = [[self request] mutableCopy];
     [NSURLProtocol setProperty:@YES forKey:[self.class URLProperty] inRequest:mutableReqeust];
+    
+    // 使用NSURLSession
+    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:[NSOperationQueue mainQueue]];
+    self.task = [session dataTaskWithRequest:mutableReqeust];
+    [self.task resume];
+    
+    /* NSURLConnection废弃
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     self.connection = [NSURLConnection connectionWithRequest:mutableReqeust delegate:self];
 
 #pragma clang diagnostic pop
+    */
 }
 - (void)stopLoading{
+    if (self.task != nil) {
+        [self.task cancel];
+    }
+    /* NSURLConnection废弃
     if (self.connection) {
         [self.connection cancel];
         self.connection = nil;
     }
+    */
     [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData: self.data];
 }
 
+#pragma mark - NSURLSessionDelegate
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(nullable NSError *)error{
+    if (!error) {
+        [[self client] URLProtocolDidFinishLoading:self];
+    } else {
+        [[self client] URLProtocol:self didFailWithError:error];
+    }
+}
+//- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task
+//                            didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+// completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential))completionHandler{
+//    [[self client] URLProtocol:self didReceiveAuthenticationChallenge:challenge];
+//}
+
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler{
+    NSURLCacheStoragePolicy cacheStoragePolicy = NSURLCacheStorageNotAllowed;
+    if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+        cacheStoragePolicy = zhdp_cacheStoragePolicyForRequestAndResponse(dataTask.originalRequest, (NSHTTPURLResponse *) response);
+    }
+    [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:cacheStoragePolicy];
+    completionHandler(NSURLSessionResponseAllow);
+    self.response = response;
+}
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data{
+    [[self client] URLProtocol:self didLoadData:data];
+    [self.data appendData:data];
+}
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
+                                  willCacheResponse:(NSCachedURLResponse *)proposedResponse
+ completionHandler:(void (^)(NSCachedURLResponse * _Nullable cachedResponse))completionHandler{
+    if (completionHandler) {
+        completionHandler(proposedResponse);
+    }
+}
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task willPerformHTTPRedirection:(NSHTTPURLResponse *)response newRequest:(NSURLRequest *)request completionHandler:(void (^)(NSURLRequest * _Nullable))completionHandler{
+    //重定向 状态码 >=300 && < 400
+    if (response && [response isKindOfClass:[NSHTTPURLResponse class]]) {
+        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+        NSInteger status = httpResponse.statusCode;
+        if (status >= 300 && status < 400) {
+            [self.client URLProtocol:self wasRedirectedToRequest:request redirectResponse:response];
+            //记得设置成nil，要不然正常请求会请求两次
+            request = nil;
+        }
+    }
+    completionHandler(request);
+}
+
+/*
 #pragma mark - NSURLConnectionDelegate
 
 - (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error
@@ -331,6 +396,7 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     }
     return request;
 }
+ */
 - (void)dealloc{
     [NSURLProtocol unregisterClass:[self class]];
 }

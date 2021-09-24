@@ -162,6 +162,7 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 @property (atomic, strong) NSDate   *startDate;
 
 @property (nonnull,strong) NSURLSessionDataTask *task;
+@property (nonatomic,strong) NSOperationQueue *opQueue;
 @end
 
 @implementation ZHDPNetworkTaskProtocol
@@ -222,31 +223,47 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     NSMutableURLRequest *mutableReqeust = [[self request] mutableCopy];
     [NSURLProtocol setProperty:@YES forKey:[self.class URLProperty] inRequest:mutableReqeust];
     
-    // 使用NSURLSession
-    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:[NSOperationQueue mainQueue]];
-    self.task = [session dataTaskWithRequest:mutableReqeust];
-    [self.task resume];
-    
-    /* NSURLConnection废弃
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    self.connection = [NSURLConnection connectionWithRequest:mutableReqeust delegate:self];
+    if ([self useURLSession]) {
+        NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+        // 可能存在 此函数在主线程调起  同步等待请求结果  若请求delegate也在主线程  可能造成死锁
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:self.opQueue];
+        self.task = [session dataTaskWithRequest:mutableReqeust];
+        [self.task resume];
+    }else{
+   #pragma clang diagnostic push
+   #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+       self.connection = [NSURLConnection connectionWithRequest:mutableReqeust delegate:self];
+   #pragma clang diagnostic pop
+    }
 
-#pragma clang diagnostic pop
-    */
 }
 - (void)stopLoading{
-    if (self.task != nil) {
-        [self.task cancel];
+    if ([self useURLSession]) {
+        if (self.task != nil) {
+            [self.task cancel];
+        }
+    }else{
+       if (self.connection) {
+           [self.connection cancel];
+           self.connection = nil;
+       }
     }
-    /* NSURLConnection废弃
-    if (self.connection) {
-        [self.connection cancel];
-        self.connection = nil;
-    }
-    */
     [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData: self.data];
+}
+
+#pragma mark - enable
+
+- (BOOL)useURLSession{
+    return YES;
+}
+
+#pragma mark - queue
+
+- (NSOperationQueue *)opQueue{
+    if (!_opQueue) {
+        _opQueue = [[NSOperationQueue alloc] init];
+    }
+    return _opQueue;
 }
 
 #pragma mark - NSURLSessionDelegate
@@ -298,7 +315,6 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     completionHandler(request);
 }
 
-/*
 #pragma mark - NSURLConnectionDelegate
 
 - (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error
@@ -396,7 +412,7 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     }
     return request;
 }
- */
+
 - (void)dealloc{
     [NSURLProtocol unregisterClass:[self class]];
 }

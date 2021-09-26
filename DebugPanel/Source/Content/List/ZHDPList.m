@@ -247,12 +247,11 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
          },
          ^{
              if (!0) {
-                 [ZHDPMg() showToast:@"本地调试服务未连接\n同步输出不可用\n可运行run ios(socket)连接" duration:2.0 clickBlock:^{
-                 } complete:nil];
+                 [ZHDPMg() showToast:@"本地调试服务未连接\n同步输出不可用\n可运行fund run ios(socket)连接" outputType:ZHDPOutputType_Warning animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
                  [weakSelf.oprate hide];
                  return;
              }
-             [ZHDPMg() showToast:@"将隐藏此窗口\n启用同步输出" duration:1.0 clickBlock:nil complete:^{
+             [ZHDPMg() showToast:@"将隐藏此窗口\n启用同步输出" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:^{
                  [weakSelf.oprate hide];
                  [ZHDPMg() switchFloat];
              }];

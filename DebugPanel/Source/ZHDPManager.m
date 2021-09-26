@@ -15,6 +15,7 @@
 #import "ZHDPListMemory.h"// Memory列表
 #import "ZHDPListIM.h"// im列表
 #import "ZHDPListException.h"// Exception列表
+#import "ZHDPToast.h"//弹窗
 
 @interface ZHDPManager (){
     CFURLRef _originFontUrl;//注册字体Url
@@ -22,7 +23,6 @@
 }
 @property (nonatomic,strong) NSTimer *timer;
 @property (nonatomic,strong) NSDateFormatter *dateFormat;
-@property (nonatomic,copy) void (^clickToastBlock) (void);
 @property (nonatomic,assign) BOOL debugPanelH5Disable;
 @property (nonatomic,strong) ZHDPNetworkTask *networkTask;
 @property (nonatomic,strong) NSLock *lock;
@@ -201,9 +201,9 @@
     [self.window showDebugPanel];
     
     if (0) {
-        [ZHDPMg() showToast:@"点击以使用同步输出" duration:2.0 clickBlock:^{
+        [ZHDPMg() showToast:@"点击以使用同步输出" outputType:ZHDPOutputType_Warning animateDuration:0.25 stayDuration:2.0 clickBlock:^{
             [ZHDPMg() switchFloat];
-        } complete:nil];
+        } showComplete:nil hideComplete:nil];
         self.debugPanelH5Disable = YES;
     }
 }
@@ -323,21 +323,6 @@
     if ([colorString hasPrefix:@"0x"] || [colorString hasPrefix:@"#"]) {
         return [self zhdp_colorFromHexString:colorString];
     }
-    
-    if ([colorString hasSuffix:@"color"]) {
-        NSString *selectorStr = [colorString stringByReplacingOccurrencesOfString:@"color" withString:@"Color"];
-        NSMethodSignature *signature = [[UIColor class] methodSignatureForSelector:NSSelectorFromString(selectorStr)];
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-        invocation.target = [UIColor class];
-        invocation.selector = NSSelectorFromString(selectorStr);
-        [invocation invoke];
-        
-        UIColor *color = nil;
-        [invocation getReturnValue:&color];
-        
-        return color;
-    }
-    
     return nil;
 }
 - (UIColor *)zhdp_colorFromHexString:(NSString *)hexString{
@@ -360,62 +345,26 @@
 
 #pragma mark - toast
 
-- (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^__nullable) (void))clickBlock complete:(void (^__nullable) (void))complete{
-    self.clickToastBlock = clickBlock;
-
-    UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
+- (void)showToast:(NSString *)title
+       outputType:(ZHDPOutputType)outputType
+  animateDuration:(NSTimeInterval)animateDuration
+     stayDuration:(NSTimeInterval)stayDuration
+       clickBlock:(void (^__nullable) (void))clickBlock
+     showComplete:(void (^__nullable) (void))showComplete
+     hideComplete:(void (^__nullable) (void))hideComplete{
+    ZHDPToast *toast = [[ZHDPToast alloc] initWithFrame:CGRectZero];
+    toast.title = title;
+    toast.outputType = outputType;
+    toast.animateDuration = animateDuration;
+    toast.stayDuration = stayDuration;
+    toast.clickBlock = clickBlock;
+    toast.showComplete = showComplete;
+    toast.hideComplete = hideComplete;
     
-    label.userInteractionEnabled = YES;
-    UIGestureRecognizer *tapGes = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(clickToast)];
-    [label addGestureRecognizer:tapGes];
-
-    label.text = title;
-    label.font = [self defaultFont];
-    label.textAlignment = NSTextAlignmentCenter;
-    label.numberOfLines = 0;
-    label.adjustsFontSizeToFitWidth = YES;
-    label.textColor = [self selectColor];
-//    label.alpha = 0.7;
-    label.backgroundColor = [UIColor whiteColor];
-    label.layer.masksToBounds = YES;
-    label.clipsToBounds = YES;
-    
-    UIView *container = self.window.debugPanel;
-    CGSize size = [label.text boundingRectWithSize:CGSizeMake(container.bounds.size.width - 10, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: label.font} context:nil].size;
-    size.width += 10;
-    size.height += 10;
-    if (size.width < 150) size.width = 150;
-    if (size.height < 30) size.height = 30;
-    CGFloat X = (container.bounds.size.width - size.width) * 0.5;
-    
-    CGRect startFrame = (CGRect){{X, -size.height}, size};
-    CGRect endFrame = (CGRect){{X, 5}, size};
-    
-    label.layer.cornerRadius = size.height * 0.5;
-    [container addSubview:label];
-    
-    label.frame = startFrame;
-    
-    [UIView animateWithDuration:0.25 animations:^{
-        label.frame = endFrame;
-    } completion:^(BOOL finished) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(duration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [UIView animateWithDuration:0.25 animations:^{
-                label.frame = startFrame;
-            } completion:^(BOOL finished) {
-                [label removeFromSuperview];
-            }];
-            if (complete) complete();
-        });
-    }];
+    toast.debugPanel = self.window.debugPanel;
+    [toast show];
 }
-- (void)clickToast{
-    if (self.clickToastBlock) {
-        self.clickToastBlock();
-        self.clickToastBlock = nil;
-    }
-}
-
+    
 #pragma mark - data
 
 /**JSContext中：js类型-->JSValue类型 对应关系
@@ -651,9 +600,9 @@
         // 去除转义字符
         str = [self removeEscapeCharacter:str];
         [[UIPasteboard generalPasteboard] setString:str];
-        [self showToast:@"已复制，点击分享" duration:1.0 clickBlock:^{
+        [ZHDPMg() showToast:@"已复制，点击分享" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:^{
             [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"weixin://"]];
-        } complete:nil];
+        } showComplete:nil hideComplete:nil];
     }
 }
 

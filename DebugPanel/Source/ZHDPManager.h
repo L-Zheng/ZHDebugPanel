@@ -76,9 +76,17 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (CGFloat)defaultLineW;
 - (CGFloat)defaultCornerRadius;
 
+- (UIColor *)zhdp_colorFromHexString:(NSString *)hexString;
+
 #pragma mark - toast
 
-- (void)showToast:(NSString *)title duration:(NSTimeInterval)duration clickBlock:(void (^__nullable) (void))clickBlock complete:(void (^__nullable) (void))complete;
+- (void)showToast:(NSString *)title
+       outputType:(ZHDPOutputType)outputType
+  animateDuration:(NSTimeInterval)animateDuration
+     stayDuration:(NSTimeInterval)stayDuration
+       clickBlock:(void (^__nullable) (void))clickBlock
+     showComplete:(void (^__nullable) (void))showComplete
+     hideComplete:(void (^__nullable) (void))hideComplete;
 
 #pragma mark - data
 

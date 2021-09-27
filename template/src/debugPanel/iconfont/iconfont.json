@@ -6,6 +6,27 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "12189477",
+      "name": "我的沙盒",
+      "font_class": "wodeshahe",
+      "unicode": "e61b",
+      "unicode_decimal": 58907
+    },
+    {
+      "icon_id": "18808316",
+      "name": "chrome",
+      "font_class": "chrome",
+      "unicode": "e882",
+      "unicode_decimal": 59522
+    },
+    {
+      "icon_id": "8371995",
+      "name": "手机电脑",
+      "font_class": "shoujidiannao",
+      "unicode": "e62d",
+      "unicode_decimal": 58925
+    },
+    {
       "icon_id": "21523599",
       "name": "退出",
       "font_class": "tuichu",

@@ -216,8 +216,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     NSMutableArray *res = [NSMutableArray array];
     
     __weak __typeof__(self) weakSelf = self;
-    NSArray *icons = @[@"\ue68b", @"\ue60b", @"\ue636", @"\ue61d", @"\ue630", @"\ue691", @"\ue62d", @"\ue60c", @"\ue681"];
-    NSArray *descs = @[@"筛选", @"查找", @"刷新", @"删除", @"顶部", @"底部", @"同步输出", @"隐藏", @"退出"];
+    NSArray *icons = @[@"\ue68b", @"\ue60b", @"\ue636", @"\ue61d", @"\ue630", @"\ue691", @"\ue62d", @"\ue60c", @"\ue61b", @"\ue681"];
+    NSArray *descs = @[@"筛选", @"查找", @"刷新", @"删除", @"顶部", @"底部", @"同步输出", @"隐藏", @"沙盒", @"退出"];
     NSArray *blocks = @[
         ^{
             [weakSelf.apps show];
@@ -258,6 +258,13 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
          },
          ^{
              [ZHDPMg() switchFloat];
+         },
+         ^{{
+             NSString *appSandBox = NSHomeDirectory();
+             [[UIPasteboard generalPasteboard] setString:appSandBox];
+             [ZHDPMg() showToast:@"已复制-App沙盒地址" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:nil];
+             [self.oprate hide];
+         }
          },
          ^{
              [ZHDPMg() close];

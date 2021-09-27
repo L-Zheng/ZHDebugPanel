@@ -9,6 +9,7 @@
 #import "ZHDPOption.h"
 #import "ZHDebugPanel.h"// 调试面板
 #import "ZHDPManager.h"// 调试面板管理
+#import "ZHDPList.h"//列表
 
 @implementation ZHDPOptionItem
 - (NSString *)showTitle{
@@ -211,6 +212,20 @@
     self.selectItem = self.items[indexPath.item];
     if (self.selectBlock) self.selectBlock(indexPath, self.selectItem);
     [self reloadCollectionView];
+}
+- (void)selectListClass:(Class)listClass{
+    if (self.items.count <= 0 || !listClass) {
+        return;
+    }
+    ZHDPOptionItem *targetItem = nil;
+    NSArray *items = self.items.copy;
+    for (ZHDPOptionItem *item in items) {
+        if ([item.list isKindOfClass:listClass]) {
+            targetItem = item;
+            break;
+        }
+    }
+    [self selectItem:targetItem];
 }
 
 #pragma mark - click

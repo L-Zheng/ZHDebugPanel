@@ -11,6 +11,7 @@
 @interface ZHDPToast ()
 @property (nonatomic, strong) UIView *bgView;
 @property (nonatomic,strong) UILabel *label;
+@property (nonatomic,strong) NSValue *startFrameValue;
 @end
 
 @implementation ZHDPToast
@@ -43,6 +44,7 @@
 
 - (void)clickBgView{
     if (self.clickBlock) self.clickBlock();
+    [self startHide];
 }
 - (void)show{
     NSString *title = self.title;
@@ -87,19 +89,29 @@
     subLayer.shadowRadius = 10.f;
     [self.layer insertSublayer:subLayer below:self.bgView.layer];
     
+    self.startFrameValue = [NSValue valueWithCGRect:startFrame];
+    
     [UIView animateWithDuration:self.animateDuration animations:^{
         self.frame = endFrame;
     } completion:^(BOOL finished) {
         if (self.showComplete) self.showComplete();
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.stayDuration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [UIView animateWithDuration:self.animateDuration animations:^{
-                self.frame = startFrame;
-            } completion:^(BOOL finished) {
-                [self removeFromSuperview];
-            }];
-            if (self.hideComplete) self.hideComplete();
+            [self startHide];
         });
     }];
+}
+- (void)startHide{
+    if (!self.startFrameValue) return;
+    
+    CGRect startFrame = self.startFrameValue.CGRectValue;
+    self.startFrameValue = nil;
+    
+    [UIView animateWithDuration:self.animateDuration animations:^{
+        self.frame = startFrame;
+    } completion:^(BOOL finished) {
+        [self removeFromSuperview];
+    }];
+    if (self.hideComplete) self.hideComplete();
 }
 
 #pragma mark - getter

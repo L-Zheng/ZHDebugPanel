@@ -8,6 +8,7 @@
 
 #import "ZHDPManager.h"
 #import <CoreText/CoreText.h>
+#import "ZHDPOption.h" // 操作栏
 #import "ZHDPContent.h"// 内容列表容器
 #import "ZHDPListLog.h"// log列表
 #import "ZHDPListNetwork.h"// network列表
@@ -795,10 +796,19 @@
     
     // 如果当前列表正在显示，刷新列表
     if (_window && self.window.debugPanel.status == ZHDebugPanelStatus_Show) {
-        ZHDPList *list = self.window.debugPanel.content.selectList;
+        ZHDebugPanel *debugPanel = self.window.debugPanel;
+        ZHDPList *list = debugPanel.content.selectList;
         if ([list isKindOfClass:listClass]) {
             [list addSecItem:secItem spaceItem:spaceBlock(appDataItem)];
+        }else{
+            if ([listClass isEqual:ZHDPListException.class]) {
+                // 弹窗提示
+                [self showToast:@"检测到异常\n点击查看" outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
+                    [debugPanel.option selectListClass:listClass];
+                } showComplete:nil hideComplete:nil];
+            }
         }
+
     }
 }
 - (void)removeSecItemsList:(Class)listClass secItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant{
@@ -1500,7 +1510,7 @@ static id _instance;
     // 发送socket
     [self sendSocketClientSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
 }
-- (void)fw_test_deleteStorageStore:(NSArray <ZHDPListSecItem *> *)secItems{
+- (void)zh_test_deleteStorageStore:(NSArray <ZHDPListSecItem *> *)secItems{
     for (ZHDPListSecItem *secItem in secItems) {
         @autoreleasepool {
             if (secItem.rowItems.count == 0 ||  secItem.rowItems.firstObject.colItems.count == 0) {
@@ -1517,7 +1527,7 @@ static id _instance;
         }
     }
 }
-- (void)fw_test_deleteStorageStoreByData:(NSArray *)secItemsData{
+- (void)zh_test_deleteStorageStoreByData:(NSArray *)secItemsData{
     for (NSDictionary *secItem in secItemsData) {
         @autoreleasepool {
             NSArray *rowItems = [secItem objectForKey:@"rowItems"];
@@ -1664,7 +1674,7 @@ static id _instance;
     // 发送socket
     [self sendSocketClientSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
 }
-- (void)fw_test_deleteMemoryStore:(NSArray <ZHDPListSecItem *> *)secItems{
+- (void)zh_test_deleteMemoryStore:(NSArray <ZHDPListSecItem *> *)secItems{
     for (ZHDPListSecItem *secItem in secItems) {
         @autoreleasepool {
             if (secItem.rowItems.count == 0 ||  secItem.rowItems.firstObject.colItems.count == 0) {
@@ -1675,7 +1685,7 @@ static id _instance;
         }
     }
 }
-- (void)fw_test_deleteMemoryStoreByData:(NSArray *)secItemsData{
+- (void)zh_test_deleteMemoryStoreByData:(NSArray *)secItemsData{
     for (NSDictionary *secItem in secItemsData) {
         @autoreleasepool {
             NSArray *rowItems = [secItem objectForKey:@"rowItems"];

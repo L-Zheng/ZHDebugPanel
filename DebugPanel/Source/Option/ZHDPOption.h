@@ -30,4 +30,5 @@
 - (void)reloadWithItems:(NSArray <ZHDPOptionItem *> *)items;
 - (void)reloadCollectionViewFrequently;
 - (void)selectIndexPath:(NSIndexPath *)indexPath;
+- (void)selectListClass:(Class)listClass;
 @end

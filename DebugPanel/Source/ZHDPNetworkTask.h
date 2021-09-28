@@ -12,6 +12,7 @@
 @end
 
 @interface ZHDPNetworkTask : NSObject
+@property (nonatomic,strong) NSOperationQueue *networkQueue;
 @property (nonatomic, assign) BOOL interceptEnable;
 
 - (void)interceptNetwork;

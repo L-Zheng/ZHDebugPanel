@@ -1166,34 +1166,53 @@ static id _instance;
 }
 
 - (void)zh_test_addNetwork:(NSDate *)startDate request:(NSURLRequest *)request response:(NSURLResponse *)response responseData:(NSData *)responseData{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (ZHDPMg().status != ZHDPManagerStatus_Open) {
-            return;
-        }
-        [self zh_test_addNetworkSafe:startDate request:request response:response responseData:responseData];
-    });
-}
-- (void)zh_test_addNetworkSafe:(NSDate *)startDate request:(NSURLRequest *)request response:(NSURLResponse *)response responseData:(NSData *)responseData{
-    
-    ZHDPManager *dpMg = ZHDPMg();
-    if (dpMg.status != ZHDPManagerStatus_Open) {
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
         return;
     }
+    
+    // 提前获取数据 如果切到主线程再获取  可能request response已经释放  造成崩溃
+    NSURL *url = request.URL.copy;
+    NSDictionary *headers = request.allHTTPHeaderFields.copy;
+    NSData *httpBody = request.HTTPBody.copy;
+    NSData *httpBodyStream = [[self fetchNetworkTask] convertToDataByInputStream:request.HTTPBodyStream].copy;
+    NSString *method = request.HTTPMethod.copy;
     
     NSHTTPURLResponse *httpResponse = nil;
     if ([response isKindOfClass:NSHTTPURLResponse.class]) {
         httpResponse = (NSHTTPURLResponse*)response;
     }
+    NSDictionary *responseHeaders = httpResponse.allHeaderFields.copy;
+    NSInteger statusCode = httpResponse.statusCode;
     
-    NSURL *url = request.URL;
-    NSDictionary *headers = request.allHTTPHeaderFields;
-    NSDictionary *responseHeaders = httpResponse.allHeaderFields;
-    NSDictionary *paramsInBody = [self parseDataFromRequestBody:request.HTTPBody];
-    NSDictionary *paramsInBodyStream = [self parseDataFromRequestBody:[[dpMg fetchNetworkTask] convertToDataByInputStream:request.HTTPBodyStream]];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+            return;
+        }
+        [self zh_test_addNetworkSafe:startDate url:url method:method headers:headers httpBody:httpBody httpBodyStream:httpBodyStream responseHeaders:responseHeaders responseCode:statusCode responseData:responseData];
+    });
+}
+- (void)zh_test_addNetworkSafe:(NSDate *)startDate
+                           url:(NSURL *)url
+                        method:(NSString *)method
+                       headers:(NSDictionary *)headers
+                      httpBody:(NSData *)httpBody
+                httpBodyStream:(NSData *)httpBodyStream
+               responseHeaders:(NSDictionary *)responseHeaders
+                  responseCode:(NSInteger)responseCode
+                  responseData:(NSData *)responseData{
+
+    ZHDPManager *dpMg = ZHDPMg();
+    if (dpMg.status != ZHDPManagerStatus_Open) {
+        return;
+    }
+
+    NSDictionary *paramsInBody = [self parseDataFromRequestBody:httpBody];
+    NSDictionary *paramsInBodyStream = [self parseDataFromRequestBody:httpBodyStream];
+
     NSString *urlStr = url.absoluteString;
-    NSString *host = [request valueForHTTPHeaderField:@"host"];
-    if (host) {
-        urlStr = [urlStr stringByReplacingOccurrencesOfString:request.URL.host withString:host];
+    NSString *host = headers[@"host"];
+    if (host && [host isKindOfClass:NSString.class] && host.length > 0) {
+        urlStr = [urlStr stringByReplacingOccurrencesOfString:url.host withString:host];
     }
 
     NSMutableDictionary *paramsInUrl = [NSMutableDictionary dictionary];
@@ -1209,8 +1228,7 @@ static id _instance;
         urlStrRemoveParams = [urlStrRemoveParams stringByReplacingOccurrencesOfString:[url query] withString:@""];
     }
     
-    NSString *method = request.HTTPMethod;
-    NSString *statusCode = [NSString stringWithFormat:@"%ld",(NSInteger)httpResponse.statusCode];
+    NSString *statusCode = [NSString stringWithFormat:@"%ld",responseCode];
     ZHDPOutputType colorType = ((statusCode.integerValue < 200 || statusCode.integerValue >= 300) ? ZHDPOutputType_Error :  ZHDPOutputType_Log);
 
     NSDate *endDate = [NSDate date];
@@ -1225,7 +1243,7 @@ static id _instance;
     NSString *appEnv = nil;
     NSString *appPath = nil;
     
-    NSString *referer = [request valueForHTTPHeaderField:@"Referer"];
+    NSString *referer = headers[@"Referer"];
     if (referer && [referer isKindOfClass:NSString.class] &&
         referer.length > 0 && [referer containsString:@"https://mpservice.com"]) {
         NSURL *url = [NSURL URLWithString:referer];

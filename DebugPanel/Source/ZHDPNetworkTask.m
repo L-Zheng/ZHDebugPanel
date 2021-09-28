@@ -162,7 +162,6 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 @property (atomic, strong) NSDate   *startDate;
 
 @property (nonnull,strong) NSURLSessionDataTask *task;
-@property (nonatomic,strong) NSOperationQueue *opQueue;
 @end
 
 @implementation ZHDPNetworkTaskProtocol
@@ -226,7 +225,7 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     if ([self useURLSession]) {
         NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
         // 可能存在 此函数在主线程调起  同步等待请求结果  若请求delegate也在主线程  可能造成死锁
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:self.opQueue];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:[ZHDPMg() fetchNetworkTask].networkQueue];
         self.task = [session dataTaskWithRequest:mutableReqeust];
         [self.task resume];
     }else{
@@ -248,23 +247,13 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
            self.connection = nil;
        }
     }
-    [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData: self.data];
+    [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData:self.data];
 }
 
 #pragma mark - enable
 
 - (BOOL)useURLSession{
     return YES;
-}
-
-#pragma mark - queue
-
-- (NSOperationQueue *)opQueue{
-    if (!_opQueue) {
-        _opQueue = [[NSOperationQueue alloc] init];
-        _opQueue.maxConcurrentOperationCount = 1;
-    }
-    return _opQueue;
 }
 
 #pragma mark - NSURLSessionDelegate
@@ -421,9 +410,18 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 
 
 @interface ZHDPNetworkTask ()
-//@property (nonatomic,strong) ZHDPNetworkTaskProtocol *taskProtocol;
 @end
 @implementation ZHDPNetworkTask
+
+- (instancetype)init{
+    self = [super init];
+    if (self) {
+        NSOperationQueue *opQueue = [[NSOperationQueue alloc] init];
+        opQueue.maxConcurrentOperationCount = 1;
+        self.networkQueue = opQueue;
+    }
+    return self;
+}
 
 - (void)interceptNetwork{
     self.interceptEnable = YES;
@@ -457,13 +455,6 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     }
     return data;
 }
-
-//- (ZHDPNetworkTaskProtocol *)taskProtocol{
-//    if (!_taskProtocol) {
-//        _taskProtocol = [[ZHDPNetworkTaskProtocol alloc] init];
-//    }
-//    return _taskProtocol;
-//}
 
 @end
 

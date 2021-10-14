@@ -1165,17 +1165,17 @@ static id _instance;
     [self sendSocketClientSecItemToList:ZHDPListLog.class appItem:appItem secItem:secItem colorType:colorType];
 }
 
-- (void)zh_test_addNetwork:(NSDate *)startDate request:(NSURLRequest *)request response:(NSURLResponse *)response responseData:(NSData *)responseData{
+- (void)zh_test_addNetwork:(NSDate *)startDate
+                       url:(NSURL *)url
+                    method:(NSString *)method
+                   headers:(NSDictionary *)headers
+                  httpBody:(NSData *)httpBody
+            httpBodyStream:(NSData *)httpBodyStream
+                  response:(NSURLResponse *)response
+              responseData:(NSData *)responseData{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
         return;
     }
-    
-    // 提前获取数据 如果切到主线程再获取  可能request response已经释放  造成崩溃
-    NSURL *url = request.URL.copy;
-    NSDictionary *headers = request.allHTTPHeaderFields.copy;
-    NSData *httpBody = request.HTTPBody.copy;
-    NSData *httpBodyStream = [[self fetchNetworkTask] convertToDataByInputStream:request.HTTPBodyStream].copy;
-    NSString *method = request.HTTPMethod.copy;
     
     NSHTTPURLResponse *httpResponse = nil;
     if ([response isKindOfClass:NSHTTPURLResponse.class]) {

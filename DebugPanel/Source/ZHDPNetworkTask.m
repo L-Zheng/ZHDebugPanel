@@ -162,6 +162,13 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 @property (atomic, strong) NSDate   *startDate;
 
 @property (nonnull,strong) NSURLSessionDataTask *task;
+
+
+@property (nonatomic,strong) NSURL *url_temp;
+@property (nonatomic,strong) NSDictionary *headers_temp;
+@property (nonatomic,strong) NSData *httpBody_temp;
+@property (nonatomic,strong) NSData *httpBodyStream_temp;
+@property (nonatomic,copy) NSString *requestMethod_temp;
 @end
 
 @implementation ZHDPNetworkTaskProtocol
@@ -235,6 +242,13 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
    #pragma clang diagnostic pop
     }
 
+    
+    // 提前获取request的数据 如果stopLoading里面获取 可能request已经释放 造成崩溃
+    self.url_temp = self.request.URL.copy;
+    self.headers_temp = self.request.allHTTPHeaderFields.copy;
+    self.httpBody_temp = self.request.HTTPBody.copy;
+    self.httpBodyStream_temp = [[ZHDPMg() fetchNetworkTask] convertToDataByInputStream:self.request.HTTPBodyStream].copy;
+    self.requestMethod_temp = self.request.HTTPMethod.copy;
 }
 - (void)stopLoading{
     if ([self useURLSession]) {
@@ -247,7 +261,9 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
            self.connection = nil;
        }
     }
-    [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData:self.data];
+    [ZHDPMg() zh_test_addNetwork:self.startDate url:self.url_temp method:self.requestMethod_temp headers:self.headers_temp httpBody:self.httpBody_temp httpBodyStream:self.httpBodyStream_temp response:self.response responseData:self.data];
+    // 不可在此处访问request 可能request已经释放 造成崩溃
+//    [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData:self.data];
 }
 
 #pragma mark - enable

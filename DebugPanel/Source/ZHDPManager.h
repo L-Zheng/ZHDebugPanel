@@ -112,7 +112,14 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 #pragma mark - data
     
 - (void)zh_test_addLog;
-- (void)zh_test_addNetwork:(NSDate *)startDate request:(NSURLRequest *)request response:(NSURLResponse *)response responseData:(NSData *)responseData;
+- (void)zh_test_addNetwork:(NSDate *)startDate
+                       url:(NSURL *)url
+                    method:(NSString *)method
+                   headers:(NSDictionary *)headers
+                  httpBody:(NSData *)httpBody
+            httpBodyStream:(NSData *)httpBodyStream
+                  response:(NSURLResponse *)response
+              responseData:(NSData *)responseData;
 
 - (void)zh_test_reloadStorage;
 - (void)zh_test_deleteStorageStore:(NSArray <ZHDPListSecItem *> *)secItems;

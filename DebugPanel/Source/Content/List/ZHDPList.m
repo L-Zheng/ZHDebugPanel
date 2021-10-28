@@ -666,6 +666,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 //            self.automaticallyAdjustsScrollViewInsets = YES;
         }
         
+        // 防止 < xcode13 的版本编译失败
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_15_0
         /** 适配iOS15 xcode13
          原来是SectionHeader在滚动时，下面的SectionHeader是推着上面的SectionHeader出屏幕的。
          升级后SectionHeader在滚动时，下面的SectionHeader是滚到上面的SectionHeader下面，直到完全占据其位置才显示。
@@ -673,6 +675,12 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
         if (@available(iOS 15.0, *)){
             _tableView.sectionHeaderTopPadding = 0;
         }
+        
+        // 全局设置
+//        if (@available(iOS 15.0, *)) {
+//            [UITableView appearance].sectionHeaderTopPadding = 0;
+//        }
+#endif
         
 //        _tableView.separatorColor = [UIColor colorWithRed:0.0/255.0 green:0.0/255.0 blue:0.0/255.0 alpha:0.25];
 //        _tableView.separatorInset = UIEdgeInsetsZero;

@@ -23,7 +23,7 @@ class ListConfig {
         itemsFunc: appDataItem => {
           return appDataItem.logItems;
         },
-        limitCount: 200,
+        limitCount: 10000,
         removePercent: 0.5
       },
       {
@@ -33,7 +33,7 @@ class ListConfig {
         itemsFunc: appDataItem => {
           return appDataItem.networkItems;
         },
-        limitCount: 100,
+        limitCount: 200,
         removePercent: 0.5
       },
       {
@@ -83,7 +83,7 @@ class ListConfig {
         itemsFunc: appDataItem => {
           return appDataItem.mpApiCallerItems;
         },
-        limitCount: 300,
+        limitCount: 1000,
         removePercent: 0.5
       },
       {
@@ -93,7 +93,7 @@ class ListConfig {
         itemsFunc: appDataItem => {
           return appDataItem.imItems;
         },
-        limitCount: 100,
+        limitCount: 200,
         removePercent: 0.5
       },
       {

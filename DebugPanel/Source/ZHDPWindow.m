@@ -82,16 +82,29 @@
     // iOS13有了SceneDelegate之后上面的代码无法让window直接显示出来
     __weak __typeof__(self) weakSelf = self;
     if (@available(iOS 13.0, *)) {
-        [[NSNotificationCenter defaultCenter] addObserverForName:UISceneWillConnectNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull note) {
-            weakSelf.windowScene = note.object;
-        }];
-        if ([UIApplication sharedApplication].windows.count > 0) {
-            for (UIWindow * defaultWindow in [UIApplication sharedApplication].windows) {
-                if (defaultWindow.windowLevel == UIWindowLevelNormal) {
-                    weakSelf.windowScene = defaultWindow.windowScene;
+        
+        void (^windowSceneBlock) (void) = ^{
+            if ([UIApplication sharedApplication].windows.count > 0) {
+                for (UIWindow * defaultWindow in [UIApplication sharedApplication].windows) {
+                    if (defaultWindow.windowLevel == UIWindowLevelNormal) {
+                        weakSelf.windowScene = defaultWindow.windowScene;
+                    }
                 }
             }
-        }
+        };
+        
+        [[NSNotificationCenter defaultCenter] addObserverForName:UISceneWillConnectNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull note) {
+            /* iOS15 xcode13后 弹出键盘会触发此回调
+             weakSelf.windowScene = note.object = _UIKeyboardWindowScene
+             导致浮窗不显示
+             */
+            if (@available(iOS 15.0, *)) {
+                windowSceneBlock();
+            }else{
+                weakSelf.windowScene = note.object;
+            }
+        }];
+        windowSceneBlock();
     }
     [self addNotification];
 }

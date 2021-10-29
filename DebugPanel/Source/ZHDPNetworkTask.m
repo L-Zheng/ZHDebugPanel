@@ -82,9 +82,7 @@ IMP zhdp_replaceMethod(SEL selector, IMP newImpl, Class affectedClass, BOOL isCl
     }
     return origImpl;
 }
-extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSURLRequest * request, NSHTTPURLResponse * response)
-    // See comment in header.
-{
+extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSURLRequest * request, NSHTTPURLResponse * response){
     BOOL                        cacheable;
     NSURLCacheStoragePolicy     result;
 
@@ -155,6 +153,94 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     return result;
 }
 
+// 拦截其它库的请求   可能存在其它库已经拦截了app的请求   自身库如果拦截   存在多处拦截  容易出问题
+static BOOL ZHDPNetworkTask_CaptureOtherLib = NO;
+
+static void (* zhdp_ori_startLoading) (id, SEL);
+static void zhdp_new_startLoading(id self, SEL _cmd){
+    if (zhdp_ori_startLoading) {
+        zhdp_ori_startLoading(self, _cmd);
+    }
+    if (![ZHDPMg() fetchNetworkTask].interceptEnable) return;
+    
+    NSString *key = [NSString stringWithFormat:@"%p", self];
+    
+    ZHDPNetworkTaskProtocol *networkP = [[ZHDPNetworkTaskProtocol alloc] init];
+    [networkP collect_startLoading:self];
+    [[ZHDPMg() fetchNetworkTask] addURLProtocol:networkP key:key];
+}
+static void (* zhdp_ori_stopLoading) (id, SEL);
+static void zhdp_new_stopLoading(id self, SEL _cmd){
+    if (zhdp_ori_stopLoading) {
+        zhdp_ori_stopLoading(self, _cmd);
+    }
+    if (![ZHDPMg() fetchNetworkTask].interceptEnable) return;
+    
+    NSString *key = [NSString stringWithFormat:@"%p", self];
+    
+    NSURLProtocol *networkP = [[ZHDPMg() fetchNetworkTask] fetchURLProtocolForKey:key];
+    if (![networkP isKindOfClass:ZHDPNetworkTaskProtocol.class]) return;
+    
+    [(ZHDPNetworkTaskProtocol *)networkP collect_stopLoading:self];
+}
+static void (* zhdp_ori_URLSession_task_didCompleteWithError) (id, SEL, NSURLSession *, NSURLSessionTask *, NSError *);
+static void zhdp_new_URLSession_task_didCompleteWithError(id self, SEL _cmd, NSURLSession *session, NSURLSessionTask *task, NSError *error){
+    if (zhdp_ori_URLSession_task_didCompleteWithError) {
+        zhdp_ori_URLSession_task_didCompleteWithError(self, _cmd, session, task, error);
+    }
+    if (![ZHDPMg() fetchNetworkTask].interceptEnable) return;
+    
+    NSString *key = [NSString stringWithFormat:@"%p", self];
+    
+    NSURLProtocol *networkP = [[ZHDPMg() fetchNetworkTask] fetchURLProtocolForKey:key];
+    if (![networkP isKindOfClass:ZHDPNetworkTaskProtocol.class]) return;
+    
+    [[ZHDPMg() fetchNetworkTask] removeURLProtocolForKey:key];
+    [(ZHDPNetworkTaskProtocol *)networkP collect_URLSession:session task:task didCompleteWithError:error];
+}
+static void (* zhdp_ori_URLSession_dataTask_didReceiveResponse) (id, SEL, NSURLSession *, NSURLSessionDataTask *, NSURLResponse *, void (^)(NSURLSessionResponseDisposition));
+static void zhdp_new_URLSession_dataTask_didReceiveResponse(id self, SEL _cmd, NSURLSession *session, NSURLSessionDataTask *dataTask, NSURLResponse *response, void (^completionHandler)(NSURLSessionResponseDisposition)){
+    if (zhdp_ori_URLSession_dataTask_didReceiveResponse) {
+        zhdp_ori_URLSession_dataTask_didReceiveResponse(self, _cmd, session, dataTask, response, completionHandler);
+    }
+    if (![ZHDPMg() fetchNetworkTask].interceptEnable) return;
+    
+    NSString *key = [NSString stringWithFormat:@"%p", self];
+    
+    NSURLProtocol *networkP = [[ZHDPMg() fetchNetworkTask] fetchURLProtocolForKey:key];
+    if (![networkP isKindOfClass:ZHDPNetworkTaskProtocol.class]) return;
+    
+    [(ZHDPNetworkTaskProtocol *)networkP collect_URLSession:session dataTask:dataTask didReceiveResponse:response completionHandler:completionHandler];
+}
+static void (* zhdp_ori_URLSession_dataTask_didReceiveData) (id, SEL, NSURLSession *, NSURLSessionDataTask *, NSData *);
+static void zhdp_new_URLSession_dataTask_didReceiveData(id self, SEL _cmd, NSURLSession *session, NSURLSessionDataTask *dataTask, NSData *data){
+    if (zhdp_ori_URLSession_dataTask_didReceiveData) {
+        zhdp_ori_URLSession_dataTask_didReceiveData(self, _cmd, session, dataTask, data);
+    }
+    if (![ZHDPMg() fetchNetworkTask].interceptEnable) return;
+    
+    NSString *key = [NSString stringWithFormat:@"%p", self];
+    
+    NSURLProtocol *networkP = [[ZHDPMg() fetchNetworkTask] fetchURLProtocolForKey:key];
+    if (![networkP isKindOfClass:ZHDPNetworkTaskProtocol.class]) return;
+    
+    [(ZHDPNetworkTaskProtocol *)networkP collect_URLSession:session dataTask:dataTask didReceiveData:data];
+}
+static void (* zhdp_ori_URLSession_task_willPerformHTTPRedirection_newRequest) (id, SEL, NSURLSession *, NSURLSessionTask *, NSHTTPURLResponse *, NSURLRequest *, void (^)(NSURLRequest *));
+static void zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest(id self, SEL _cmd, NSURLSession *session, NSURLSessionTask *task, NSHTTPURLResponse *response, NSURLRequest *request, void (^completionHandler)(NSURLRequest *)){
+    if (zhdp_ori_URLSession_task_willPerformHTTPRedirection_newRequest) {
+        zhdp_ori_URLSession_task_willPerformHTTPRedirection_newRequest(self, _cmd, session, task, response, request, completionHandler);
+    }
+    if (![ZHDPMg() fetchNetworkTask].interceptEnable) return;
+    
+    NSString *key = [NSString stringWithFormat:@"%p", self];
+    
+    NSURLProtocol *networkP = [[ZHDPMg() fetchNetworkTask] fetchURLProtocolForKey:key];
+    if (![networkP isKindOfClass:ZHDPNetworkTaskProtocol.class]) return;
+    
+    [(ZHDPNetworkTaskProtocol *)networkP collect_URLSession:session task:task willPerformHTTPRedirection:response newRequest:request completionHandler:completionHandler];
+}
+
 @interface ZHDPNetworkTaskProtocol ()<NSURLConnectionDelegate, NSURLConnectionDataDelegate, NSURLSessionDelegate, NSURLSessionTaskDelegate>
 @property (atomic, strong) NSURLConnection  *connection;
 @property (atomic, strong) NSURLResponse    *response;
@@ -167,7 +253,7 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 @property (nonatomic,strong) NSURL *url_temp;
 @property (nonatomic,strong) NSDictionary *headers_temp;
 @property (nonatomic,strong) NSData *httpBody_temp;
-@property (nonatomic,strong) NSData *httpBodyStream_temp;
+@property (nonatomic,strong) NSInputStream *httpBodyStream_temp;
 @property (nonatomic,copy) NSString *requestMethod_temp;
 @end
 
@@ -175,9 +261,65 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 + (void)load{
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        zhdp_orig_defaultSessionConfiguration = (ZHDPSessionConfigConstructor)zhdp_replaceMethod(@selector(defaultSessionConfiguration), (IMP)zhdp_replaced_defaultSessionConfiguration, [NSURLSessionConfiguration class], YES);
-        
-        zhdp_orig_ephemeralSessionConfiguration = (ZHDPSessionConfigConstructor)zhdp_replaceMethod(@selector(ephemeralSessionConfiguration), (IMP)zhdp_replaced_ephemeralSessionConfiguration, [NSURLSessionConfiguration class], YES);
+        Class cls = NSClassFromString(@"XXXURLProtocol");
+        ZHDPNetworkTask_CaptureOtherLib = (cls ? YES : NO);
+        if (!ZHDPNetworkTask_CaptureOtherLib) {
+            zhdp_orig_defaultSessionConfiguration = (ZHDPSessionConfigConstructor)
+            zhdp_replaceMethod(
+                               @selector(defaultSessionConfiguration),
+                               (IMP)zhdp_replaced_defaultSessionConfiguration,
+                               [NSURLSessionConfiguration class],
+                               YES);
+            
+            zhdp_orig_ephemeralSessionConfiguration = (ZHDPSessionConfigConstructor)
+            zhdp_replaceMethod(
+                               @selector(ephemeralSessionConfiguration),
+                               (IMP)zhdp_replaced_ephemeralSessionConfiguration,
+                               [NSURLSessionConfiguration class],
+                               YES);
+        }else{
+            zhdp_ori_startLoading = (void (*) (id, SEL))
+            zhdp_replaceMethod(
+                               @selector(startLoading),
+                               (IMP)zhdp_new_startLoading,
+                               cls,
+                               NO);
+            
+            zhdp_ori_stopLoading = (void (*) (id, SEL))
+            zhdp_replaceMethod(
+                               @selector(stopLoading),
+                               (IMP)zhdp_new_stopLoading,
+                               cls,
+                               NO);
+            
+            zhdp_ori_URLSession_task_didCompleteWithError = (void (*) (id, SEL, NSURLSession *, NSURLSessionTask *, NSError *))
+            zhdp_replaceMethod(
+                               @selector(URLSession:task:didCompleteWithError:),
+                               (IMP)zhdp_new_URLSession_task_didCompleteWithError,
+                               cls,
+                               NO);
+            
+            zhdp_ori_URLSession_dataTask_didReceiveResponse = (void (*) (id, SEL, NSURLSession *, NSURLSessionDataTask *, NSURLResponse *, void (^)(NSURLSessionResponseDisposition)))
+            zhdp_replaceMethod(
+                               @selector(URLSession:dataTask:didReceiveResponse:completionHandler:),
+                               (IMP)zhdp_new_URLSession_dataTask_didReceiveResponse,
+                               cls,
+                               NO);
+            
+            zhdp_ori_URLSession_dataTask_didReceiveData = (void (*) (id, SEL, NSURLSession *, NSURLSessionDataTask *, NSData *))
+            zhdp_replaceMethod(
+                               @selector(URLSession:dataTask:didReceiveData:),
+                               (IMP)zhdp_new_URLSession_dataTask_didReceiveData,
+                               cls,
+                               NO);
+            
+            zhdp_ori_URLSession_task_willPerformHTTPRedirection_newRequest = (void (*) (id, SEL, NSURLSession *, NSURLSessionTask *, NSHTTPURLResponse *, NSURLRequest *, void (^)(NSURLRequest *)))
+            zhdp_replaceMethod(
+                               @selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:),
+                               (IMP)zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest,
+                               cls,
+                               NO);
+        }
     });
 }
 + (NSString *)URLProperty{
@@ -186,7 +328,9 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 + (BOOL)canInitWithRequest:(NSURLRequest *)request{
     // return YES:拦截   return NO:不拦截
     
-    
+    if (ZHDPNetworkTask_CaptureOtherLib) {
+        return NO;
+    }
     if (![ZHDPMg() fetchNetworkTask].interceptEnable) {
         return NO;
     }
@@ -216,21 +360,37 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 }
 //返回规范的request
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request{
-    return request;
+    NSMutableURLRequest *mutableReqeust = [request mutableCopy];
+    [NSURLProtocol setProperty:@YES forKey:[self URLProperty] inRequest:mutableReqeust];
+    return [mutableReqeust copy];
 }
 // 判断两个请求是否是同一个请求，如果是，则可以使用缓存数据，默认为YES
 + (BOOL)requestIsCacheEquivalent:(NSURLRequest *)a toRequest:(NSURLRequest *)b{
     return [super requestIsCacheEquivalent:a toRequest:b];
 }
 - (void)startLoading{
-    self.data = [NSMutableData data];
-    self.startDate = [NSDate date];
-    
     NSMutableURLRequest *mutableReqeust = [[self request] mutableCopy];
     [NSURLProtocol setProperty:@YES forKey:[self.class URLProperty] inRequest:mutableReqeust];
     
     if ([self useURLSession]) {
         NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+        NSArray *protocolClasses = configuration.protocolClasses ?: @[];
+        NSMutableArray *protocolArray = protocolClasses.mutableCopy;
+        Class utURLProtocolClass = ZHDPNetworkTaskProtocol.class;
+        // 判断是否已经添加过
+        NSInteger findIndex = NSNotFound;
+        for (int i = 0; i < protocolClasses.count; i++) {
+            Class pClass = protocolClasses[i];
+            if (pClass == utURLProtocolClass) {
+                findIndex = i; break;
+            }
+        }
+        if (findIndex == NSNotFound) {
+            [protocolArray insertObject:utURLProtocolClass atIndex:0];
+        }else {
+            [protocolArray exchangeObjectAtIndex:0 withObjectAtIndex:findIndex];
+        }
+        configuration.protocolClasses = protocolArray;
         // 可能存在 此函数在主线程调起  同步等待请求结果  若请求delegate也在主线程  可能造成死锁
         NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:[ZHDPMg() fetchNetworkTask].networkQueue];
         self.task = [session dataTaskWithRequest:mutableReqeust];
@@ -241,14 +401,8 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
        self.connection = [NSURLConnection connectionWithRequest:mutableReqeust delegate:self];
    #pragma clang diagnostic pop
     }
-
     
-    // 提前获取request的数据 如果stopLoading里面获取 可能request已经释放 造成崩溃
-    self.url_temp = self.request.URL.copy;
-    self.headers_temp = self.request.allHTTPHeaderFields.copy;
-    self.httpBody_temp = self.request.HTTPBody.copy;
-    self.httpBodyStream_temp = [[ZHDPMg() fetchNetworkTask] convertToDataByInputStream:self.request.HTTPBodyStream].copy;
-    self.requestMethod_temp = self.request.HTTPMethod.copy;
+    [self collect_startLoading:self];
 }
 - (void)stopLoading{
     if ([self useURLSession]) {
@@ -261,9 +415,44 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
            self.connection = nil;
        }
     }
-    [ZHDPMg() zh_test_addNetwork:self.startDate url:self.url_temp method:self.requestMethod_temp headers:self.headers_temp httpBody:self.httpBody_temp httpBodyStream:self.httpBodyStream_temp response:self.response responseData:self.data];
-    // 不可在此处访问request 可能request已经释放 造成崩溃
-//    [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData:self.data];
+    
+    [self collect_stopLoading:self];
+}
+
+#pragma mark - collect
+
+- (void)collect_startLoading:(NSURLProtocol *)urlProtocol{
+    self.data = [NSMutableData data];
+    self.startDate = [NSDate date];
+    // 提前获取request的数据 如果stopLoading里面获取 可能request已经释放 造成崩溃
+    self.url_temp = urlProtocol.request.URL.copy;
+    self.headers_temp = urlProtocol.request.allHTTPHeaderFields.copy;
+    self.httpBody_temp = urlProtocol.request.HTTPBody.copy;
+    // HTTPBodyStream尽量不要提前读取  会破坏  stream.streamStatus  状态  影响请求发起
+    self.httpBodyStream_temp = urlProtocol.request.HTTPBodyStream;
+    self.requestMethod_temp = urlProtocol.request.HTTPMethod.copy;
+}
+- (void)collect_stopLoading:(NSURLProtocol *)urlProtocol{
+    if (![self useURLSession]) {
+        // 在 didCompleteWithError  函数中收集
+//        NSData *streamData = [[ZHDPMg() fetchNetworkTask] convertToDataByInputStream:self.httpBodyStream_temp].copy;
+//        [ZHDPMg() zh_test_addNetwork:self.startDate url:self.url_temp method:self.requestMethod_temp headers:self.headers_temp httpBody:self.httpBody_temp httpBodyStream:streamData response:self.response responseData:self.data];
+        
+        // 不可在此处访问request 可能request已经释放 造成崩溃
+    //    [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData:self.data];
+    }
+}
+- (void)collect_URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error{
+    NSData *streamData = [[ZHDPMg() fetchNetworkTask] convertToDataByInputStream:self.httpBodyStream_temp].copy;
+    [ZHDPMg() zh_test_addNetwork:self.startDate url:self.url_temp method:self.requestMethod_temp headers:self.headers_temp httpBody:self.httpBody_temp httpBodyStream:streamData response:self.response responseData:self.data];
+}
+- (void)collect_URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler{
+    self.response = response;
+}
+- (void)collect_URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data{
+    [self.data appendData:data];
+}
+- (void)collect_URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task willPerformHTTPRedirection:(NSHTTPURLResponse *)response newRequest:(NSURLRequest *)request completionHandler:(void (^)(NSURLRequest *))completionHandler{
 }
 
 #pragma mark - enable
@@ -280,13 +469,9 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     } else {
         [[self client] URLProtocol:self didFailWithError:error];
     }
+    
+    [self collect_URLSession:session task:task didCompleteWithError:error];
 }
-//- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task
-//                            didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
-// completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential))completionHandler{
-//    [[self client] URLProtocol:self didReceiveAuthenticationChallenge:challenge];
-//}
-
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler{
     NSURLCacheStoragePolicy cacheStoragePolicy = NSURLCacheStorageNotAllowed;
     if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
@@ -295,10 +480,12 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:cacheStoragePolicy];
     completionHandler(NSURLSessionResponseAllow);
     self.response = response;
+    
+    [self collect_URLSession:session dataTask:dataTask didReceiveResponse:response completionHandler:completionHandler];
 }
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data{
     [[self client] URLProtocol:self didLoadData:data];
-    [self.data appendData:data];
+    [self collect_URLSession:session dataTask:dataTask didReceiveData:data];
 }
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
                                   willCacheResponse:(NSCachedURLResponse *)proposedResponse
@@ -319,6 +506,8 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
         }
     }
     completionHandler(request);
+    
+    [self collect_URLSession:session task:task willPerformHTTPRedirection:response newRequest:request completionHandler:completionHandler];
 }
 
 #pragma mark - NSURLConnectionDelegate
@@ -420,12 +609,13 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 }
 
 - (void)dealloc{
-    [NSURLProtocol unregisterClass:[self class]];
 }
 @end
 
 
 @interface ZHDPNetworkTask ()
+@property (nonatomic, strong) NSLock *lock;
+@property (nonatomic, strong) NSMutableDictionary *urlProtocolMap;
 @end
 @implementation ZHDPNetworkTask
 
@@ -433,19 +623,58 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
     self = [super init];
     if (self) {
         NSOperationQueue *opQueue = [[NSOperationQueue alloc] init];
-        opQueue.maxConcurrentOperationCount = 1;
+        opQueue.maxConcurrentOperationCount = 3;
         self.networkQueue = opQueue;
+        
+        self.lock = [[NSLock alloc] init];
     }
     return self;
 }
 
 - (void)interceptNetwork{
     self.interceptEnable = YES;
-    [NSURLProtocol registerClass:[ZHDPNetworkTaskProtocol class]];
+    if (!ZHDPNetworkTask_CaptureOtherLib) {
+        [NSURLProtocol registerClass:[ZHDPNetworkTaskProtocol class]];
+    }
 }
 - (void)cancelNetwork{
     self.interceptEnable = NO;
-    [NSURLProtocol unregisterClass:[ZHDPNetworkTaskProtocol class]];
+    if (!ZHDPNetworkTask_CaptureOtherLib) {
+        [NSURLProtocol unregisterClass:[ZHDPNetworkTaskProtocol class]];
+    }
+}
+
+- (void)addURLProtocol:(NSURLProtocol *)urlProtocol key:(NSString *)key{
+    if (!key || ![key isKindOfClass:NSString.class] || key.length == 0 ||
+        ![urlProtocol isKindOfClass:NSURLProtocol.class]) {
+        return;
+    }
+    [self.lock lock];
+    
+    if (!self.urlProtocolMap) {
+        self.urlProtocolMap = [NSMutableDictionary dictionary];
+    }
+    [self.urlProtocolMap setObject:urlProtocol forKey:key];
+    
+    [self.lock unlock];
+}
+- (void)removeURLProtocolForKey:(NSString *)key{
+    if (!key || ![key isKindOfClass:NSString.class] || key.length == 0) {
+        return;
+    }
+    [self.lock lock];
+    [self.urlProtocolMap removeObjectForKey:key];
+    [self.lock unlock];
+}
+- (NSURLProtocol *)fetchURLProtocolForKey:(NSString *)key{
+    if (!key || ![key isKindOfClass:NSString.class] || key.length == 0) {
+        return nil;
+    }
+    NSURLProtocol *res = nil;
+    [self.lock lock];
+    res = [self.urlProtocolMap objectForKey:key];
+    [self.lock unlock];
+    return res;
 }
 
 - (NSData *)convertToDataByInputStream:(NSInputStream *)stream{
@@ -464,11 +693,13 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
         } else {
             // The stream had an error. You can get an NSError object using [iStream streamError]
             if (result<0) {
+                [stream close];
 //                [NSException raise:@"STREAM_ERROR" format:@"%@", [stream streamError]];
                 return nil;//liman
             }
         }
     }
+    [stream close];
     return data;
 }
 

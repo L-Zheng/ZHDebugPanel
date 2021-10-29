@@ -9,6 +9,16 @@
 #import <Foundation/Foundation.h>
 
 @interface ZHDPNetworkTaskProtocol : NSURLProtocol
+
+#pragma mark - collect
+
+- (void)collect_startLoading:(NSURLProtocol *)urlProtocol;
+- (void)collect_stopLoading:(NSURLProtocol *)urlProtocol;
+- (void)collect_URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error;
+- (void)collect_URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler;
+- (void)collect_URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data;
+- (void)collect_URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task willPerformHTTPRedirection:(NSHTTPURLResponse *)response newRequest:(NSURLRequest *)request  completionHandler:(void (^)(NSURLRequest *))completionHandler;
+
 @end
 
 @interface ZHDPNetworkTask : NSObject
@@ -17,6 +27,10 @@
 
 - (void)interceptNetwork;
 - (void)cancelNetwork;
+
+- (void)addURLProtocol:(NSURLProtocol *)urlProtocol key:(NSString *)key;
+- (void)removeURLProtocolForKey:(NSString *)key;
+- (NSURLProtocol *)fetchURLProtocolForKey:(NSString *)key;
 
 - (NSData *)convertToDataByInputStream:(NSInputStream *)stream;
 @end

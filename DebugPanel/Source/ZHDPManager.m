@@ -1339,7 +1339,7 @@ static id _instance;
             }];
             return res?:@"";
         })()];
-    item.title = @"参数";
+    item.title = @"请求参数";
     item.content = [dpMg createDetailAttStr:titles descs:descs];
     [detailItems addObject:item];
     
@@ -1355,7 +1355,7 @@ static id _instance;
             return res?:@"";
         })()
        ];
-    item.title = @"数据";
+    item.title = @"响应数据";
     item.content = [dpMg createDetailAttStr:titles descs:descs];
     [detailItems addObject:item];
     

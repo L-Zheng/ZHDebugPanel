@@ -9,6 +9,8 @@
 #import "ZHDPListDetail.h"
 #import "ZHDPList.h"// 列表
 #import "ZHDPManager.h"// 调试面板管理
+#import "ZHDPListDetailOption.h"
+
 @interface ZHDPListDetailCollectionViewCell()
 @property (nonatomic, strong) UILabel *label;
 @end
@@ -48,8 +50,9 @@
 @property (nonatomic,strong) UIView *contentView;
 @property (nonatomic, strong) UICollectionView *collectionView;
 @property (nonatomic,strong) UIView *line;
+@property (nonatomic,strong) UIView *bottomLine;
 @property (nonatomic,strong) UITextView *textView;
-@property (nonatomic,strong) UIButton *pasteboardBtn;
+@property (nonatomic,strong) ZHDPListDetailOption *option;
 
 @property (nonatomic,assign) NSInteger lastSelectIdx;
 @end
@@ -61,7 +64,6 @@
 - (instancetype)initWithFrame:(CGRect)frame{
     self = [super initWithFrame:frame];
     if (self) {
-        [self configData];
         [self configUI];
     }
     return self;
@@ -71,16 +73,10 @@
 
     self.contentView.frame = self.shadowView.frame;
     
-    CGFloat W = 30;
-    CGFloat H = 30;
+    CGFloat X = [ZHDPMg() marginW] * 2;
+    CGFloat W = self.contentView.frame.size.width - 2 * X;
+    CGFloat H = 35;
     CGFloat Y = 0;
-    CGFloat X = self.contentView.frame.size.width - W;
-    self.pasteboardBtn.frame = CGRectMake(X, Y, W, H);
-    
-    X = [ZHDPMg() marginW] * 2;
-    W = self.pasteboardBtn.frame.origin.x - X;
-    H = 30;
-    Y = 0;
 //    UICollectionViewLayout *layout = self.collectionView.collectionViewLayout;
 //    if ([layout isKindOfClass:UICollectionViewFlowLayout.class]) {
 //        ((UICollectionViewFlowLayout *)layout).itemSize = CGSizeMake(50, H);
@@ -93,10 +89,22 @@
     Y = CGRectGetMaxY(self.collectionView.frame);
     self.line.frame = CGRectMake(X, Y, W, H);
     
+    X = self.collectionView.frame.origin.x;
+    W = self.collectionView.frame.size.width;
+    H = 35;
+    Y = self.contentView.frame.size.height - H;
+    self.option.frame = CGRectMake(X, Y, W, H);
+    
+    X = 0;
+    W = self.contentView.frame.size.width;
+    H = [ZHDPMg() defaultLineW];
+    Y = self.option.frame.origin.y - H;
+    self.bottomLine.frame = CGRectMake(X, Y, W, H);
+    
     X = [ZHDPMg() marginW];
     W = self.contentView.frame.size.width - X - [ZHDPMg() marginW];
     Y = CGRectGetMaxY(self.line.frame);
-    H = self.contentView.frame.size.height - Y;
+    H = self.bottomLine.frame.origin.y - Y;
     self.textView.frame = CGRectMake(X, Y, W, H);
     
     [self reloadListFrequently];
@@ -107,32 +115,14 @@
 - (void)didMoveToSuperview{
     [super didMoveToSuperview];
 }
-- (CGFloat)focusW{
-    return 30.0;
-}
-- (CGFloat)minRevealW{
-    return 0;
-}
 - (CGFloat)defaultPopW{
-    return 300;
+    return [self minPopW];
 }
 - (CGFloat)minPopW{
-    return 0;
+    return 250;
 }
 - (CGFloat)maxPopW{
-    return self.list.bounds.size.width - 10;
-}
-- (void)updateFrame{
-    [super updateFrame];
-    
-    CGFloat superW = self.list.bounds.size.width;
-    CGFloat superH = self.list.bounds.size.height;
-    
-    CGFloat W = self.realW;
-    CGFloat X = superW - self.realRevealW;
-    CGFloat H = superH * 1.0;
-    CGFloat Y = (superH - H) * 0.5;
-    self.frame = CGRectMake(X, Y, W, H);
+    return self.list.bounds.size.width - 20;
 }
 - (void)showWithSecItem:(ZHDPListSecItem *)secItem{
     NSArray <ZHDPListDetailItem *> *items = secItem.detailItems;
@@ -150,21 +140,13 @@
         return;
     }
     
-    CGFloat superW = self.list.bounds.size.width;
-    CGFloat superH = self.list.bounds.size.height;
-    
-    CGFloat W = superW * 0.8;
-    CGFloat X = superW;
-    CGFloat H = superH;
-    CGFloat Y = (superH - H) * 0.5;
-    CGRect startFrame = CGRectMake(X, Y, W, H);
-    self.frame = startFrame;
+    [self updateFrameX:YES];
     [self.list addSubview:self];
     [self reloadWithSecItem:secItem];
     
     [super show];
     [ZHDPMg() doAnimation:^{
-        [self updateFrame];
+        [self updateFrameX:NO];
     } completion:^(BOOL finished) {
         [ZHDPMg().window enableDebugPanel:YES];
     }];
@@ -178,7 +160,7 @@
     
     [super hide];
     [ZHDPMg() doAnimation:^{
-        [self updateFrame];
+        [self updateFrameX:YES];
     } completion:^(BOOL finished) {
         self.secItem = nil;
         [self removeFromSuperview];
@@ -190,20 +172,40 @@
 }
 - (void)reloadList{
     [self.collectionView reloadData];
+    
+    NSMutableArray *res = [NSMutableArray array];
+    __weak __typeof__(self) weakSelf = self;
+    NSArray *icons = @[@"\ueb6a", @"\ue617"];
+    NSArray *descs = @[@"关闭", @"复制"];
+    NSArray *blocks = @[
+        ^{
+            [weakSelf hide];
+        },
+         ^{
+             [ZHDPMg() copySecItemToPasteboard:self.secItem];
+         }
+    ];
+    for (NSUInteger i = 0; i < icons.count; i++) {
+        ZHDPListOprateItem *item = [[ZHDPListOprateItem alloc] init];
+        item.icon = icons[i];
+        item.desc = descs[i];
+        item.textColor = [ZHDPMg() defaultColor];
+        item.block = [blocks[i] copy];
+        [res addObject:item];
+    }
+    [self.option reloadWithItems:res.copy];
 }
 
 #pragma mark - config
 
-- (void)configData{
-    [super configData];
-}
 - (void)configUI{
     [super configUI];
     [self addSubview:self.contentView];
     [self.contentView addSubview:self.collectionView];
-    [self.contentView addSubview:self.pasteboardBtn];
     [self.contentView addSubview:self.line];
     [self.contentView addSubview:self.textView];
+    [self.contentView addSubview:self.bottomLine];
+    [self.contentView addSubview:self.option];
 }
 
 #pragma mark - relaod
@@ -253,12 +255,6 @@
 }
 - (void)scrollTextViewToTopInstant{
     [self.textView setContentOffset:CGPointMake(0, 0) animated:YES];
-}
-
-#pragma mark - click
-
-- (void)pasteboardBtnClick:(UIButton *)btn{
-    [ZHDPMg() copySecItemToPasteboard:self.secItem];
 }
 
 #pragma mark - UICollectionViewDelegate
@@ -329,24 +325,19 @@
     }
     return _contentView;
 }
-- (UIButton *)pasteboardBtn{
-    if (!_pasteboardBtn) {
-        _pasteboardBtn = [[UIButton alloc] initWithFrame:CGRectZero];
-        _pasteboardBtn.titleLabel.font = [ZHDPMg() iconFontWithSize:20];
-        
-        [_pasteboardBtn setTitle:@"\ue617" forState:UIControlStateNormal];
-        [_pasteboardBtn setTitleColor:[ZHDPMg() defaultColor] forState:UIControlStateNormal];
-        
-        [_pasteboardBtn addTarget:self action:@selector(pasteboardBtnClick:) forControlEvents:UIControlEventTouchUpInside];
-    }
-    return _pasteboardBtn;
-}
 - (UIView *)line{
     if (!_line) {
         _line = [[UIView alloc] initWithFrame:CGRectZero];
         _line.backgroundColor = [ZHDPMg() defaultLineColor];
     }
     return _line;
+}
+- (UIView *)bottomLine{
+    if (!_bottomLine) {
+        _bottomLine = [[UIView alloc] initWithFrame:CGRectZero];
+        _bottomLine.backgroundColor = [ZHDPMg() defaultLineColor];
+    }
+    return _bottomLine;
 }
 - (UITextView *)textView{
     if (!_textView) {
@@ -358,5 +349,10 @@
     }
     return _textView;
 }
-
+- (ZHDPListDetailOption *)option{
+    if (!_option) {
+        _option = [[ZHDPListDetailOption alloc] initWithFrame:CGRectZero];
+    }
+    return _option;
+}
 @end

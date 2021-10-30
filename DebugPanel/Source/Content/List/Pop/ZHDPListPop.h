@@ -15,26 +15,17 @@
 
 @property (nonatomic,strong) UIButton *bgBtn;
 @property (nonatomic,strong) ZHDPListPopShadow *shadowView;
-@property (nonatomic,strong) UIButton *arrowBtn;
-
-// 宽度
-@property (nonatomic, assign) CGFloat realW;
-// 暴露在屏幕上的宽度
-@property (nonatomic, assign) CGFloat realRevealW;
 
 // 子类重写
-- (CGFloat)focusW;
-- (CGFloat)minRevealW;
 - (CGFloat)defaultPopW;
 - (CGFloat)minPopW;
 - (CGFloat)maxPopW;
-- (void)updateFrame;
+- (void)updateFrameX:(BOOL)hide;
+- (void)updateFrameH;
 - (void)show;
 - (void)hide;
 - (BOOL)allowMaskWhenShow;
 - (void)reloadList;
-
-- (void)configData;
 - (void)configUI;
 
 // public func

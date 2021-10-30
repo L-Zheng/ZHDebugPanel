@@ -14,7 +14,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface ZHDPListOption : ZHDPComponent
 @property (nonatomic,weak) ZHDPList *list;
+
+@property (nonatomic, strong) UICollectionView *collectionView;
 - (void)reloadWithItems:(NSArray <ZHDPListOprateItem *> *)items;
+
+#pragma mark - config
+
+- (void)configUI;
+
+#pragma mark - reload
+
+- (void)reloadCollectionViewFrequently;
 @end
 
 NS_ASSUME_NONNULL_END

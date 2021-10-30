@@ -30,7 +30,6 @@
 - (instancetype)initWithFrame:(CGRect)frame{
     self = [super initWithFrame:frame];
     if (self) {
-        [self configData];
         [self configUI];
     }
     return self;
@@ -51,11 +50,11 @@
     H = 44;
     Y = self.shadowView.frame.size.height - H;
     W = self.shadowView.frame.size.width * splitScale;
-    self.selectAllBtn.frame = CGRectMake(X, Y, W, H);
+    self.cancelBtn.frame = CGRectMake(X, Y, W, H);
     
-    self.sureBtn.frame = CGRectMake(CGRectGetMaxX(self.selectAllBtn.frame), Y, W, H);
+    self.sureBtn.frame = CGRectMake(CGRectGetMaxX(self.cancelBtn.frame), Y, W, H);
     
-    self.cancelBtn.frame = CGRectMake(CGRectGetMaxX(self.sureBtn.frame), Y, W, H);
+    self.selectAllBtn.frame = CGRectMake(CGRectGetMaxX(self.sureBtn.frame), Y, W, H);
     
     X = self.shadowView.frame.origin.x;
     Y = CGRectGetMaxY(self.topTipLabel.frame);
@@ -76,32 +75,14 @@
 //    if (!show) return;
 }
 
-- (CGFloat)focusW{
-    return 30.0;
-}
-- (CGFloat)minRevealW{
-    return 0;
-}
 - (CGFloat)defaultPopW{
-    return 300;
+    return [self minPopW];
 }
 - (CGFloat)minPopW{
-    return 0;
+    return 250;
 }
 - (CGFloat)maxPopW{
-    return self.list.bounds.size.width - 10;
-}
-- (void)updateFrame{
-    [super updateFrame];
-    
-    CGFloat superW = self.list.bounds.size.width;
-    CGFloat superH = self.list.bounds.size.height;
-    
-    CGFloat W = self.realW;
-    CGFloat X = superW - self.realRevealW;
-    CGFloat H = superH * 1.0;
-    CGFloat Y = (superH - H) * 0.5;
-    self.frame = CGRectMake(X, Y, W, H);
+    return self.list.bounds.size.width - 20;
 }
 - (void)show{
     [ZHDPMg().window enableDebugPanel:NO];
@@ -110,22 +91,13 @@
         return;
     }
     
-    CGFloat superW = self.list.bounds.size.width;
-    CGFloat superH = self.list.bounds.size.height;
-    
-    CGFloat W = self.realW;
-    CGFloat X = superW;
-    CGFloat H = superH;
-    CGFloat Y = (superH - H) * 0.5;
-    CGRect startFrame = CGRectMake(X, Y, W, H);
-    
-    self.frame = startFrame;
+    [self updateFrameX:YES];
     [self.list addSubview:self];
     [self reloadSecItems];
     
     [super show];
     [ZHDPMg() doAnimation:^{
-        [self updateFrame];
+        [self updateFrameX:NO];
     } completion:^(BOOL finished) {
         [ZHDPMg().window enableDebugPanel:YES];
     }];
@@ -139,7 +111,7 @@
     
     [super hide];
     [ZHDPMg() doAnimation:^{
-        [self updateFrame];
+        [self updateFrameX:YES];
     } completion:^(BOOL finished) {
         [self removeFromSuperview];
         [ZHDPMg().window enableDebugPanel:YES];
@@ -153,9 +125,6 @@
 
 #pragma mark - config
 
-- (void)configData{
-    [super configData];
-}
 - (void)configUI{
     [super configUI];
     [self addSubview:self.topTipLabel];

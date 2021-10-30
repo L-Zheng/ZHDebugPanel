@@ -60,9 +60,9 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     [super layoutSubviews];
 
     [self updateSearchFrame];
-    [self.oprate updateFrame];
-    [self.apps updateFrame];
-    [self.detail updateFrame];
+    [self.oprate updateFrameH];
+    [self.apps updateFrameH];
+    [self.detail updateFrameH];
 }
 - (void)willMoveToSuperview:(UIView *)newSuperview{
     [super willMoveToSuperview:newSuperview];
@@ -89,7 +89,6 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     
     [self addSubview:self.option];
     
-    [self addSubview:self.oprate];
     [self relaodOprate];
 }
 
@@ -216,8 +215,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     NSMutableArray *res = [NSMutableArray array];
     
     __weak __typeof__(self) weakSelf = self;
-    NSArray *icons = @[@"\ue68b", @"\ue60b", @"\ue636", @"\ue61d", @"\ue630", @"\ue691", @"\ue62d", @"\ue60c", @"\ue61b", @"\ue681"];
-    NSArray *descs = @[@"筛选", @"查找", @"刷新", @"删除", @"顶部", @"底部", @"同步输出", @"隐藏", @"沙盒", @"退出"];
+    NSArray *icons = @[@"\ue68b", @"\ue60b", @"\ue636", @"\ue61d", @"\ue630", @"\ue691", @"\ue608", @"\ue62d", @"\ue60c", @"\ue61b", @"\ue681"];
+    NSArray *descs = @[@"筛选", @"查找", @"刷新", @"删除", @"顶部", @"底部", @"菜单", @"同步输出", @"隐藏", @"沙盒", @"退出"];
     NSArray *blocks = @[
         ^{
             [weakSelf.apps show];
@@ -244,6 +243,9 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
          ^{
              [weakSelf.oprate hide];
              [weakSelf scrollListToBottomCode];
+         },
+         ^{
+             [weakSelf.oprate show];
          },
          ^{
              if (!0) {

@@ -284,10 +284,10 @@
     }
 }
 - (UIFont *)defaultFont{
-    return [UIFont systemFontOfSize:14];
+    return [UIFont systemFontOfSize:15];
 }
 - (UIFont *)defaultBoldFont{
-    return [UIFont boldSystemFontOfSize:14];
+    return [UIFont boldSystemFontOfSize:15];
 }
 
 #pragma mark - color

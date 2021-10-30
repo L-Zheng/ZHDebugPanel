@@ -10,7 +10,6 @@
 #import "ZHDPManager.h"// 调试面板管理
 
 @interface ZHDPListOption ()<UICollectionViewDataSource,UICollectionViewDelegate>
-@property (nonatomic, strong) UICollectionView *collectionView;
 @property (nonatomic,retain) NSArray <ZHDPListOprateItem *> *items;
 @end
 
@@ -29,7 +28,7 @@
 - (void)layoutSubviews{
     [super layoutSubviews];
     
-    NSUInteger count = MIN(self.items.count, 8);
+    NSUInteger count = MIN(self.items.count, 9);
     CGFloat W = count > 0 ? self.bounds.size.width * 1.0 / (count * 1.0) : self.bounds.size.width;
     CGFloat H = self.bounds.size.height;
     UICollectionViewLayout *layout = self.collectionView.collectionViewLayout;

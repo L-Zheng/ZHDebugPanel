@@ -118,7 +118,6 @@
 - (instancetype)initWithFrame:(CGRect)frame{
     self = [super initWithFrame:frame];
     if (self) {
-        [self configData];
         [self configUI];
     }
     return self;
@@ -126,7 +125,7 @@
 - (void)layoutSubviews{
     [super layoutSubviews];
 
-    CGFloat W = ([self minPopW] - [self focusW]) * 0.5;
+    CGFloat W = [self minPopW] * 0.5;
     CGFloat H = W;
     UICollectionViewLayout *layout = self.collectionView.collectionViewLayout;
     if ([layout isKindOfClass:UICollectionViewFlowLayout.class]) {
@@ -142,47 +141,44 @@
 - (void)didMoveToSuperview{
     [super didMoveToSuperview];
 }
-- (CGFloat)focusW{
-    return 30.0;
-}
-- (CGFloat)minRevealW{
-    return [self focusW];
-}
 - (CGFloat)defaultPopW{
     return [self minPopW];
 }
 - (CGFloat)minPopW{
-    return 100 + [self focusW];
+    return 100;
 }
 - (CGFloat)maxPopW{
-    return self.list.bounds.size.width - 10;
-}
-- (void)updateFrame{
-    [super updateFrame];
-    CGFloat superW = self.list.bounds.size.width;
-    CGFloat superH = self.list.bounds.size.height;
-    
-    CGFloat W = self.realW;
-    CGFloat X = superW - self.realRevealW;
-    CGFloat H = superH * 0.85;
-    CGFloat Y = (superH - H) * 0.5;
-    self.frame = CGRectMake(X, Y, W, H);
+    return self.list.bounds.size.width - 20;
 }
 - (void)show{
     [ZHDPMg().window enableDebugPanel:NO];
+    if ([self isShow]) {
+        [ZHDPMg().window enableDebugPanel:YES];
+        return;
+    }
+    
+    [self updateFrameX:YES];
+    [self.list addSubview:self];
+    
     [super show];
     [ZHDPMg() doAnimation:^{
-        [self updateFrame];
+        [self updateFrameX:NO];
     } completion:^(BOOL finished) {
         [ZHDPMg().window enableDebugPanel:YES];
     }];
 }
 - (void)hide{
     [ZHDPMg().window enableDebugPanel:NO];
+    if (![self isShow]) {
+        [ZHDPMg().window enableDebugPanel:YES];
+        return;
+    }
+    
     [super hide];
     [ZHDPMg() doAnimation:^{
-        [self updateFrame];
+        [self updateFrameX:YES];
     } completion:^(BOOL finished) {
+        [self removeFromSuperview];
         [ZHDPMg().window enableDebugPanel:YES];
     }];
 }
@@ -195,9 +191,6 @@
 
 #pragma mark - config
 
-- (void)configData{
-    [super configData];
-}
 - (void)configUI{
     [super configUI];
     [self addSubview:self.collectionView];

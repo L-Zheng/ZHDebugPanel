@@ -192,12 +192,16 @@
     self.floatRect = rect;
     self.floatView.frame = self.floatRect;
 }
-- (void)showDebugPanel{
+- (void)showDebugPanel:(void (^) (void))complete{
     [self showView:self.debugPanel];
     [self updateDebugPanelFrameWhenShowHide:NO];
     
     [UIView animateWithDuration:0.25 animations:^{
         [self updateDebugPanelFrameWhenShowHide:YES];
+    } completion:^(BOOL finished) {
+        if (finished) {
+            if (complete) complete();
+        }
     }];
 }
 - (void)updateDebugPanelFrame:(CGRect)rect{
@@ -215,7 +219,7 @@
 
     [self updateDebugPanelFrame:CGRectMake(X, Y, W, H)];
 }
-- (void)hideDebugPanel{
+- (void)hideDebugPanel:(void (^) (void))complete{
     if (!_debugPanel) return;
     [self endEditing:YES];
     
@@ -223,6 +227,9 @@
         [self updateDebugPanelFrameWhenShowHide:NO];
     } completion:^(BOOL finished) {
         [self.debugPanel removeFromSuperview];
+        if (finished) {
+            if (complete) complete();
+        }
     }];
 }
 

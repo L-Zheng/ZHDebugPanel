@@ -15,6 +15,8 @@
 @property (nonatomic, assign) CGPoint gesStartPoint;
 @property (nonatomic, assign) CGRect gesStartFrame;
 
+@property (nonatomic,copy) NSString *animateBeforeTitle;
+
 @end
 
 @implementation ZHDPFloat
@@ -68,7 +70,46 @@
 #pragma mark - update
 
 - (void)updateTitle:(NSString *)title{
-    self.titleLabel.text = title;
+    if (![self showingError]) {
+        self.titleLabel.text = title;
+    }
+    self.animateBeforeTitle = title;
+}
+
+#pragma mark - error
+
+- (NSString *)animateKey{
+    return @"backgroundColor";
+}
+- (BOOL)showingError{
+    CAKeyframeAnimation *animate = [self.titleLabel.layer animationForKey:[self animateKey]];
+    return animate ? YES : NO;
+}
+- (void)showErrorTip:(void (^) (void))clickBlock{
+    self.clickErrorBlock = [clickBlock copy];
+    if ([self showingError]) return;
+    
+    NSString *colorStr = [ZHDPOutputItem colorStrByType:ZHDPOutputType_Error];
+    UIColor *errorColor = colorStr ? [ZHDPMg() zhdp_colorFromHexString:colorStr] : [UIColor redColor];
+    
+    CAKeyframeAnimation *animate = [CAKeyframeAnimation animationWithKeyPath:[self animateKey]];
+    animate.values = @[(id)[UIColor clearColor].CGColor, (id)errorColor.CGColor, (id)[UIColor clearColor].CGColor];
+    animate.repeatCount = 4;
+    animate.removedOnCompletion = YES;
+    animate.fillMode = kCAFillModeRemoved;
+    animate.duration = 0.5;
+    [self.titleLabel.layer addAnimation:animate forKey:[self animateKey]];
+    
+    self.animateBeforeTitle = self.titleLabel.text;
+    self.titleLabel.text = @"检测到异常";
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((animate.repeatCount * animate.duration) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        self.titleLabel.text = self.animateBeforeTitle;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            self.clickErrorBlock = nil;
+            [self.titleLabel.layer removeAnimationForKey:[self animateKey]];
+        });
+    });
 }
 
 #pragma mark - gesture

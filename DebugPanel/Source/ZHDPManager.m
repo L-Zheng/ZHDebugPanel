@@ -105,7 +105,7 @@
         return;
     }
     [self.window showFloat:[self fetchFloatTitle]];
-    [self.window hideDebugPanel];
+    [self.window hideDebugPanel:nil];
     });
 }
 - (void)close{
@@ -194,12 +194,16 @@
 - (void)switchFloat{
     if (!_window) return;
     [self.window showFloat:[self fetchFloatTitle]];
-    [self.window hideDebugPanel];
+    [self.window hideDebugPanel:nil];
 }
 - (void)switchDebugPanel{
     if (!_window) return;
     [self.window hideFloat];
-    [self.window showDebugPanel];
+    __weak __typeof__(self) weakSelf = self;
+    [self.window showDebugPanel:^{
+        void (^errorBlock) (void) = weakSelf.window.floatView.clickErrorBlock;
+        if (errorBlock) errorBlock();
+    }];
     
     if (0) {
         [ZHDPMg() showToast:@"点击以使用同步输出" outputType:ZHDPOutputType_Warning animateDuration:0.25 stayDuration:2.0 clickBlock:^{
@@ -795,20 +799,32 @@
     [dpMg.dataTask addAndCleanItems:itemsBlock(appDataItem) item:secItem spaceItem:spaceBlock(appDataItem)];
     
     // 如果当前列表正在显示，刷新列表
-    if (_window && self.window.debugPanel.status == ZHDebugPanelStatus_Show) {
+    if (_window) {
         ZHDebugPanel *debugPanel = self.window.debugPanel;
-        ZHDPList *list = debugPanel.content.selectList;
-        if ([list isKindOfClass:listClass]) {
-            [list addSecItem:secItem spaceItem:spaceBlock(appDataItem)];
-        }else{
-            if ([listClass isEqual:ZHDPListException.class]) {
-                // 弹窗提示
-                [self showToast:@"检测到异常\n点击查看" outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
-                    [debugPanel.option selectListClass:listClass];
-                } showComplete:nil hideComplete:nil];
+        __weak __typeof__(debugPanel) weakDebugPanel = debugPanel;
+        
+        ZHDebugPanelStatus status = debugPanel.status;
+        BOOL isException = [listClass isEqual:ZHDPListException.class];
+        
+        if (status == ZHDebugPanelStatus_Show) {
+            ZHDPList *list = debugPanel.content.selectList;
+            if ([list isKindOfClass:listClass]) {
+                [list addSecItem:secItem spaceItem:spaceBlock(appDataItem)];
+            }else{
+                if (isException) {
+                    // 弹窗提示
+                    [self showToast:@"检测到异常\n点击查看" outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
+                        [weakDebugPanel.option selectListClass:listClass];
+                    } showComplete:nil hideComplete:nil];
+                }
+            }
+        }else if (status == ZHDebugPanelStatus_Hide || status == ZHDebugPanelStatus_Unknown){
+            if (isException) {
+                [self.window.floatView showErrorTip:^{
+                    [weakDebugPanel.option selectListClass:listClass];
+                }];
             }
         }
-
     }
 }
 - (void)removeSecItemsList:(Class)listClass secItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant{

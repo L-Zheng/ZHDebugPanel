@@ -18,8 +18,8 @@
 - (void)showFloat:(NSString *)title;
 - (void)hideFloat;
 - (void)updateFloatFrame:(CGRect)rect;
-- (void)showDebugPanel;
-- (void)hideDebugPanel;
+- (void)showDebugPanel:(void (^) (void))complete;
+- (void)hideDebugPanel:(void (^) (void))complete;
 - (void)updateDebugPanelFrame:(CGRect)rect;
 
 - (void)enableDebugPanel:(BOOL)enable;

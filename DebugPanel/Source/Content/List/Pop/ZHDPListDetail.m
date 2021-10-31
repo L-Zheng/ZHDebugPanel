@@ -172,28 +172,6 @@
 }
 - (void)reloadList{
     [self.collectionView reloadData];
-    
-    NSMutableArray *res = [NSMutableArray array];
-    __weak __typeof__(self) weakSelf = self;
-    NSArray *icons = @[@"\ueb6a", @"\ue617"];
-    NSArray *descs = @[@"关闭", @"复制"];
-    NSArray *blocks = @[
-        ^{
-            [weakSelf hide];
-        },
-         ^{
-             [ZHDPMg() copySecItemToPasteboard:self.secItem];
-         }
-    ];
-    for (NSUInteger i = 0; i < icons.count; i++) {
-        ZHDPListOprateItem *item = [[ZHDPListOprateItem alloc] init];
-        item.icon = icons[i];
-        item.desc = descs[i];
-        item.textColor = [ZHDPMg() defaultColor];
-        item.block = [blocks[i] copy];
-        [res addObject:item];
-    }
-    [self.option reloadWithItems:res.copy];
 }
 
 #pragma mark - config
@@ -206,6 +184,7 @@
     [self.contentView addSubview:self.textView];
     [self.contentView addSubview:self.bottomLine];
     [self.contentView addSubview:self.option];
+    [self reloadOptionList];
 }
 
 #pragma mark - relaod
@@ -226,6 +205,29 @@
     [self selectItem:(self.lastSelectIdx >= items.count ?  items.firstObject : items[self.lastSelectIdx])];
     [self scrollTextViewToTopFrequently];
 }
+- (void)reloadOptionList{
+    NSMutableArray *res = [NSMutableArray array];
+    __weak __typeof__(self) weakSelf = self;
+    NSArray *icons = @[@"\ueb6a", @"\ue617"];
+    NSArray *descs = @[@"关闭", @"复制"];
+    NSArray *blocks = @[
+        ^{
+            [weakSelf hide];
+        },
+         ^{
+             [ZHDPMg() copySecItemToPasteboard:weakSelf.secItem];
+         }
+    ];
+    for (NSUInteger i = 0; i < icons.count; i++) {
+        ZHDPListOprateItem *item = [[ZHDPListOprateItem alloc] init];
+        item.icon = icons[i];
+        item.desc = descs[i];
+        item.textColor = [ZHDPMg() defaultColor];
+        item.block = [blocks[i] copy];
+        [res addObject:item];
+    }
+    [self.option reloadWithItems:res.copy];
+}
 
 #pragma mark - select
 
@@ -240,6 +242,7 @@
     for (NSUInteger i = 0; i < self.items.count; i++) {
         self.items[i].selected = (indexPath.item == i ? YES : NO);
     }
+    [self.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionCenteredHorizontally animated:YES];
     [self reloadListInstant];
     NSAttributedString *text = self.items[indexPath.item].content;
     self.textView.attributedText = [[NSAttributedString alloc] initWithString:@"载入中..." attributes:@{NSFontAttributeName: [ZHDPMg() defaultFont], NSForegroundColorAttributeName: [ZHDPMg() selectColor]}];

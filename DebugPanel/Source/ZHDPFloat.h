@@ -15,6 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic,copy) void (^doubleTapBlock) (void);
 
 - (void)updateTitle:(NSString *)title;
+- (void)showErrorTip:(void (^) (void))clickBlock;
+@property (nonatomic,copy) void (^ __nullable clickErrorBlock) (void);
 @end
 
 NS_ASSUME_NONNULL_END

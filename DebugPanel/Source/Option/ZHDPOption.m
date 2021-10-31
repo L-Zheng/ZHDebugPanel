@@ -80,6 +80,7 @@
 @property (nonatomic,strong) UIView *line;
 
 @property (nonatomic,strong) UIButton *hideBtn;
+@property (nonatomic,strong) UIView *hideLine;
 
 @property (nonatomic, strong) UIPanGestureRecognizer *panGes;
 @property (nonatomic, assign) CGPoint gesStartPoint;
@@ -106,6 +107,12 @@
     CGFloat Y = 0;
     CGFloat X = self.bounds.size.width - W;
     self.hideBtn.frame = CGRectMake(X, Y, W, H);
+    
+    X = 0;
+    W = [ZHDPMg() defaultLineW];
+    H = self.hideBtn.frame.size.height;
+    Y = 0;
+    self.hideLine.frame = CGRectMake(X, Y, W, H);
     
     X = 0;
     Y = 0;
@@ -138,6 +145,7 @@
     [self addSubview:self.collectionView];
     [self addSubview:self.line];
     [self addSubview:self.hideBtn];
+    [self.hideBtn addSubview:self.hideLine];
 }
 
 #pragma mark - gesture
@@ -211,6 +219,7 @@
     }
     self.selectItem = self.items[indexPath.item];
     if (self.selectBlock) self.selectBlock(indexPath, self.selectItem);
+    [self.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionCenteredHorizontally animated:YES];
     [self reloadCollectionView];
 }
 - (void)selectListClass:(Class)listClass{
@@ -306,6 +315,13 @@
         [_hideBtn addTarget:self action:@selector(hideBtnClick:) forControlEvents:UIControlEventTouchUpInside];
     }
     return _hideBtn;
+}
+- (UIView *)hideLine{
+    if (!_hideLine) {
+        _hideLine = [[UIView alloc] initWithFrame:CGRectZero];
+        _hideLine.backgroundColor = [ZHDPMg() defaultLineColor];
+    }
+    return _hideLine;
 }
 
 @end

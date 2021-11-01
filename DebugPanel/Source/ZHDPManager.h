@@ -56,6 +56,10 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (UIWindow *)fetchKeyWindow;
 - (UIEdgeInsets)fetchKeyWindowSafeAreaInsets;
 
+#pragma mark - float
+
+- (void)updateFloatTitle;
+
 #pragma mark - switch
 
 - (void)switchFloat;

@@ -9,13 +9,13 @@
 #import "ZHDPFloat.h"
 #import "ZHDPManager.h"// 调试面板管理
 
-@interface ZHDPFloat ()
+@interface ZHDPFloat () <CAAnimationDelegate>
 @property (nonatomic, strong) UILabel *titleLabel;
 
 @property (nonatomic, assign) CGPoint gesStartPoint;
 @property (nonatomic, assign) CGRect gesStartFrame;
 
-@property (nonatomic,copy) NSString *animateBeforeTitle;
+@property (nonatomic,assign) BOOL animating;
 
 @end
 
@@ -70,10 +70,9 @@
 #pragma mark - update
 
 - (void)updateTitle:(NSString *)title{
-    if (![self showingError]) {
+    if (!self.animating) {
         self.titleLabel.text = title;
     }
-    self.animateBeforeTitle = title;
 }
 
 #pragma mark - error
@@ -81,17 +80,12 @@
 - (NSString *)animateKey{
     return @"backgroundColor";
 }
-- (BOOL)showingError{
-    CAKeyframeAnimation *animate = [self.titleLabel.layer animationForKey:[self animateKey]];
-    return animate ? YES : NO;
-}
 - (void)showErrorTip:(NSString *)title clickBlock:(void (^) (void))clickBlock{
     self.clickErrorBlock = [clickBlock copy];
     NSString *errorDesc = [NSString stringWithFormat:@"%@\n检测到异常", title];
-    if ([self showingError]) {
-        self.titleLabel.text = errorDesc;
-        return;
-    }
+    self.titleLabel.text = errorDesc;
+    if (self.animating) return;
+    self.animating = YES;
 
     NSString *colorStr = [ZHDPOutputItem colorStrByType:ZHDPOutputType_Error];
     UIColor *errorColor = colorStr ? [ZHDPMg() zhdp_colorFromHexString:colorStr] : [UIColor redColor];
@@ -102,18 +96,22 @@
     animate.removedOnCompletion = YES;
     animate.fillMode = kCAFillModeRemoved;
     animate.duration = 0.5;
+    animate.delegate = self;
     [self.titleLabel.layer addAnimation:animate forKey:[self animateKey]];
+}
+
+#pragma mark - CAAnimationDelegate
+
+- (void)animationDidStart:(CAAnimation *)anim{
+}
+- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag{
+    if (!flag) return;
     
-    self.animateBeforeTitle = self.titleLabel.text;
-    
-    self.titleLabel.text = errorDesc;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((animate.repeatCount * animate.duration) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        self.titleLabel.text = self.animateBeforeTitle;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            self.clickErrorBlock = nil;
-            [self.titleLabel.layer removeAnimationForKey:[self animateKey]];
-        });
-    });
+    self.clickErrorBlock = nil;
+    [self.titleLabel.layer removeAnimationForKey:[self animateKey]];
+    anim = nil;
+    self.animating = NO;
+    [ZHDPMg() updateFloatTitle];
 }
 
 #pragma mark - gesture

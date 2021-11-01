@@ -85,10 +85,14 @@
     CAKeyframeAnimation *animate = [self.titleLabel.layer animationForKey:[self animateKey]];
     return animate ? YES : NO;
 }
-- (void)showErrorTip:(void (^) (void))clickBlock{
+- (void)showErrorTip:(NSString *)title clickBlock:(void (^) (void))clickBlock{
     self.clickErrorBlock = [clickBlock copy];
-    if ([self showingError]) return;
-    
+    NSString *errorDesc = [NSString stringWithFormat:@"%@\n检测到异常", title];
+    if ([self showingError]) {
+        self.titleLabel.text = errorDesc;
+        return;
+    }
+
     NSString *colorStr = [ZHDPOutputItem colorStrByType:ZHDPOutputType_Error];
     UIColor *errorColor = colorStr ? [ZHDPMg() zhdp_colorFromHexString:colorStr] : [UIColor redColor];
     
@@ -101,8 +105,8 @@
     [self.titleLabel.layer addAnimation:animate forKey:[self animateKey]];
     
     self.animateBeforeTitle = self.titleLabel.text;
-    self.titleLabel.text = @"检测到异常";
     
+    self.titleLabel.text = errorDesc;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((animate.repeatCount * animate.duration) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         self.titleLabel.text = self.animateBeforeTitle;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -192,6 +196,8 @@
         _titleLabel.textColor = [UIColor whiteColor];
         _titleLabel.backgroundColor = [UIColor clearColor];
         _titleLabel.adjustsFontSizeToFitWidth = YES;
+        _titleLabel.layer.cornerRadius = 5;
+        _titleLabel.layer.masksToBounds = YES;
     }
     return _titleLabel;
 }

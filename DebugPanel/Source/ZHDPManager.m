@@ -813,14 +813,14 @@
             }else{
                 if (isException) {
                     // 弹窗提示
-                    [self showToast:@"检测到异常\n点击查看" outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
+                    [self showToast:[NSString stringWithFormat:@"%@\n检测到异常, 点击查看", appItem.appName] outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
                         [weakDebugPanel.option selectListClass:listClass];
                     } showComplete:nil hideComplete:nil];
                 }
             }
         }else if (status == ZHDebugPanelStatus_Hide || status == ZHDebugPanelStatus_Unknown){
             if (isException) {
-                [self.window.floatView showErrorTip:^{
+                [self.window.floatView showErrorTip:appItem.appName clickBlock:^{
                     [weakDebugPanel.option selectListClass:listClass];
                 }];
             }

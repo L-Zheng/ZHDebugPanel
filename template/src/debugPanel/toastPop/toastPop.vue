@@ -8,8 +8,9 @@
   >
     <div
       class="pop"
+      @click="popClick"
       :style="{
-        color: colorConfig.selectColor,
+        color: textColor,
         height: layoutConfig.optionH + 'px',
         'border-radius': layoutConfig.optionH * 0.5 + 'px',
       }"
@@ -31,25 +32,51 @@ var vm = {
       colorConfig: {},
       popWrapAnimationClass: "",
       title: "",
+      textColor: '',
+      clickOp: null,
+      timer: null
     };
   },
   created() {
     this.layoutConfig = LayoutConfig;
     this.colorConfig = Color;
+    this.textColor = this.colorConfig.selectColor;
   },
   computed: {},
   mounted() {},
   methods: {
-    show(title) {
+    show(title, clickOp = null, type = 'default') {
+      const logTypeColor = {
+        'default': '#0CC82E',
+        'log': '#000000',
+        'info': '#000000',
+        'debug': '#000000',
+        'warning': '#FFD700',
+        'error': '#DC143C'
+      }
+      this.clickOp = clickOp;
+      this.textColor = logTypeColor[type] 
       this.title = title;
-      this.popWrapAnimationClass = "pop-wrap-show";
-      setTimeout(() => {
+      if (!this.timer) {
+        this.popWrapAnimationClass = "pop-wrap-show";
+      }else{
+        clearTimeout(this.timer)
+      }
+      this.timer = setTimeout(() => {
         this.hide();
+        this.timer = null
       }, 1500);
     },
     hide() {
       this.popWrapAnimationClass = "pop-wrap-hide";
     },
+    popClick(){
+      if (this.clickOp) {
+        this.clickOp()
+      }
+      this.clickOp = null
+      this.hide()
+    }
   },
 };
 export default vm;

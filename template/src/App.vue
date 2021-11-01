@@ -1,7 +1,7 @@
 <template>
   <div class="main-wrap">
     <ToastPop ref="toastPop"></ToastPop>
-    <Option :items="optionItems" @clickOptionItem="clickOptionItem"></Option>
+    <Option ref="option" :items="optionItems" @clickOptionItem="clickOptionItem"></Option>
     <Detail ref="detail"></Detail>
     <Content :items="optionItems" ref="content"></Content>
     <Connect
@@ -54,6 +54,14 @@ var vm = {
   },
   computed: {},
   mounted() {
+    const isLocalTest = false
+    if (isLocalTest) {
+      setTimeout(() => {
+        this.clickOptionItem(this.optionItems[0]);
+        this.startTimer();
+      }, 1000)
+      return;
+    }
       this.$refs.connect.show()
     setTimeout(() => {
       this.clickOptionItem(this.optionItems[0]);
@@ -175,22 +183,21 @@ var vm = {
           this.$refs.detail.reloadItems(secItemTemp);
         };
         secItem.pasteboardCopy = (secItemTemp) => {
-          const detailItems = secItemTemp.detailItems;
-          let res = "";
-          detailItems.forEach((element) => {
-            res += "\n\n" + element.title + ":\n" + element.content;
-          });
-          // res = res.replace(/\\/g, '')
-          navigator.clipboard.writeText(res).then(
-            function () {
-              /* clipboard successfully set */
-            },
-            function () {
-              /* clipboard write failed */
-            }
-          );
-          this.$refs.toastPop.show("复制成功");
+          this.copyToPasteboard(secItemTemp)
         };
+        if (listId == 'exception-list' || listId == 'sdkError-list') {
+          let targetOptionItem = null;
+          this.optionItems.forEach(element => {
+            if (element.listId == listId) {
+              targetOptionItem = element
+            }
+          });
+          if (targetOptionItem && !targetOptionItem.selected) {
+            this.$refs.toastPop.show(`${appItem.appName}, 检测到异常`, () => {
+                this.$refs.option.clickTitle(targetOptionItem)
+            }, 'error');
+          }
+        }
         // 追加数据
         this.addData(listId, appItem, secItem);
       });
@@ -300,7 +307,9 @@ var vm = {
           clickRow: (secItem) => {
             this.$refs.detail.reloadItems(secItem);
           },
-          pasteboardBlock: () => {},
+          pasteboardCopy: (secItemTemp) => {
+            this.copyToPasteboard(secItemTemp)
+          }
         };
         // 追加数据
         this.addData("log-list", appItem, secItem);
@@ -337,6 +346,24 @@ var vm = {
         );
       }
     },
+    copyToPasteboard(secItemTemp){
+      const detailItems = secItemTemp.detailItems;
+      let res = "";
+      detailItems.forEach((element) => {
+        res += "\n\n" + element.title + ":\n" + element.content;
+      });
+      // res = res.replace(/\\/g, '')
+      // 使用yarn serve调试状态下  此api不可用
+      navigator.clipboard.writeText(res).then(
+        function () {
+          /* clipboard successfully set */
+        },
+        function () {
+          /* clipboard write failed */
+        }
+      );
+      this.$refs.toastPop.show("复制成功");
+    }
   },
 };
 export default vm;

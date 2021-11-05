@@ -84,9 +84,14 @@
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID];
+        
+        // >=xcode13以上编译
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_15_0
         if (@available(iOS 14.0, *)) {
             cell.backgroundConfiguration = [UIBackgroundConfiguration clearConfiguration];
         }
+#endif
+
         cell.clipsToBounds = YES;
         cell.backgroundColor = [UIColor clearColor];
         cell.contentView.backgroundColor = [UIColor clearColor];
@@ -105,9 +110,13 @@
     if (!_tableView) {
         _tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
         _tableView.backgroundColor = [UIColor clearColor];
+        
+        // >=xcode13以上编译
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_15_0
         if (@available(iOS 15.0, *)){
             _tableView.sectionHeaderTopPadding = 0;
         }
+#endif
         
         _tableView.directionalLockEnabled = YES;
         _tableView.delegate = self;

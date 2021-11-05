@@ -27,6 +27,8 @@
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier{
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
     if (self) {
+        // >=xcode13以上编译
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_15_0
         /** 适配iOS15 xcode13
          原来是SectionHeader为透明显示，占其位而不遮挡其下面的任何内容，
          升级后SectionHeader为毛玻璃效果，并且在滚动吸顶和滚出屏幕的过程时会发生颜色渐变
@@ -34,6 +36,7 @@
         if (@available(iOS 14.0, *)) {
            self.backgroundConfiguration = [UIBackgroundConfiguration clearConfiguration];
         }
+#endif
         
         self.clipsToBounds = YES;
         //        ⚠️[TableView] Changing the background color of UITableViewHeaderFooterView is not supported. Use the background view configuration instead.

@@ -45,10 +45,10 @@
 
 // 子类重写
 - (CGFloat)defaultPopW{
-    return [self minPopW];
+    return 85;
 }
 - (CGFloat)minPopW{
-    return 85;
+    return 50;
 }
 - (CGFloat)maxPopW{
     return self.list.bounds.size.width - 10;

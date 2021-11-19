@@ -76,10 +76,10 @@
 }
 
 - (CGFloat)defaultPopW{
-    return [self minPopW];
+    return 250;
 }
 - (CGFloat)minPopW{
-    return 250;
+    return 200;
 }
 - (CGFloat)maxPopW{
     return self.list.bounds.size.width - 20;

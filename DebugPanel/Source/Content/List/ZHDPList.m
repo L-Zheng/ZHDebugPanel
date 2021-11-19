@@ -474,8 +474,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     
     if (self.items.count <= 0) return;
     
-    BOOL animated = YES;
     
+    BOOL animated = [self scrollAnimated];
     ZHDPListSecItem *secItem = self.items.lastObject;
     NSInteger rows = (secItem.isOpen ? secItem.rowItems.count : 0);
     NSInteger sec = self.items.count - 1;
@@ -500,8 +500,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 - (void)scrollListToTopInstant{
     if (self.items.count <= 0) return;
     
-    BOOL animated = YES;
     
+    BOOL animated = [self scrollAnimated];
     ZHDPListSecItem *secItem = self.items.firstObject;
     NSInteger rows = (secItem.isOpen ? secItem.rowItems.count : 0);
     if (rows > 0) {
@@ -523,6 +523,9 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
         return;
     }
     self.allowScrollAuto = NO;
+}
+- (BOOL)scrollAnimated{
+    return YES;
 }
 - (void)cancelScrollEvent{
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(scrollListToBottomAutoInternal) object:nil];

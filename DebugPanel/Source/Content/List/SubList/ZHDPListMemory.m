@@ -40,6 +40,13 @@
         [ZHDPMg() zh_test_reloadMemory];
 //    }
 }
+
+#pragma mark - scroll
+
+- (BOOL)scrollAnimated{
+    return YES;
+}
+
 #pragma mark - delete store
 
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{

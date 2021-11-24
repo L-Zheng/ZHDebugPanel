@@ -17,6 +17,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)updateTitle:(NSString *)title;
 - (void)showErrorTip:(NSString *)title clickBlock:(void (^) (void))clickBlock;
 @property (nonatomic,copy) void (^ __nullable clickErrorBlock) (void);
+
+- (void)stopAnimation;
+
 @end
 
 NS_ASSUME_NONNULL_END

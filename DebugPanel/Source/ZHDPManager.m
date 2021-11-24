@@ -203,6 +203,7 @@
     [self.window showDebugPanel:^{
         void (^errorBlock) (void) = weakSelf.window.floatView.clickErrorBlock;
         if (errorBlock) errorBlock();
+        [weakSelf.window.floatView stopAnimation];
     }];
     
     if (0) {
@@ -597,7 +598,7 @@
     if (!str || ![str isKindOfClass:NSString.class] || str.length == 0) {
         return str;
     }
-    return [str stringByReplacingOccurrencesOfString:@"\\" withString:@""];
+    return [str stringByReplacingOccurrencesOfString:@"\\/" withString:@"/"];
 }
 - (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem{
     if (secItem.pasteboardBlock) {

@@ -87,17 +87,29 @@
     if (self.animating) return;
     self.animating = YES;
 
+    [self startAnimation];
+}
+
+#pragma mark - animation
+
+- (void)startAnimation{
     NSString *colorStr = [ZHDPOutputItem colorStrByType:ZHDPOutputType_Error];
     UIColor *errorColor = colorStr ? [ZHDPMg() zhdp_colorFromHexString:colorStr] : [UIColor redColor];
     
     CAKeyframeAnimation *animate = [CAKeyframeAnimation animationWithKeyPath:[self animateKey]];
     animate.values = @[(id)[UIColor clearColor].CGColor, (id)errorColor.CGColor, (id)[UIColor clearColor].CGColor];
-    animate.repeatCount = 4;
+    animate.repeatCount = 5;
     animate.removedOnCompletion = YES;
     animate.fillMode = kCAFillModeRemoved;
     animate.duration = 0.5;
     animate.delegate = self;
     [self.titleLabel.layer addAnimation:animate forKey:[self animateKey]];
+}
+- (void)stopAnimation{
+    self.clickErrorBlock = nil;
+    [self.titleLabel.layer removeAnimationForKey:[self animateKey]];
+    self.animating = NO;
+    [ZHDPMg() updateFloatTitle];
 }
 
 #pragma mark - CAAnimationDelegate
@@ -107,11 +119,8 @@
 - (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag{
     if (!flag) return;
     
-    self.clickErrorBlock = nil;
-    [self.titleLabel.layer removeAnimationForKey:[self animateKey]];
+    [self stopAnimation];
     anim = nil;
-    self.animating = NO;
-    [ZHDPMg() updateFloatTitle];
 }
 
 #pragma mark - gesture

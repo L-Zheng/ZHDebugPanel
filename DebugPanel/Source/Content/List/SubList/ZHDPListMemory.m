@@ -52,6 +52,11 @@
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
 //    [ZHDPMg() fw_test_deleteMemoryStore:secItems];
 }
+- (void)autoDelete{
+}
+- (BOOL)allowAutoDelete{
+    return NO;
+}
 
 #pragma mark - UITableViewDelegate
 

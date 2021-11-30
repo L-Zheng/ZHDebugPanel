@@ -98,7 +98,7 @@
     
     CAKeyframeAnimation *animate = [CAKeyframeAnimation animationWithKeyPath:[self animateKey]];
     animate.values = @[(id)[UIColor clearColor].CGColor, (id)errorColor.CGColor, (id)[UIColor clearColor].CGColor];
-    animate.repeatCount = 5;
+    animate.repeatCount = 4;
     animate.removedOnCompletion = YES;
     animate.fillMode = kCAFillModeRemoved;
     animate.duration = 0.5;

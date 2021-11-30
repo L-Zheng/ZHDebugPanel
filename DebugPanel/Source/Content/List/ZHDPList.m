@@ -42,6 +42,9 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 @property (nonatomic,strong) ZHDPListOption *option;
 
 @property (nonatomic,strong) UILabel *tipLabel;
+
+@property (nonatomic,assign) BOOL autoDeleteEnable;
+
 @end
 
 @implementation ZHDPList
@@ -215,69 +218,129 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     NSMutableArray *res = [NSMutableArray array];
     
     __weak __typeof__(self) weakSelf = self;
-    NSArray *icons = @[@"\ue68b", @"\ue60b", @"\ue636", @"\ue61d", @"\ue630", @"\ue691", @"\ue608", @"\ue62d", @"\ue60c", @"\ue61b", @"\ue681"];
-    NSArray *descs = @[@"筛选", @"查找", @"刷新", @"删除", @"顶部", @"底部", @"菜单", @"同步输出", @"隐藏", @"沙盒", @"退出"];
-    NSArray *blocks = @[
-        ^{
-            [weakSelf.apps show];
+    
+    NSMutableArray *opItems = @[
+        @{
+            @"icon": @"\ue68b",
+            @"title": @"筛选",
+            @"block": ^{
+                [weakSelf.apps show];
+            }
         },
-         ^{
-             [weakSelf.oprate hide];
-             [weakSelf showSearch];
-         },
-         ^{
-             [weakSelf.oprate hide];
-             [weakSelf reloadListWhenRefresh];
-         },
-         ^{
-             [weakSelf.oprate hide];
-//             [ZHDPMg() clearSecItemsList:weakSelf.class appItem:self.apps.selectItem.appItem];
-             [weakSelf deleteStore:weakSelf.items.copy];
-             [ZHDPMg() removeSecItemsList:weakSelf.class secItems:weakSelf.items.copy instant:NO];
-             weakSelf.allowScrollAuto = YES;
-         },
-         ^{
-             [weakSelf.oprate hide];
-             [weakSelf scrollListToTopCode];
-         },
-         ^{
-             [weakSelf.oprate hide];
-             [weakSelf scrollListToBottomCode];
-         },
-         ^{
-             [weakSelf.oprate show];
-         },
-         ^{
-             if (!0) {
-                 [ZHDPMg() showToast:@"本地调试服务未连接\n同步输出不可用\n可运行fund run ios(socket)连接" outputType:ZHDPOutputType_Warning animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
-                 [weakSelf.oprate hide];
-                 return;
-             }
-             [ZHDPMg() showToast:@"将隐藏此窗口\n启用同步输出" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:^{
-                 [weakSelf.oprate hide];
-                 [ZHDPMg() switchFloat];
-             }];
-         },
-         ^{
-             [ZHDPMg() switchFloat];
-         },
-         ^{{
-             NSString *appSandBox = NSHomeDirectory();
-             [[UIPasteboard generalPasteboard] setString:appSandBox];
-             [ZHDPMg() showToast:@"已复制-App沙盒地址" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:nil];
-             [self.oprate hide];
-         }
-         },
-         ^{
-             [ZHDPMg() close];
-         }
-    ];
-    for (NSUInteger i = 0; i < icons.count; i++) {
+        @{
+            @"icon": @"\ue60b",
+            @"title": @"查找",
+            @"block": ^{
+                [weakSelf.oprate hide];
+                [weakSelf showSearch];
+            }
+        },
+        @{
+            @"icon": @"\ue636",
+            @"title": @"刷新",
+            @"block": ^{
+                [weakSelf.oprate hide];
+                [weakSelf reloadListWhenRefresh];
+            }
+        },
+        @{
+            @"icon": @"\ue61d",
+            @"title": @"删除",
+            @"block": ^{
+                [weakSelf.oprate hide];
+   //             [ZHDPMg() clearSecItemsList:weakSelf.class appItem:self.apps.selectItem.appItem];
+                [weakSelf deleteStore:weakSelf.items.copy];
+                [ZHDPMg() removeSecItemsList:weakSelf.class secItems:weakSelf.items.copy instant:NO];
+                weakSelf.allowScrollAuto = YES;
+            }
+        }
+    ].mutableCopy;
+    if ([self allowAutoDelete]) {
+        [opItems addObject:@{
+            @"icon": @"\ue653",
+            @"title": @"自动删除",
+            @"block": ^{
+                if (!1) {
+                    [ZHDPMg() showToast:[NSString stringWithFormat:ZHDPToastFundCliUnavailable, @"自动删除"] outputType:NSNotFound animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
+                    [weakSelf.oprate hide];
+                    return;
+                }
+                weakSelf.autoDeleteEnable = !weakSelf.autoDeleteEnable;
+                [weakSelf relaodOprate];
+                [ZHDPMg() showToast:[NSString stringWithFormat:@"自动清理-已%@", weakSelf.autoDeleteEnable ? @"开启" : @"关闭"] outputType:NSNotFound animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
+            }
+        }];
+    }
+    [opItems addObjectsFromArray:@[
+        @{
+            @"icon": @"\ue630",
+            @"title": @"顶部",
+            @"block": ^{
+                [weakSelf.oprate hide];
+                [weakSelf scrollListToTopCode];
+            }
+        },
+        @{
+            @"icon": @"\ue691",
+            @"title": @"底部",
+            @"block": ^{
+                [weakSelf.oprate hide];
+                [weakSelf scrollListToBottomCode];
+            }
+        },
+        @{
+            @"icon": @"\ue608",
+            @"title": @"菜单",
+            @"block": ^{
+                [weakSelf.oprate show];
+            }
+        },
+        @{
+            @"icon": @"\ue62d",
+            @"title": @"同步输出",
+            @"block": ^{
+                if (!0) {
+                    [ZHDPMg() showToast:[NSString stringWithFormat:ZHDPToastFundCliUnavailable, @"同步输出"] outputType:ZHDPOutputType_Warning animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
+                    [weakSelf.oprate hide];
+                    return;
+                }
+                [ZHDPMg() showToast:@"将隐藏此窗口\n启用同步输出" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:^{
+                    [weakSelf.oprate hide];
+                    [ZHDPMg() switchFloat];
+                }];
+            }
+        },
+        @{
+            @"icon": @"\ue60c",
+            @"title": @"隐藏",
+            @"block": ^{
+                [ZHDPMg() switchFloat];
+            }
+        },
+        @{
+            @"icon": @"\ue61b",
+            @"title": @"沙盒",
+            @"block": ^{
+                NSString *appSandBox = NSHomeDirectory();
+                [[UIPasteboard generalPasteboard] setString:appSandBox];
+                [ZHDPMg() showToast:@"已复制-App沙盒地址" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:nil];
+                [weakSelf.oprate hide];
+            }
+        },
+        @{
+            @"icon": @"\ue681",
+            @"title": @"退出",
+            @"block": ^{
+                [ZHDPMg() close];
+            }
+        }
+    ]];
+    for (NSDictionary *opItem in opItems) {
         ZHDPListOprateItem *item = [[ZHDPListOprateItem alloc] init];
-        item.icon = icons[i];
-        item.desc = descs[i];
+        item.icon = opItem[@"icon"];
+        item.desc = opItem[@"title"];
         item.textColor = [ZHDPMg() defaultColor];
-        item.block = [blocks[i] copy];
+        item.block = [opItem[@"block"] copy];
         [res addObject:item];
     }
     return res.copy;
@@ -290,6 +353,14 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
         ZHDPListOprateItem *item = items.firstObject;
         item.desc = filterItem.appItem.appName?:filterItem.outputItem.desc;
         item.textColor = [ZHDPMg() selectColor];
+    }
+    
+    // 自动删除
+    for (ZHDPListOprateItem *item in items) {
+        if ([@"自动删除" isEqualToString:item.desc]) {
+            item.textColor = self.autoDeleteEnable ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
+            break;
+        }
     }
     
     [self.oprate reloadWithItems:items];
@@ -429,6 +500,25 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 #pragma mark - delete store
 
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
+}
+- (void)autoDelete{
+    if (!self.autoDeleteEnable || ![self allowAutoDelete]) return;
+    [self.oprate hide];
+    
+    // 不可直接使用tableView显示的数据self.items进行删除
+    // 当调试窗隐藏时，数据不会显示到tableView中因此self.items不准确
+//    NSArray *res = self.items.copy;
+    NSArray <ZHDPListSecItem *> *items = [self fetchAllItems]?:@[];
+    NSMutableArray *res = [[self filterItems:items.copy]?:@[] mutableCopy];
+    if (self.items.count > 0) {
+        [res addObjectsFromArray:self.items];
+    }
+    [ZHDPMg() removeSecItemsList:self.class secItems:res.copy instant:NO];
+    
+    self.allowScrollAuto = YES;
+}
+- (BOOL)allowAutoDelete{
+    return YES;
 }
 
 #pragma mark - scroll

@@ -14,6 +14,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+FOUNDATION_EXPORT NSString * const ZHDPToastFundCliUnavailable;
+
 typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
     ZHDPManagerStatus_Unknown     = 0,
     ZHDPManagerStatus_Open      = 1,
@@ -103,6 +105,10 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (void)addSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem;
 - (void)removeSecItemsList:(Class)listClass secItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant;
 //- (void)clearSecItemsList:(Class)listClass appItem:(ZHDPAppItem *)appItem;
+
+#pragma mark - delete
+
+- (void)execeAutoDelete;
 
 @end
 

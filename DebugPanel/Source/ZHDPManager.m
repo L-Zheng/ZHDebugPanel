@@ -18,6 +18,8 @@
 #import "ZHDPListException.h"// Exception列表
 #import "ZHDPToast.h"//弹窗
 
+NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@不可用";
+
 @interface ZHDPManager (){
     CFURLRef _originFontUrl;//注册字体Url
     CTFontDescriptorRef _descriptor;//注册字体Descriptor
@@ -163,7 +165,7 @@
 - (UIEdgeInsets)fetchKeyWindowSafeAreaInsets{
     // 只是获取window的safeAreaInsets  不需要window成为keyWindow
     UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
-    if (keyWindow.windowLevel != UIWindowLevelNormal) {
+    if (!keyWindow || keyWindow.windowLevel != UIWindowLevelNormal) {
         NSArray *windows = [[UIApplication sharedApplication] windows];
         for (UIWindow *window in windows) {
             if (window.windowLevel == UIWindowLevelNormal){
@@ -854,7 +856,7 @@
         // 如果当前列表正在显示，从列表中删除，刷新列表
         if (_window && self.window.debugPanel.status == ZHDebugPanelStatus_Show) {
             ZHDPList *list = self.window.debugPanel.content.selectList;
-            if (1) {
+            if ([list isKindOfClass:listClass]) {
                 [list removeSecItems:@[secItem] instant:instant];
             }
         }
@@ -893,6 +895,22 @@
     }
 }
 */
+
+#pragma mark - delete
+
+- (void)execeAutoDelete{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
+    if (!_window) return;
+    __weak __typeof__(self) __self = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
+        if (!__self.window.debugPanel.content.selectList) return;
+        NSArray <ZHDPList *> *lists = [self.window.debugPanel.content fetchAllLists];
+        for (ZHDPList *list in lists) {
+            [list autoDelete];
+        }
+    });
+}
 
 #pragma mark - share
 

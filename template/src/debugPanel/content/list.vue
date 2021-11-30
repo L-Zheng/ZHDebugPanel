@@ -97,6 +97,7 @@ import Mouse from "../base/Mouse.js";
 import HtmlWindow from "../base/HtmlWindow.js";
 import Dom from "../base/Dom.js";
 import JSTool from "../base/JSTool.js";
+import ToastTool from "../base/ToastTool.js";
 import MySocket from "../base/Socket.js";
 import ListOption from "../content/listOption.vue";
 import Apps from "./apps.vue";
@@ -144,7 +145,8 @@ var vm = {
       originLocationIdx: -1,
       searchTop: 0,
       searchKeyword: null,
-      deleteRowHighlight: false
+      deleteRowHighlight: false,
+      autoDeleteEnable: false
     };
   },
   created() {
@@ -192,11 +194,20 @@ var vm = {
       }
       this.reloadListWhenSelectApp();
     },
+    selectListOptionItems(idx, selected) {
+      const count = this.listOptionItems.length;
+      for (let index = 0; index < count; index++) {
+        if (index == idx) {
+          const el = this.listOptionItems[index];
+          el.selected = selected;
+        }
+      }
+    },
     updateListOptionItemsTitle(idx, title) {
       const count = this.listOptionItems.length;
       for (let index = 0; index < count; index++) {
-        const el = this.listOptionItems[index];
         if (index == idx) {
+          const el = this.listOptionItems[index];
           el.title = title;
           if (title) {
             el.selected = true;
@@ -206,7 +217,7 @@ var vm = {
     },
     createListOptionItems() {
       // 事件要防抖
-      this.listOptionItems = [
+      let items = [
         {
           icon: "icon-shaixuan",
           title: "",
@@ -235,6 +246,23 @@ var vm = {
             this.removeSecItems(this.items);
           },
         },
+      ];
+      if (this.allowAutoDelete()) {
+        const cIdx = items.length
+        items.push({
+          icon: "icon-shanchu",
+          title: "",
+          selected: false,
+          highlight: false,
+          click: () => {
+            this.autoDeleteEnable = !this.autoDeleteEnable;
+            this.selectListOptionItems(cIdx, this.autoDeleteEnable)
+            // 弹窗提示
+            ToastTool.show(`自动清理-已${this.autoDeleteEnable ? '开启' : '关闭'}`)
+          },
+        })
+      }
+      items = items.concat([
         {
           icon: "icon-56zhiding",
           title: "",
@@ -253,7 +281,8 @@ var vm = {
             this.scrollListToBottomCode();
           },
         },
-      ];
+      ])
+      this.listOptionItems = items
     },
     getColItemTitle(colItem) {
       return colItem.title;
@@ -450,8 +479,7 @@ var vm = {
       if (
         !secItems ||
         !JSTool.isArray(secItems) ||
-        secItems.length == 0 ||
-        this.items.length == 0
+        secItems.length == 0
       ) {
         return;
       }
@@ -547,6 +575,20 @@ var vm = {
       sendData[dataKey] = newSecItems;
       // console.log(JSON.parse(JSON.stringify(sendData)))
       MySocket.sendData(JSON.parse(JSON.stringify(sendData)));
+    },
+    autoDelete(){
+      if (!this.autoDeleteEnable || !this.allowAutoDelete()) {
+        return
+      }
+      let deleteItems = this.filterItems(this.fetchAllItems()); 
+      if (this.items.length > 0) {
+        deleteItems = deleteItems.concat(this.items)
+      }
+      this.removeSecItems(deleteItems) 
+      this.allowScrollAuto = true;
+    },
+    allowAutoDelete(){
+      return (this.checkSpecialList() ? false : true)
     },
     reloadListWhenSelectApp() {
       let fetchRes = this.checkSpecialList();
@@ -789,7 +831,6 @@ var vm = {
       if (!this.allowScrollAuto || this.scrollStatus != 0) {
         return;
       }
-      // console.log('scrollListToBottomInstant')
       this.scrollListToBottomInstant();
     },
     scrollListToBottomCode() {
@@ -803,7 +844,6 @@ var vm = {
       if (this.items.length <= 0) return;
       const rowDomId = this.listId + "-row-wrap-id-" + (this.items.length - 1);
       ScrollOp.scrollDomToBottomById(rowDomId);
-      // console.log('scrollDomToBottomById')
     },
     scrollListToTopCode() {
       this.cancelScrollEvent();
@@ -832,6 +872,10 @@ var vm = {
         return;
       }
       this.allowScrollAuto = false;
+    },
+    scrollAnimated(){
+      const fetchRes = this.checkSpecialList();
+      return fetchRes ? false : true
     },
     cancelScrollEvent() {
       clearTimeout(this.execScrollTimer);

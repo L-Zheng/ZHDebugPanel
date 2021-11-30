@@ -44,6 +44,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)reloadList;
 - (void)scrollListToBottomCode;
 - (void)scrollListToTopCode;
+
+#pragma mark - delete
+
+- (void)autoDelete;
+- (BOOL)allowAutoDelete;
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -23,7 +23,7 @@ class ListConfig {
         itemsFunc: appDataItem => {
           return appDataItem.logItems;
         },
-        limitCount: 10000,
+        limitCount: 1000,
         removePercent: 0.5
       },
       {

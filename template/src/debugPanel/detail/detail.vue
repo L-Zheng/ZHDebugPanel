@@ -95,16 +95,19 @@ var vm = {
       return this.contentPercentH;
     },
     reloadItems(secItem) {
-      this.secItem = secItem;
       const items = secItem.detailItems;
       if (!JSTool.isArray(items)) return;
+      if (secItem != this.secItem) {
+        this.selectItem = {content: '载入中...'}
+      }
+      this.secItem = secItem;
       clearTimeout(this.timer);
       // 然后又创建一个新的 setTimeout, 这样就能保证interval 间隔内如果时间持续触发，就不会执行 fn 函数
       this.timer = setTimeout(() => {
         this.items = items;
         this.clickIndex(this.lastSelectIdx);
         this.$nextTick(() => {});
-      }, 10);
+      }, 150);
     },
     clickIndex(index) {
       if (index >= this.items.length) {

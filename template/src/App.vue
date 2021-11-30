@@ -20,6 +20,7 @@ import ScrollOp from "./debugPanel/base/ScrollOp.js";
 import Mouse from "./debugPanel/base/Mouse.js";
 import DataTask from "./debugPanel/data/DataTask.js";
 import ListConfig from "./debugPanel/data/ListConfig.js";
+import ToastTool from "./debugPanel/base/ToastTool.js";
 
 import ToastPop from "./debugPanel/toastPop/toastPop.vue";
 import Option from "./debugPanel/option/option.vue";
@@ -50,6 +51,9 @@ var vm = {
     this.configVue();
     ScrollOp.listenScrollEvent();
     Mouse.listenMouseEvent();
+    ToastTool.registerToast((title, clickOp = null, type = 'default') => {
+      this.$refs.toastPop.show(title, clickOp, type);
+    })
     this.optionItems = ListConfig.fetchItems();
   },
   computed: {},
@@ -170,6 +174,19 @@ var vm = {
         const msgType = receiveData.msgType;
         if (msgType != 8) {
           return;
+        }
+        const msgSubType = receiveData.msgSubType;
+        if (msgSubType != 1 && msgSubType != 2) {
+          return
+        }
+        // 清除日志信息
+        if (msgSubType == 2) {
+          // 如果当前列表正在显示，刷新列表
+          const listItems = ListConfig.fetchItems()
+          listItems.forEach(el => {
+            this.$refs.content.$refs[el.listId].autoDelete();
+          });
+          return
         }
         const listData = receiveData.data;
         const listId = listData.listId;

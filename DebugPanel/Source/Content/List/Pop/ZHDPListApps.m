@@ -200,6 +200,15 @@
     self.selectItem = item;
     if (self.selectBlock) self.selectBlock(self.selectItem);
 }
+- (void)selectItemByAppId:(NSString *)appId{
+    if (!appId || ![appId isKindOfClass:NSString.class] || appId.length == 0) {
+        return;
+    }
+    [self reloadSecItems];
+    if ([self.filterApp selectItemByAppId:appId]) {
+        [self sureBtnClick:nil];
+    }
+}
 
 #pragma mark - click
 

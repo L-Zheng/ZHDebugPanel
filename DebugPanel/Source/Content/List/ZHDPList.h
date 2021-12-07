@@ -45,6 +45,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)scrollListToBottomCode;
 - (void)scrollListToTopCode;
 
+#pragma mark - filter
+
+- (void)autoFilterWhenCliDebug;
+- (void)filterByCode:(NSString *)appId;
+
 #pragma mark - delete
 
 - (void)autoDelete;

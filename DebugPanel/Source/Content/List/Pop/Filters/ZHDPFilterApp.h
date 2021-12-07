@@ -13,6 +13,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic,strong) ZHDPFilterListItem *selectItem;
 @property (nonatomic,copy) void (^selectBlock) (ZHDPFilterListItem *item);
 
+#pragma mark - select
+
+- (BOOL)selectItemByAppId:(NSString *)appId;
+
 #pragma mark - data
 
 - (void)reloadItems:(NSArray <ZHDPFilterListItem *> *)items;

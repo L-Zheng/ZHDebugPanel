@@ -47,6 +47,11 @@
     return YES;
 }
 
+#pragma mark - filter
+
+- (void)autoFilterWhenCliDebug{
+}
+
 #pragma mark - delete store
 
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{

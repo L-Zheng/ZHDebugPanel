@@ -44,6 +44,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 @property (nonatomic,strong) UILabel *tipLabel;
 
 @property (nonatomic,assign) BOOL autoDeleteEnable;
+@property (nonatomic,assign) BOOL hasAutoFilterWhenCliDebug;
 
 @end
 
@@ -267,7 +268,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
                 }
                 weakSelf.autoDeleteEnable = !weakSelf.autoDeleteEnable;
                 [weakSelf relaodOprate];
-                [ZHDPMg() showToast:[NSString stringWithFormat:@"自动清理-已%@", weakSelf.autoDeleteEnable ? @"开启" : @"关闭"] outputType:NSNotFound animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
+                [ZHDPMg() showToast:[NSString stringWithFormat:@"自动清理-已%@", weakSelf.autoDeleteEnable ? @"开启\n将在页面刷新前清空日志" : @"关闭"] outputType:NSNotFound animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
             }
         }];
     }
@@ -484,6 +485,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     NSArray <ZHDPListSecItem *> *items = [self fetchAllItems]?:@[];
     self.items = [[self filterItems:items.copy]?:@[] mutableCopy];
     [self reloadList];
+    [self autoFilterWhenCliDebug];
 }
 - (void)reloadList{
     self.tableView.tableFooterView = (self.items.count <= 0 ? self.tipLabel : nil);
@@ -495,6 +497,21 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     if (self.reloadListBlock) {
         self.reloadListBlock(self.items.copy);
     }
+}
+
+#pragma mark - filter
+
+- (void)autoFilterWhenCliDebug{
+    if (1 || self.hasAutoFilterWhenCliDebug) {
+        return;
+    }
+    self.hasAutoFilterWhenCliDebug = YES;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self filterByCode:@"a_socket"];
+    });
+}
+- (void)filterByCode:(NSString *)appId{
+    [self.apps selectItemByAppId:appId];
 }
 
 #pragma mark - delete store

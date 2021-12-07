@@ -30,6 +30,25 @@
     self.selectItem = item;
     if (self.selectBlock) self.selectBlock(self.selectItem);
 }
+- (BOOL)selectItemByAppId:(NSString *)appId{
+    if (!appId || ![appId isKindOfClass:NSString.class] || appId.length == 0) {
+        return NO;
+    }
+    __block NSUInteger targetIdx = NSNotFound;
+    NSArray *enumItems = self.items.copy;
+    [enumItems enumerateObjectsUsingBlock:^(ZHDPFilterListItem *obj, NSUInteger idx, BOOL *stop) {
+        if ([obj.appItem.appId isEqualToString:appId]) {
+            targetIdx = idx;
+            *stop = YES;
+        }
+    }];
+    if (targetIdx == NSNotFound || targetIdx >= enumItems.count) {
+        return NO;
+    }
+    [self selectIdx:targetIdx];
+    [self reloadListInstant];
+    return YES;
+}
 
 #pragma mark - click
 

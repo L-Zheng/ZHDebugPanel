@@ -17,4 +17,9 @@
     return [ZHDPMg() fetchAllAppDataItems:self.class];
 }
 
+#pragma mark - filter
+
+- (void)autoFilterWhenCliDebug{
+}
+
 @end

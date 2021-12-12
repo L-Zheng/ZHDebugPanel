@@ -47,6 +47,7 @@
         @click="clickRow(item)"
       >
         <span class="iconfont icon-iconfontshanchu6 row-delete"
+        v-if="showDeleteIcon()"
         @click="clickDeleteRow(item, idx)"
         :style="{
           'background-color': deleteRowHighlight
@@ -62,12 +63,39 @@
             'border-bottom': layoutConfig.border,
           }"
         >
+          <div class="row-content" v-if="layoutConfig.useHtml">
+            <span
+              class="col-html"
+              v-for="(colItem, colIdx) in rowItem.colItems"
+              v-html="getColItemTitleHtml(colItem)"
+              :key="colIdx"
+              :style="{
+                'padding-top': '0%',
+                'padding-bottom': '0%',
+                'padding-left': '1%',
+                'padding-right': '1%',
+                width: `${colItem.percent * 100 - 2}%`,
+                color: colItem.color,
+                'border-right':
+                  colIdx < rowItem.colItems.length - 1
+                    ? '1px solid #999'
+                    : 'none',
+                'background-color1': colItem.backgroundColor,
+              }"
+              >
+            </span>
+          </div>
+          <div class="row-content" v-else>
           <pre
             class="col"
             v-for="(colItem, colIdx) in rowItem.colItems"
             :key="colIdx"
             :style="{
-              width: colItem.percent,
+              'padding-top': '0%',
+              'padding-bottom': '0%',
+              'padding-left': '1%',
+              'padding-right': '1%',
+                width: `${colItem.percent * 100 - 2}%`,
               color: colItem.color,
               'border-right':
                 colIdx < rowItem.colItems.length - 1
@@ -77,6 +105,7 @@
             }"
             >{{ getColItemTitle(colItem) }}
           </pre>
+          </div>
         </div>
       </div>
     </div>
@@ -176,6 +205,10 @@ var vm = {
       const res = this.$refs.input.value;
       this.searchKeyword = res ? res : null;
       this.reloadListWhenSearch();
+    },
+    showDeleteIcon(){
+      const fetchRes = this.checkSpecialList();
+      return fetchRes ? true : false
     },
     selectAppItem(item) {
       console.log(item)
@@ -290,6 +323,9 @@ var vm = {
       //   return JSON.stringify(title, null, 2);
       // }
       return title;
+    },
+    getColItemTitleHtml(colItem) {
+      return colItem.titleHtml;
     },
     mouseScrollStart(e) {
       if (!this.isShow) return;
@@ -970,6 +1006,11 @@ export default vm;
   margin: 0px;
   padding: 0px;
   width: 100%;
+}
+.row-content{
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
   display: flex;
   flex-direction: row;
   align-items: stretch;
@@ -977,12 +1018,20 @@ export default vm;
 }
 .col {
   margin: 0px;
-  padding: 0px 5px;
   font-family: normal;
   white-space: pre-wrap;
   white-space: -moz-pre-wrap;
   white-space: -pre-wrap;
   white-space: -o-pre-wrap;
+  word-wrap: break-word;
+}
+.col-html {
+  margin: 0px;
+  font-family: normal;
+  // white-space: pre-wrap;
+  // white-space: -moz-pre-wrap;
+  // white-space: -pre-wrap;
+  // white-space: -o-pre-wrap;
   word-wrap: break-word;
 }
 // pre标签默认样式

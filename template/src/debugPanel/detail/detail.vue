@@ -28,23 +28,33 @@
         <span>{{ item.title }}</span>
       </div>
     </div>
-    <pre
+    <span class="content-html" v-if="layoutConfig.useHtml" v-html="selectItem.contentHtml">
+    </span>
+    <pre v-else
       class="content"
       :style="{
         color: colorConfig.defaultColor,
       }"
       >{{ selectItem.content }}</pre
     >
-    <span
-      @click="clickCopy"
-      class="iconfont icon-copy copy-wrap"
-      :style="{
-        top: layoutConfig.optionH + 'px',
-        'background-color': highlight
-          ? colorConfig.highlightColor
-          : colorConfig.bgColor,
-      }"
-    ></span>
+    <div class="bottom-wrap" :style="{
+        'background-color': colorConfig.bgColor,
+    }">
+        <div
+        class="bottom-title-wrap"
+        v-for="(item, index) in bottomOptions"
+        :key="index"
+        :style="{
+          'background-color': item.highlight ? colorConfig.highlightColor : '',
+          color: item.selected
+            ? colorConfig.selectColor
+            : colorConfig.defaultColor,
+        }"
+        @click="clickBottomOption(item)"
+      >
+        <div :class="`iconfont ${item.icon}`"></div>
+      </div>
+    </div>
   </div>
 </template>
 <script>
@@ -67,11 +77,13 @@ var vm = {
       lastSelectIdx: 0,
       selectItem: {},
       timer: null,
+      bottomOptions: []
     };
   },
   created() {
     this.layoutConfig = LayoutConfig;
     this.colorConfig = Color;
+    this.configBottomOptionItems();
   },
   computed: {},
   mounted() {
@@ -98,7 +110,7 @@ var vm = {
       const items = secItem.detailItems;
       if (!JSTool.isArray(items)) return;
       if (secItem != this.secItem) {
-        this.selectItem = {content: '载入中...'}
+        this.selectItem = {content: '载入中...', contentHtml: '载入中...'}
       }
       this.secItem = secItem;
       clearTimeout(this.timer);
@@ -120,14 +132,25 @@ var vm = {
       this.lastSelectIdx = index;
       this.selectItem = this.items[index];
     },
-    clickCopy() {
-      this.highlight = true;
+    configBottomOptionItems(){
+      this.bottomOptions = [
+        {
+          icon: "icon-copy",
+          highlight: false,
+          click: () => {
+            if (this.secItem) {
+              this.secItem.pasteboardCopy(this.secItem);
+            }
+          },
+        },
+      ]
+    },
+    clickBottomOption(item) {
+      item.highlight = true;
       setTimeout(() => {
-        this.highlight = false;
+        item.highlight = false;
       }, 200);
-      if (this.secItem) {
-        this.secItem.pasteboardCopy(this.secItem);
-      }
+      item.click();
     },
   },
 };
@@ -167,9 +190,9 @@ export default vm;
   justify-content: center;
 }
 .content {
-  margin: 5px;
+  margin: 1%;
   padding: 0px;
-  width: 100%;
+  width: 98%;
   height: 100%;
   font-family: normal;
   white-space: pre-wrap;
@@ -180,9 +203,33 @@ export default vm;
   overflow-x: scroll;
   overflow-y: auto;
 }
-.copy-wrap {
-  position: fixed;
+.content-html{
+  margin: 1%;
+  padding: 0px;
+  width: 98%;
+  height: 100%;
+  font-family: normal;
+  // white-space: pre-line;
+  word-wrap: break-word;
+  overflow-x: scroll;
+  overflow-y: auto;
+}
+.bottom-wrap{
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
+  overflow-x: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+.bottom-title-wrap {
   padding: 10px;
-  right: 10px;
+  margin: 0px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 </style>

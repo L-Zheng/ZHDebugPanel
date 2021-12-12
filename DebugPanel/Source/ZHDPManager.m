@@ -723,18 +723,46 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
 }
 // self.window  window一旦创建就会自动显示在屏幕上
 // 如果当前列表正在显示，刷新列表
+- (NSString *)parseAttributedStringToHtml:(NSAttributedString *)attStr mixinKey:(NSString *)mixinKey{
+    if (!attStr || ![attStr isKindOfClass:NSAttributedString.class]) {
+        return nil;
+    }
+    NSDictionary *documentAttributes = @{NSDocumentTypeDocumentAttribute: NSHTMLTextDocumentType};
+    NSData *htmlData = [attStr dataFromRange:NSMakeRange(0, attStr.length) documentAttributes:documentAttributes error:NULL];
+    NSString *htmlString = [[NSString alloc] initWithData:htmlData encoding:NSUTF8StringEncoding];
+    // 处理标签样式为单独作用域  默认生成的style为全局作用域  当有多个htmlStr同时在h5中显示时  会出现style样式冲突
+    NSString *randomKey = [NSString stringWithFormat:@"%@-%.0f-%d-%d", mixinKey, [[NSDate date] timeIntervalSince1970] * 1000000, arc4random_uniform(1000), arc4random_uniform(1000)];
+    
+    NSUInteger limit = 100;
+    NSArray *markKeys = @[@[@"p.p", @"class=\"p"], @[@"span.s", @"class=\"s"]];
+    for (NSUInteger i = 0; i < limit; i++) {
+        for (NSArray *marks in markKeys) {
+            @autoreleasepool {
+                NSString *key = [NSString stringWithFormat:@"%@%ld", marks[0], i];
+                NSString *targetKey = [NSString stringWithFormat:@"%@%ld-%@", marks[0], i, randomKey];
+                htmlString = [htmlString stringByReplacingOccurrencesOfString:key withString:targetKey];
+                
+                key = [NSString stringWithFormat:@"%@%ld\"", marks[1], i];
+                targetKey = [NSString stringWithFormat:@"%@%ld-%@\"", marks[1], i, randomKey];
+                htmlString = [htmlString stringByReplacingOccurrencesOfString:key withString:targetKey];
+            }
+        }
+    }
+    return htmlString;
+}
 - (void)sendSocketClientSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem colorType:(ZHDPOutputType)colorType{
     if (!secItem) {
         return;
     }
-    return;
     NSMutableArray *rowItems = [NSMutableArray array];
     for (ZHDPListRowItem *rowItem in secItem.rowItems) {
         NSMutableArray *colItems = [NSMutableArray array];
-        for (ZHDPListColItem *colItem in rowItem.colItems) {
+        for (NSUInteger i = 0; i < rowItem.colItems.count; i++) {
+            ZHDPListColItem *colItem = rowItem.colItems[i];
             [colItems addObject:@{
                 @"title": [self removeEscapeCharacter:colItem.attTitle.string?:@""],
-                @"percent": [[NSString stringWithFormat:@"%.f", colItem.percent * 100] stringByAppendingString:@"%"],
+                @"titleHtml": [self parseAttributedStringToHtml:colItem.attTitle mixinKey:[NSString stringWithFormat:@"col-%ld", i]],
+                @"percent": @(colItem.percent),
                 @"color": [ZHDPOutputItem colorStrByType:colorType]?:@"#000000",
                 @"extraInfo": colItem.extraInfo?:@{}
             }];
@@ -744,10 +772,12 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
         }];
     }
     NSMutableArray *detailItems = [NSMutableArray array];
-    for (ZHDPListDetailItem *detailItem in secItem.detailItems) {
+    for (NSUInteger i = 0; i < secItem.detailItems.count; i++) {
+        ZHDPListDetailItem *detailItem = secItem.detailItems[i];
         [detailItems addObject:@{
             @"title": [self removeEscapeCharacter:detailItem.title?:@""],
             @"content": [self removeEscapeCharacter:detailItem.content.string?:@""],
+            @"contentHtml": [self parseAttributedStringToHtml:detailItem.content mixinKey:[NSString stringWithFormat:@"detail-%ld", i]],
             @"selected": @(NO)
         }];
     }

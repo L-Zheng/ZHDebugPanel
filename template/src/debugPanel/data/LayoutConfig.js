@@ -7,7 +7,8 @@ class LayoutConfig {
         contentW: '60%',
         detailW: '35%',
         listOptionH: 40,
-        searchH: 30
+        searchH: 30,
+        useHtml: true
     }
 }
 

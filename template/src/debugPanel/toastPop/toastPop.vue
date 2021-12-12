@@ -15,7 +15,7 @@
         'border-radius': layoutConfig.optionH * 0.5 + 'px',
       }"
     >
-      <span>{{ title }}</span>
+      <span class="content">{{ title }}</span>
     </div>
   </div>
 </template>
@@ -100,6 +100,9 @@ export default vm;
   align-items: center;
   justify-content: center;
   padding: 0px 20px;
+}
+.content{
+  white-space:pre-wrap;
 }
 .pop-wrap-show {
   //弹窗出现

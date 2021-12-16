@@ -727,6 +727,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     if (!attStr || ![attStr isKindOfClass:NSAttributedString.class]) {
         return nil;
     }
+    return @"";
     // 转html消耗性能较高  暂时停用
     //    并且报警告Incorrect NSStringEncoding value 0x8000100 detected. Assuming NSASCIIStringEncoding. Will stop this compatibility mapping behavior in the near future
     NSDictionary *documentAttributes = @{NSDocumentTypeDocumentAttribute: NSHTMLTextDocumentType};

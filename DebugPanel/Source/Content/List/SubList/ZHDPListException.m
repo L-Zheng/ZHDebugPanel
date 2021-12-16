@@ -20,4 +20,9 @@
     return [NSString stringWithFormat:@"%@\n将输出js运行异常信息【页面白屏、异常等】", [super footerTipTitle]];
 }
 
+#pragma mark - filter
+
+- (void)autoFilterWhenCliDebug{
+}
+
 @end

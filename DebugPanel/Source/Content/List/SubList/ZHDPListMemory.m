@@ -42,6 +42,11 @@
     [self autoFilterWhenCliDebug];
 }
 
+#pragma mark - filter
+
+- (void)autoFilterWhenCliDebug{
+}
+
 #pragma mark - scroll
 
 - (BOOL)scrollAnimated{

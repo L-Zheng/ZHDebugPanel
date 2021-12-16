@@ -727,6 +727,8 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     if (!attStr || ![attStr isKindOfClass:NSAttributedString.class]) {
         return nil;
     }
+    // 转html消耗性能较高  暂时停用
+    //    并且报警告Incorrect NSStringEncoding value 0x8000100 detected. Assuming NSASCIIStringEncoding. Will stop this compatibility mapping behavior in the near future
     NSDictionary *documentAttributes = @{NSDocumentTypeDocumentAttribute: NSHTMLTextDocumentType};
     NSData *htmlData = [attStr dataFromRange:NSMakeRange(0, attStr.length) documentAttributes:documentAttributes error:NULL];
     NSString *htmlString = [[NSString alloc] initWithData:htmlData encoding:NSUTF8StringEncoding];
@@ -743,7 +745,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
                 htmlString = [htmlString stringByReplacingOccurrencesOfString:key withString:targetKey];
                 
                 key = [NSString stringWithFormat:@"%@%ld\"", marks[1], i];
-                targetKey = [NSString stringWithFormat:@"%@%ld-%@\"", marks[1], i, randomKey];
+                targetKey = [NSString stringWithFormat:@"%@%ld-%@\" style=\"font-size:16px;\"", marks[1], i, randomKey];
                 htmlString = [htmlString stringByReplacingOccurrencesOfString:key withString:targetKey];
             }
         }

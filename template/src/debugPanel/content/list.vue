@@ -70,8 +70,8 @@
               v-html="getColItemTitleHtml(colItem)"
               :key="colIdx"
               :style="{
-                'padding-top': '0%',
-                'padding-bottom': '0%',
+                'padding-top': '1%',
+                'padding-bottom': '1%',
                 'padding-left': '1%',
                 'padding-right': '1%',
                 width: `${colItem.percent * 100 - 2}%`,

@@ -8,7 +8,7 @@ class LayoutConfig {
         detailW: '35%',
         listOptionH: 40,
         searchH: 30,
-        useHtml: true
+        useHtml: false
     }
 }
 

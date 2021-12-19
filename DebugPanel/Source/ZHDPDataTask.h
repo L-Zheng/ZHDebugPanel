@@ -72,6 +72,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 // list中每一行中每一分段的信息
 @interface ZHDPListColItem : NSObject
 @property (nonatomic,copy) NSAttributedString *attTitle;
+@property (nonatomic,copy) NSString *htmlTitle;
 @property (nonatomic,assign) CGFloat percent;
 @property (nonatomic,strong) NSValue *rectValue;
 @property (nonatomic,strong) NSDictionary *extraInfo;
@@ -87,6 +88,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @interface ZHDPListDetailItem : NSObject
 @property (nonatomic,copy) NSString *title;
 @property (nonatomic,copy) NSAttributedString *content;
+@property (nonatomic,copy) NSString *htmlContent;
 @property (nonatomic,assign,getter=isSelected) BOOL selected;
 @property (nonatomic,assign) CGFloat fitWidth;
 @end

@@ -11,9 +11,6 @@
 #import "ZHDPListLog.h"// log列表
 #import "ZHDPListNetwork.h"// network列表
 #import "ZHDPListStorage.h"// storage列表
-#import "ZHDPListMemory.h"// Memory列表
-#import "ZHDPListIM.h"// im列表
-#import "ZHDPListException.h"// Exception列表
 
 @interface ZHDPContent ()
 @property (nonatomic, retain) NSArray *allList;
@@ -55,9 +52,6 @@
         @[ZHDPListLog.class, @"Log"],
         @[ZHDPListNetwork.class, @"Network"],
         @[ZHDPListStorage.class, @"Storage"],
-        @[ZHDPListMemory.class, @"Memory"],
-        @[ZHDPListException.class, @"Exception"],
-        @[ZHDPListIM.class, @"IM"],
     ];
     NSMutableArray *res = [NSMutableArray array];
     for (NSArray *temp in arr) {

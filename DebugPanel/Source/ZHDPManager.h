@@ -97,7 +97,6 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 #pragma mark - data
 
 - (void)convertToString:(id)title block:(void (^) (NSString *conciseStr, NSString *detailStr))block;
-- (NSAttributedString *)createDetailAttStr:(NSArray *)titles descs:(NSArray *)descs;
 
 - (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem;
 
@@ -134,12 +133,6 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (void)zh_test_reloadStorage;
 - (void)zh_test_deleteStorageStore:(NSArray <ZHDPListSecItem *> *)secItems;
 - (void)zh_test_deleteStorageStoreByData:(NSArray *)secItemsData;
-
-- (void)zh_test_reloadMemory;
-- (void)zh_test_deleteMemoryStore:(NSArray <ZHDPListSecItem *> *)secItems;
-- (void)zh_test_deleteMemoryStoreByData:(NSArray *)secItemsData;
-
-- (void)zh_test_addException:(NSString *)title stack:(NSString *)stack;
 
 @end
 

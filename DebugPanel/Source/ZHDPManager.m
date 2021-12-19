@@ -13,9 +13,6 @@
 #import "ZHDPListLog.h"// log列表
 #import "ZHDPListNetwork.h"// network列表
 #import "ZHDPListStorage.h"// storage列表
-#import "ZHDPListMemory.h"// Memory列表
-#import "ZHDPListIM.h"// im列表
-#import "ZHDPListException.h"// Exception列表
 #import "ZHDPToast.h"//弹窗
 
 NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@不可用";
@@ -91,7 +88,6 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     self.status = ZHDPManagerStatus_Open;
     [self startMonitorMpLog];
     [[self createNetworkTask] interceptNetwork];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(receiveImMessage:) name:@"ZHSDKImMessageToConsoleNotification" object:nil];
     
     if ([self fetchKeyWindow]) {
         [self openInternal];
@@ -120,7 +116,6 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     [self removeTimer];
     [self stopMonitorMpLog];
     [[self fetchNetworkTask] cancelNetwork];
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:@"ZHSDKImMessageToConsoleNotification" object:nil];
     
     if (!_weakWindow) return;
     self.window.hidden = YES;
@@ -302,11 +297,17 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
 - (UIColor *)bgColor{
     return [UIColor colorWithRed:239.0/255.0 green:239.0/255.0 blue:244.0/255.0 alpha:1.0];
 }
+- (NSString *)defaultColorStr{
+    return @"#000000";
+}
 - (UIColor *)defaultColor{
-    return [UIColor blackColor];
+    return [self zhdp_str2Color:[self defaultColorStr]];
+}
+- (NSString *)selectColorStr{
+    return @"#0CC82E";
 }
 - (UIColor *)selectColor{
-    return [UIColor colorWithRed:12.0/255.0 green:200.0/255.0 blue:46.0/255.0 alpha:1];
+    return [self zhdp_str2Color:[self selectColorStr]];
 }
 - (UIColor *)defaultLineColor{
     return [UIColor colorWithRed:153.0/255.0 green:153.0/255.0 blue:153.0/255.0 alpha:1];
@@ -490,53 +491,214 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     }
     block([title description], [title description]);
 }
-- (NSAttributedString *)createDetailAttStr:(NSArray *)titles descs:(NSArray *)descs{
+#pragma mark - data detail
+/*
+ [
+     {
+         label: 'p',
+         items: [
+             {
+                 title: 'URL:',
+                 font: 15,
+                 color: '#00000',
+                 fontWeight: 'cc',
+                 label: 'span'
+             }
+         ]
+     },
+     {
+         label: 'pre',
+         items: [
+             {
+                 title: '{}',
+                 font: 15,
+                 color: '#00000',
+                 fontWeight: 'cc',
+                 label: 'pre'
+             }
+         ]
+     }
+ ]
+ */
+- (ZHDPListDetailItem *)createListDetailItem:(NSString *)title subTitles:(NSArray *)subTitles subDescs:(NSArray *)subDescs{
+    NSMutableArray *items = [NSMutableArray array];
+    for (NSUInteger i = 0; i < subTitles.count; i++) {
+        [items addObjectsFromArray:@[
+            @{
+                @"label": @"p",
+                @"subItems": @[
+                    @{
+                        @"label": @"span",
+                        @"title": [self removeEscapeCharacter:subTitles[i]],
+                        @"font": [self defaultBoldFont],
+                        @"color": [self selectColor],
+                        @"fontWeight": @"bolder",
+                    }
+                ]
+            },
+            @{
+                @"label": @"pre",
+                @"subItems": @[
+                    @{
+                        @"label": @"pre",
+                        @"title": [self removeEscapeCharacter:subDescs[i]],
+                        @"font": [self defaultFont],
+                        @"color": [self defaultColor],
+                        @"fontWeight": @"normal",
+                    }
+                ]
+            }
+        ]];
+    }
+    
+    NSDictionary *res = [self createAttStrHtml:items];
+    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
+    item.title = title;
+    item.content = res[@"attStr"];
+    item.htmlContent = res[@"html"];
+    return item;
+}
+- (NSDictionary *)createAttStrHtml:(NSArray *)items{
     NSMutableAttributedString *attStr = [[NSMutableAttributedString alloc] init];
     NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
     style.lineSpacing = 5;
-    for (NSUInteger i = 0; i < titles.count; i++) {
-        NSString *title = [self removeEscapeCharacter:titles[i]];
-        [attStr appendAttributedString:([title isKindOfClass:NSAttributedString.class] ? (NSAttributedString *)title : [[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [ZHDPMg() defaultBoldFont], NSForegroundColorAttributeName: [ZHDPMg() selectColor], NSParagraphStyleAttributeName: style}])];
-        if (i < descs.count){
-            NSString *desc = [self removeEscapeCharacter:descs[i]];
-            [attStr appendAttributedString:([desc isKindOfClass:NSAttributedString.class] ? (NSAttributedString *)desc : [[NSAttributedString alloc] initWithString:desc attributes:@{NSFontAttributeName: [ZHDPMg() defaultFont], NSForegroundColorAttributeName: [ZHDPMg() defaultColor], NSParagraphStyleAttributeName: style}])];
+    NSMutableString *html = [NSMutableString string];
+    
+    [items enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL *stop) {
+        NSString *label = [obj objectForKey:@"label"];
+        NSArray *subItems = [obj objectForKey:@"subItems"];
+        BOOL isP = [label isEqualToString:@"p"];
+        BOOL isPre = [label isEqualToString:@"pre"];
+        if (isP || isPre) {
+        }else{
+            return;
         }
-    }
-    return [[NSAttributedString alloc] initWithAttributedString:attStr];
+        if (isP) {
+            [html appendFormat:
+@"\
+<%@ style=\"\
+margin:0px;padding:0px;\
+white-space: pre-wrap;\
+white-space: -moz-pre-wrap;\
+white-space: -pre-wrap;\
+white-space: -o-pre-wrap;\
+word-wrap: break-word;\
+\">\
+", label];
+        }
+        
+        [subItems enumerateObjectsUsingBlock:^(NSDictionary *obj2, NSUInteger idx2, BOOL *stop2) {
+            NSString *label2 = [obj2 objectForKey:@"label"];
+            BOOL isSpan = [label2 isEqualToString:@"span"];
+            BOOL isPre = [label2 isEqualToString:@"pre"];
+            if (isSpan || isPre) {
+            }else{
+                return;
+            }
+            NSString *title2 = [obj2 objectForKey:@"title"];
+            UIColor *color2 = [obj2 objectForKey:@"color"];
+            NSString *fontWeight = [obj2 objectForKey:@"fontWeight"];
+            UIFont *font = [obj2 objectForKey:@"font"];
+            CGFloat red = 0.0;CGFloat green = 0.0;CGFloat blue = 0.0;CGFloat alpha = 0.0;
+            [color2 getRed:&red green:&green blue:&blue alpha:&alpha];
+            
+            [attStr appendAttributedString:[[NSAttributedString alloc] initWithString:title2 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: color2, NSParagraphStyleAttributeName: style}]];
+            
+            [html appendFormat:
+@"\
+<%@ style=\"\
+margin:0px;padding:0px;\
+font-weight: %@;\
+font-style: normal;\
+font-size: %.2fpx;\
+color: rgba(%.2f, %.2f, %.2f, %.2f);\
+%@\
+\"\
+>%@</%@>\
+", label2, fontWeight, font.pointSize, red*255.0, green*255.0, blue*255.0, alpha, isSpan? @"": @"\
+white-space: pre-wrap;\
+white-space: -moz-pre-wrap;\
+white-space: -pre-wrap;\
+white-space: -o-pre-wrap;\
+word-wrap: break-word;\
+overflow-x: scroll;\
+overflow-y: scroll;", title2, label2];
+        }];
+        
+        if (idx < items.count - 1) {
+            [attStr appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n" attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self defaultColor], NSParagraphStyleAttributeName: style}]];
+        }
+        
+        if (isP) {
+            [html appendFormat:@"</%@>", label];
+        }
+    }];
+    
+    return @{
+        @"attStr": attStr.copy,
+        @"html": html.copy
+    };
 }
+
+#pragma mark - data col
+
 - (ZHDPListColItem *)createColItem:(NSString *)formatData percent:(CGFloat)percent X:(CGFloat)X colorType:(ZHDPOutputType)colorType{
 
     formatData = formatData?:@"";
     NSMutableAttributedString *tAtt = nil;
+    NSMutableString *htmlTitle = [NSMutableString string];
 
     NSUInteger limit = 200;
     if ([formatData isKindOfClass:NSAttributedString.class]) {
         tAtt = [[NSMutableAttributedString alloc] initWithAttributedString:(NSAttributedString *)formatData];
-        NSUInteger titleLength = [(NSAttributedString *)formatData string].length;
-        if (titleLength >= limit) {
+        BOOL isCut = ([(NSAttributedString *)formatData string].length >= limit);
+        if (isCut) {
             tAtt = [[NSMutableAttributedString alloc] initWithAttributedString:[tAtt attributedSubstringFromRange:NSMakeRange(0, limit - 1)]];
             [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n...点击展开" attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self selectColor]}]];
         }
     }else{
         tAtt = [[NSMutableAttributedString alloc] init];
         
-        NSUInteger titleLength = formatData.length;
-        if (titleLength < limit) {
-            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:formatData attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
-        }else{
+        BOOL isCut = (formatData.length >= limit);
+        if (isCut) {
             formatData = [formatData substringToIndex:limit - 1];
-            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:formatData attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
-            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n...点击展开" attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self selectColor]}]];
+        }
+        [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:formatData attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self fetchOutputColor:colorType]}]];
+        
+        NSString *htmlFmt = @"<body>\
+        <p style=\"margin:0px;\">\
+        <pre style=\"font-family: '.SFUI-Regular'; font-weight: normal; font-style: normal; font-size: %.2fpx; color: %@; white-space: pre-wrap; white-space: -moz-pre-wrap; white-space: -pre-wrap; white-space: -o-pre-wrap; word-wrap: break-word;\">\
+        %@\
+        </pre>\
+        </p>\
+        </body>\
+        ";
+        
+        [htmlTitle appendFormat: htmlFmt,
+         [self defaultFont].pointSize,
+         [ZHDPOutputItem colorStrByType:colorType]?:@"#000000",
+         formatData
+        ];
+        
+        if (isCut) {
+            NSString *attachStr = @"...点击展开";
+            [tAtt appendAttributedString:[[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"\n%@", attachStr] attributes:@{NSFontAttributeName: [self defaultFont], NSForegroundColorAttributeName: [self selectColor]}]];
+            
+            [htmlTitle appendFormat: htmlFmt,
+             [self defaultFont].pointSize,
+             [self selectColorStr],
+             attachStr
+            ];
         }
     }
     
     ZHDPListColItem *colItem = [[ZHDPListColItem alloc] init];
     colItem.attTitle = [[NSAttributedString alloc] initWithAttributedString:tAtt];
+    colItem.htmlTitle = htmlTitle.copy;
     colItem.percent = percent;
     CGFloat width = [self basicW] * colItem.percent;
     
     CGSize fitSize = [colItem.attTitle boundingRectWithSize:CGSizeMake(width, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin context:nil].size;
-//    CGSize fitSize = [title boundingRectWithSize:CGSizeMake(width, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: [self defaultFont]} context:nil].size;
     colItem.rectValue = [NSValue valueWithCGRect:CGRectMake(X, 0, width, fitSize.height + 2 * 5)];
     
     return colItem;
@@ -660,39 +822,6 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
                 sendSocketKey: ^NSString *(void){
                     return @"storage-list";
                 }
-        },
-        NSStringFromClass(ZHDPListMemory.class): @{
-                itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.memoryItems;
-                },
-                spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.memorySpaceItem;
-                },
-                sendSocketKey: ^NSString *(void){
-                    return @"memory-list";
-                }
-        },
-        NSStringFromClass(ZHDPListIM.class): @{
-                itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.imItems;
-                },
-                spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.imSpaceItem;
-                },
-                sendSocketKey: ^NSString *(void){
-                    return @"im-list";
-                }
-        },
-        NSStringFromClass(ZHDPListException.class): @{
-                itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.exceptionItems;
-                },
-                spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.exceptionSpaceItem;
-                },
-                sendSocketKey: ^NSString *(void){
-                    return @"exception-list";
-                }
         }
     };
 }
@@ -764,13 +893,15 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
             ZHDPListColItem *colItem = rowItem.colItems[i];
             [colItems addObject:@{
                 @"title": [self removeEscapeCharacter:colItem.attTitle.string?:@""],
-                @"titleHtml": [self parseAttributedStringToHtml:colItem.attTitle mixinKey:[NSString stringWithFormat:@"col-%ld", i]],
+                @"titleHtml": colItem.htmlTitle?:@"",
+//                @"titleHtml": [self parseAttributedStringToHtml:colItem.attTitle mixinKey:[NSString stringWithFormat:@"col-%ld", i]],
                 @"percent": @(colItem.percent),
                 @"color": [ZHDPOutputItem colorStrByType:colorType]?:@"#000000",
                 @"extraInfo": colItem.extraInfo?:@{}
             }];
         }
         [rowItems addObject:@{
+            @"useHtml": @(YES),
             @"colItems": colItems.copy
         }];
     }
@@ -780,7 +911,9 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
         [detailItems addObject:@{
             @"title": [self removeEscapeCharacter:detailItem.title?:@""],
             @"content": [self removeEscapeCharacter:detailItem.content.string?:@""],
-            @"contentHtml": [self parseAttributedStringToHtml:detailItem.content mixinKey:[NSString stringWithFormat:@"detail-%ld", i]],
+            @"useHtml": @(YES),
+            @"contentHtml": detailItem.htmlContent?:@"",
+//            @"contentHtml": [self parseAttributedStringToHtml:detailItem.content mixinKey:[NSString stringWithFormat:@"detail-%ld", i]],
             @"selected": @(NO)
         }];
     }
@@ -840,7 +973,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
         __weak __typeof__(debugPanel) weakDebugPanel = debugPanel;
         
         ZHDebugPanelStatus status = debugPanel.status;
-        BOOL isException = [listClass isEqual:ZHDPListException.class];
+        BOOL isException = NO;
         
         if (status == ZHDebugPanelStatus_Show) {
             ZHDPList *list = debugPanel.content.selectList;
@@ -988,112 +1121,7 @@ static id _instance;
     [ZHDPMg() zh_test_addLog];
 }
 
-#pragma mark - data
-
-- (void)receiveImMessage:(NSNotification *)note{
-    NSDictionary *info = note.userInfo;
-    if (!info ||
-        ![info isKindOfClass:NSDictionary.class] ||
-        info.allKeys.count == 0) return;
-    
-    [self zh_test_addIM:@[info[@"type"]?:@"", info[@"data"] ?:@""]];
-}
-
-- (void)zh_test_addIM:(NSArray *)args{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (ZHDPMg().status != ZHDPManagerStatus_Open) {
-            return;
-        }
-        [self zh_test_addIMSafe:args];
-    });
-}
-- (void)zh_test_addIMSafe:(NSArray *)args{
-    
-    ZHDPManager *dpMg = ZHDPMg();
-    
-    if (dpMg.status != ZHDPManagerStatus_Open) {
-        return;
-    }
-    
-//    NSArray *args = [JSContext currentArguments];
-    if (!args || args.count <= 0) {
-        return;
-    }
-    
-    // 哪个应用的数据
-    ZHDPAppItem *appItem = [[ZHDPAppItem alloc] init];
-    appItem.appId = @"App";
-    appItem.appName = @"App";
-    
-    // 此条日志的过滤信息
-    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
-    filterItem.appItem = appItem;
-    filterItem.page = nil;
-    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
-    outputItem.type = ZHDPOutputType_Log;
-    filterItem.outputItem = outputItem;
-    
-    // 内容
-    NSInteger count = args.count;
-    CGFloat freeW = [dpMg basicW] - ([dpMg marginW] * (count + 1));
-    NSArray *otherPercents = @[@(0.3 * freeW / [dpMg basicW]), @(0.7 * freeW / [dpMg basicW])];
-    
-    // 每一行中的各个分段数据
-    NSMutableArray <ZHDPListColItem *> *colItems = [NSMutableArray array];
-    NSMutableArray <ZHDPListDetailItem*> *detailItems = [NSMutableArray array];
-    NSMutableArray *titles = [NSMutableArray array];
-    NSMutableArray *descs = [NSMutableArray array];
-    
-    CGFloat X = [dpMg marginW];
-    for (NSUInteger i = 0; i < count; i++) {
-        NSString *title = args[i];
-        NSNumber *percent = otherPercents[i];
-        
-        __block NSString *concise = nil;
-        __block NSString *detail = nil;
-        [dpMg convertToString:title block:^(NSString *conciseStr, NSString *detailStr) {
-            concise = conciseStr;
-            detail = detailStr;
-        }];
-        // 添加参数
-        ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
-        [colItems addObject:colItem];
-        X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
-        
-        [titles addObject:@"\n"];
-        [descs addObject:detail?:@""];
-    }
-    
-    // 弹窗详情数据
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"概要";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
-        
-    // 每一组中的每行数据
-    ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.colItems = colItems.copy;
-    
-    // 每一组数据
-    ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
-    secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
-    secItem.open = YES;
-    secItem.colItems = @[];
-    secItem.rowItems = @[rowItem];
-    secItem.detailItems = detailItems.copy;
-    secItem.pasteboardBlock = ^NSString *{
-        NSMutableString *str = [NSMutableString string];
-        for (ZHDPListDetailItem *item in detailItems) {
-            [str appendFormat:@"\n\n%@:\n%@", item.title, item.content.string];
-        }
-        return str;
-    };
-    // 添加数据
-    [self addSecItemToList:ZHDPListIM.class appItem:appItem secItem:secItem];
-    // 发送socket
-    [self sendSocketClientSecItemToList:ZHDPListIM.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
-}
+#pragma mark - data log
 
 - (void)zh_test_addLog{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
@@ -1197,15 +1225,12 @@ static id _instance;
         [colItems addObject:colItem];
         X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
         
-        [titles addObject:[NSString stringWithFormat:@"%@参数%ld %@ : \n", (i == 0 ? @"" : @"\n"), i, argTypes[i]]];
+        [titles addObject:[NSString stringWithFormat:@"参数%ld %@ : ", i, argTypes[i]]];
         [descs addObject:detail?:@""];
     }
     
     // 弹窗详情数据
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"参数";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
+    [detailItems addObject:[self createListDetailItem:@"参数" subTitles:titles subDescs:descs]];
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
@@ -1371,21 +1396,16 @@ static id _instance;
 
     // 弹窗详情数据
     NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    NSArray *titles = @[@"URL: ", @"\nMethod: ", @"\nStatus Code: ", @"\nStart Time: ", @"\nEnd Time: ", @"\nDuration: "];
+    NSArray *titles = @[@"URL: ", @"Method: ", @"Status Code: ", @"Start Time: ", @"End Time: ", @"Duration: "];
     NSArray *descs = @[urlStr?:@"",
                        method?:@"",
                        statusCode?:@"",
                        [[dpMg dateByFormat:@"yyyy-MM-dd HH:mm:ss.SSS"] stringFromDate:startDate]?:@"",
                        [[dpMg dateByFormat:@"yyyy-MM-dd HH:mm:ss.SSS"] stringFromDate:endDate]?:@"",
                        duration?:@""];
+    [detailItems addObject:[self createListDetailItem:@"概要" subTitles:titles subDescs:descs]];
     
-    item.title = @"概要";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
-    
-    item = [[ZHDPListDetailItem alloc] init];
-    titles = @[@"Request Query (In URL): \n", @"\nRequest Query (In Body): \n", @"\nRequest Query (In BodyStream): \n"];
+    titles = @[@"Request Query (In URL):", @"Request Query (In Body):", @"Request Query (In BodyStream):"];
     descs = @[
         (^NSString *(){
             if (paramsInUrl.allKeys.count == 0) {
@@ -1407,12 +1427,9 @@ static id _instance;
             }];
             return res?:@"";
         })()];
-    item.title = @"请求参数";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
+    [detailItems addObject:[self createListDetailItem:@"请求参数" subTitles:titles subDescs:descs]];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    titles = @[@"Response Data: \n"];
+    titles = @[@"Response Data:"];
     descs = @[
         (^NSString *(){
             id obj = [self parseObjFromData:responseData]?:@"";
@@ -1423,35 +1440,23 @@ static id _instance;
             return res?:@"";
         })()
        ];
-    item.title = @"响应数据";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
+    [detailItems addObject:[self createListDetailItem:@"响应数据" subTitles:titles subDescs:descs]];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    titles = @[@"Request Headers: \n"];
+    titles = @[@"Request Headers:"];
     descs = @[
         [self jsonToString:headers?:@{}]?:@""
        ];
-    item.title = @"请求头";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
+    [detailItems addObject:[self createListDetailItem:@"请求头" subTitles:titles subDescs:descs]];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    titles = @[@"Response Headers: \n"];
+    titles = @[@"Response Headers:"];
     descs = @[
         [self jsonToString:responseHeaders?:@{}]?:@"",
        ];
-    item.title = @"响应头";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
+    [detailItems addObject:[self createListDetailItem:@"响应头" subTitles:titles subDescs:descs]];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"小程序";
-    titles = @[@"小程序信息: \n"].mutableCopy;
-        
-    descs = @[[self jsonToString:@{@"appName": appItem.appName?:@"", @"appId": appItem.appId?:@"", @"path": appPath?:@""}]?:@""].mutableCopy;
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
+    titles = @[@"小程序信息:"];
+    descs = @[[self jsonToString:@{@"appName": appItem.appName?:@"", @"appId": appItem.appId?:@"", @"path": appPath?:@""}]?:@""];
+    [detailItems addObject:[self createListDetailItem:@"小程序" subTitles:titles subDescs:descs]];
     
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
@@ -1566,11 +1571,7 @@ static id _instance;
     
     // 弹窗详情数据
     NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"数据";
-    NSArray *titles = @[@"Key: \n", @"\nValue: \n"];
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
+    [detailItems addObject:[self createListDetailItem:@"数据" subTitles:@[@"Key:", @"Value:"] subDescs:descs]];
         
     // 每一组中的每行数据
     ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
@@ -1635,266 +1636,6 @@ static id _instance;
 //            [[ZHStorageManager shareInstance] removeStorageSync:res.copy appId:extraInfo[@"appId"]?:@""];
         }
     }
-}
-
-- (void)zh_test_reloadMemory{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (ZHDPMg().status != ZHDPManagerStatus_Open) {
-            return;
-        }
-        [self zh_test_reloadMemorySafe];
-    });
-}
-- (void)zh_test_reloadMemorySafe{
-    ZHDPManager *dpMg = ZHDPMg();
-    
-    // 从全局数据管理中移除所有Memory数据
-    NSArray <ZHDPAppDataItem *> *appDataItems = [dpMg.dataTask fetchAllAppDataItems];
-    for (ZHDPAppDataItem *appDataItem in appDataItems) {
-        [dpMg.dataTask cleanAllItems:appDataItem.memoryItems];
-    }
-    // 载入新数据
-    [self zh_test_addMemorySafe];
-    
-}
-- (void)zh_test_addMemorySafe{
-    ZHDPManager *dpMg = ZHDPMg();
-    
-    if (dpMg.status != ZHDPManagerStatus_Open) {
-        return;
-    }
-    /*
-     获取到的memory
-     {
-         key: {
-             source: {
-                 appId: xxx
-             }
-             data: data
-         }
-     }
-     */
-    NSDictionary *memory = @{@"abc": @{@"data": @"数据", @"source": @{@"appId": @"App"}}};
-    if (!memory || ![memory isKindOfClass:NSDictionary.class] || memory.allKeys.count == 0) {
-        return;
-    }
-    [memory enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSDictionary *map, BOOL * stop1) {
-        id data = [map objectForKey:@"data"];
-        NSString *appId = [[map objectForKey:@"source"] objectForKey:@"appId"];
-        [self zh_test_addMemorySafeSingle:appId args:@[key, data?:@""]];
-    }];
-}
-- (void)zh_test_addMemorySafeSingle:(NSString *)appId args:(NSArray *)args{
-    ZHDPManager *dpMg = ZHDPMg();
-    
-    // 哪个应用的数据
-    ZHDPAppItem *appItem = [[ZHDPAppItem alloc] init];
-    appItem.appId = appId ?: @"App";
-    appItem.appName = @"App";
-    
-    // 此条日志的过滤信息
-    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
-    filterItem.appItem = appItem;
-    filterItem.page = nil;
-    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
-    outputItem.type = ZHDPOutputType_Log;
-    filterItem.outputItem = outputItem;
-    
-    // 内容
-    NSInteger count = args.count;
-    CGFloat freeW = [dpMg basicW] - ([dpMg marginW] * (count + 1));
-    NSArray *otherPercents = @[@(0.3 * freeW / [dpMg basicW]), @(0.7 * freeW / [dpMg basicW])];
-    
-    // 每一行中的各个分段数据
-    NSMutableArray <ZHDPListColItem *> *colItems = [NSMutableArray array];
-    NSMutableArray *descs = [NSMutableArray array];
-        
-    CGFloat X = [dpMg marginW];
-    for (NSUInteger i = 0; i < count; i++) {
-        NSString *title = args[i];
-        NSNumber *percent = otherPercents[i];
-        
-        __block NSString *concise = nil;
-        __block NSString *detail = nil;
-        [dpMg convertToString:title block:^(NSString *conciseStr, NSString *detailStr) {
-            concise = conciseStr;
-            detail = detailStr;
-        }];
-        // 添加参数
-        ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
-        [colItems addObject:colItem];
-        X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
-        
-        if (detail) [descs addObject:detail];
-    }
-    
-    // 弹窗详情数据
-    NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"数据";
-    NSArray *titles = @[@"Key: \n", @"\nValue: \n"];
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
-    [detailItems addObject:item];
-        
-    // 每一组中的每行数据
-    ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.colItems = colItems.copy;
-    
-    // 每一组数据
-    ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
-    secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
-    secItem.open = YES;
-    secItem.colItems = @[];
-    secItem.rowItems = @[rowItem];
-    secItem.detailItems = detailItems.copy;
-    secItem.pasteboardBlock = ^NSString *{
-        NSMutableString *str = [NSMutableString string];
-        for (ZHDPListDetailItem *item in detailItems) {
-            [str appendFormat:@"\n%@:\n%@", item.title, item.content.string];
-        }
-        return str;
-    };
-    // 添加数据
-    [self addSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem];
-    // 发送socket
-    [self sendSocketClientSecItemToList:ZHDPListMemory.class appItem:appItem secItem:secItem colorType:ZHDPOutputType_Log];
-}
-- (void)zh_test_deleteMemoryStore:(NSArray <ZHDPListSecItem *> *)secItems{
-    for (ZHDPListSecItem *secItem in secItems) {
-        @autoreleasepool {
-            if (secItem.rowItems.count == 0 ||  secItem.rowItems.firstObject.colItems.count == 0) {
-                continue;
-            }
-            NSString *key =  secItem.rowItems.firstObject.colItems.firstObject.attTitle.string;
-//            [[ZHMemoryManager shareManager] removeMemorySync:@{@"key": key?:@""} appId:nil extraInfo:nil];
-        }
-    }
-}
-- (void)zh_test_deleteMemoryStoreByData:(NSArray *)secItemsData{
-    for (NSDictionary *secItem in secItemsData) {
-        @autoreleasepool {
-            NSArray *rowItems = [secItem objectForKey:@"rowItems"];
-            if (rowItems.count == 0) {
-                continue;
-            }
-            NSArray *colItems = [rowItems.firstObject objectForKey:@"colItems"];
-            if (colItems.count == 0) {
-                continue;
-            }
-            NSString *key = [colItems.firstObject objectForKey:@"title"];
-//            [[ZHMemoryManager shareManager] removeMemorySync:@{@"key": key?:@""} appId:nil extraInfo:nil];
-        }
-    }
-}
-
-- (void)zh_test_addException:(NSString *)title stack:(NSString *)stack{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (ZHDPMg().status != ZHDPManagerStatus_Open) {
-            return;
-        }
-        if (!title || ![title isKindOfClass:NSString.class] || title.length == 0) {
-            return;
-        }
-        ZHDPOutputType type = ZHDPOutputType_Error;
-        [self zh_test_addExceptionSafe:@"App" colorType:type args:@[title] stack:stack];
-    });
-}
-- (void)zh_test_addExceptionSafe:(NSString *)appId colorType:(ZHDPOutputType)colorType args:(NSArray *)args stack:(NSString *)stack{
-    ZHDPManager *dpMg = ZHDPMg();
-    
-    if (dpMg.status != ZHDPManagerStatus_Open) {
-        return;
-    }
-    
-    if (!args || args.count <= 0) {
-        return;
-    }
-    
-    // 哪个应用的数据
-    ZHDPAppItem *appItem = [[ZHDPAppItem alloc] init];
-    appItem.appId = appId ?: @"App";
-    appItem.appName = @"App";
-    
-    // 此条日志的过滤信息
-    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
-    filterItem.appItem = appItem;
-    filterItem.page = nil;
-    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
-    outputItem.type = colorType;
-    filterItem.outputItem = outputItem;
-    
-    // 内容
-    NSInteger count = args.count;
-    CGFloat datePercent = [dpMg dateW] / [dpMg basicW];
-    CGFloat freeW = ([dpMg basicW] - ([dpMg marginW] * (count + 1 + 1)) - [dpMg dateW]) * 1.0 / (count * 1.0);
-    CGFloat otherPercent = freeW / [dpMg basicW];
-    
-    // 每一行中的各个分段数据
-    NSMutableArray <ZHDPListColItem *> *colItems = [NSMutableArray array];
-    NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
-    NSMutableArray *descs = [NSMutableArray array];
-    
-    // 添加时间
-    CGFloat X = [dpMg marginW];
-    NSString *dateStr = [[dpMg dateFormat] stringFromDate:[NSDate date]];
-    ZHDPListColItem *colItem = [self createColItem:dateStr percent:datePercent X:X colorType:colorType];
-    [colItems addObject:colItem];
-    X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
-    
-    for (NSUInteger i = 0; i < count; i++) {
-        NSString *title = args[i];
-        
-        __block NSString *concise = nil;
-        __block NSString *detail = nil;
-        [dpMg convertToString:title block:^(NSString *conciseStr, NSString *detailStr) {
-            concise = conciseStr;
-            detail = detailStr;
-        }];
-        // 添加参数
-        colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
-        [colItems addObject:colItem];
-        X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
-        
-        [descs addObject:detail?:@""];
-    }
-    
-    // 弹窗详情数据
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"简要";
-    item.content = [dpMg createDetailAttStr:@[@"message: \n"] descs:descs];
-    [detailItems addObject:item];
-    
-    item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"调用栈";
-    item.content = [dpMg createDetailAttStr:@[@"stacktrace: \n"] descs:@[stack?:@""]];
-    [detailItems addObject:item];
-        
-    // 每一组中的每行数据
-    ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
-    rowItem.colItems = colItems.copy;
-    
-    // 每一组数据
-    ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
-    secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
-    secItem.open = YES;
-    secItem.colItems = @[];
-    secItem.rowItems = @[rowItem];
-    secItem.detailItems = detailItems.copy;
-    secItem.pasteboardBlock = ^NSString *{
-        NSMutableString *str = [NSMutableString string];
-        [str appendString:dateStr];
-        for (ZHDPListDetailItem *item in detailItems) {
-            [str appendFormat:@"\n\n%@:\n%@", item.title, item.content.string];
-        }
-        return str;
-    };
-    
-    // 添加数据
-    [self addSecItemToList:ZHDPListException.class appItem:appItem secItem:secItem];
-    // 发送socket
-    [self sendSocketClientSecItemToList:ZHDPListException.class appItem:appItem secItem:secItem colorType:colorType];
 }
 @end
 

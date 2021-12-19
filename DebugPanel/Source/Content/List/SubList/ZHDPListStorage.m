@@ -39,6 +39,7 @@
 //    if (items.count == 0) {
         [ZHDPMg() zh_test_reloadStorage];
 //    }
+    [self autoFilterWhenCliDebug];
 }
 
 #pragma mark - scroll

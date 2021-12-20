@@ -28,46 +28,7 @@
         <span>{{ item.title }}</span>
       </div>
     </div>
-    <!-- v-html="selectItem.contentHtml" -->
     <div class="content-html" v-if="selectItem.useHtml" v-html="selectItem.contentHtml">
-      <!-- <p style="margin:0px;padding:0px;
-      white-space: pre-wrap;
-  white-space: -moz-pre-wrap;
-  white-space: -pre-wrap;
-  white-space: -o-pre-wrap;
-  word-wrap: break-word;">
-        <span style="font-family: '.SFUI-Semibold'; font-weight: bold; font-style: normal; font-size: 15.00px; color: #0CC82E; color: rgba(255, 255, 0, 1.0);">
-          URL:
-        </span>
-        <span style="font-family: '.SFUI-Regular'; font-weight: normal; font-style: normal; font-size: 15.00px; color: #000000;">
-          https://mp.1234567.com.cn/ConfigApplet/AppletApi/GetAppletPackageById?appId=4e11280eef6a4277aa855e98eb385bec
-        </span>
-      </p>
-      <p style="margin:0px;padding:0px;
-      white-space: pre-wrap;
-  white-space: -moz-pre-wrap;
-  white-space: -pre-wrap;
-  white-space: -o-pre-wrap;
-  word-wrap: break-word;">
-        <span style="font-family: '.SFUI-Semibold'; font-weight: bold; font-style: normal; font-size: 15.00px; color: #0CC82E;">
-          Method:
-        </span>
-        <span style="font-family: '.SFUI-Regular'; font-weight: normal; font-style: normal; font-size: 15.00px; color: #000000;">
-          少时诵诗书所所阿法狗多多多多多多多多多
-        </span>
-      </p>
-      <pre style="font-family: '.SFUI-Regular'; font-weight: normal; font-style: normal; font-size: 15.00px; color: #000000; 
-      width:100%;
-      margin:0px;
-      padding:0px;
-      white-space: pre-wrap; 
-      white-space: -moz-pre-wrap; 
-      white-space: -pre-wrap; 
-      white-space: -o-pre-wrap; 
-      word-wrap: break-word;
-  overflow-x: scroll;
-  overflow-y: scroll;">{{`{\n  \"datas\" : {\n    \"outsideTestList\" : [\n      {\n        \"id\" : 158553,\n        \"description\" : \"fix: \U5b89\U5353\U4fa7\U6ed1\U8fd4\U56de\U4fee\U6539\",\n        \"version\" : \"1.1.3\",\n        \"envVersion\" : \"trial\",\n        \"appId\" : \"4e11280eef6a4277aa855e98eb385bec\",\n        \"url\" : \"https://j2.dfcfw.com/resource/uploadzip/63738435428532228213756853.zip\",\n        \"userId\" : \"\",\n        \"userName\" : \"\",\n        \"createTime\" : \"2020-10-16T08:57:09+08:00\",\n        \"packSize\" : 607.84000000000003,\n        \"appVersion\" : \"\",\n        \"md5\" : \"f791df1ef79a0c38f84acddad7b84f17\",\n        \"tabBar\" : \"0\",\n        \"updateTime\" : \"2020-10-16T15:17:42+08:00\"\n      }\n    ],\n    \"insideTestList\" : [\n      {\n        \"id\" : 12850,\n        \"description\" : \"\",\n        \"version\" : \"1.0.0\",\n        \"envVersion\" : \"develop\",\n        \"appId\" : \"4e11280eef6a4277aa855e98eb385bec\",\n        \"url\" : \"https://mptest.1234567.com.cn/PhpUpload/uploadzip/6369188836445762501763538281.zip\",\n        \"userId\" : \"\",\n        \"userName\" : \"\",\n        \"createTime\" : \"2019-04-26T15:12:45+08:00\",\n        \"packSize\" : 0,\n        \"appVersion\" : null,\n        \"md5\" : \"dbaecab61ed575a48fcfec0e9b4733ed\",\n        \"tabBar\" : \"0\",\n        \"updateTime\" : \"2019-04-26T15:12:45+08:00\"\n      },\n      {\n        \"id\" : 158552,\n        \"description\" : \"1\",\n        \"version\" : \"1\",\n        \"envVersion\" : \"develop\",\n        \"appId\" : \"4e11280eef6a4277aa855e98eb385bec\",\n        \"url\" : \"https://j2.dfcfw.com/resource/uploadzip/6373843530850078251838441440.zip\",\n        \"userId\" : \"\",\n        \"userName\" : \"\",\n        \"createTime\" : \"2020-10-16T08:55:09+08:00\",\n        \"packSize\" : 607.84000000000003,\n        \"appVersion\" : null,\n        \"md5\" : \"f1ce5fcf9332bdad5d1fbf9ca57d1a88\",\n        \"tabBar\" : \"0\",\n        \"updateTime\" : \"2020-10-16T08:55:09+08:00\"\n      },\n      {\n        \"id\" : 21814,\n        \"description\" : \"\",\n        \"version\" : \"1\",\n        \"envVersion\" : \"develop\",\n        \"appId\" : \"4e11280eef6a4277aa855e98eb385bec\",\n        \"url\" : \"https://mptest.1234567.com.cn/PhpUpload/uploadzip/636966463634352500508397342.zip\",\n        \"userId\" : \"\",\n        \"userName\" : \"\",\n        \"createTime\" : \"2019-06-20T16:52:44+08:00\",\n        \"packSize\" : 0,\n        \"appVersion\" : null,\n        \"md5\" : \"c250b152769761eb5bafef6924fa3a19\",\n        \"tabBar\" : \"0\",\n        \"updateTime\" : \"2019-06-20T16:52:44+08:00\"\n      },\n      {\n        \"id\" : 171325,\n        \"description\" : \"111\",\n        \"version\" : \"11\",\n        \"envVersion\" : \"develop\",\n        \"appId\" : \"4e11280eef6a4277aa855e98eb385bec\",\n        \"url\" : \"https://j2.dfcfw.com/resource/uploadzip/637438234639198919428464905.zip\",\n        \"userId\" : \"\",\n        \"userName\" : \"\",\n        \"createTime\" : \"2020-12-17T17:37:44+08:00\",\n        \"packSize\" : 1711.97,\n        \"appVersion\" : null,\n        \"md5\" : \"2315f6985b042e87800f0589daad53f0\",\n        \"tabBar\" : \"0\",\n        \"updateTime\" : \"2020-12-17T17:37:44+08:00\"\n      },\n      {\n        \"id\" : 79403,\n        \"description\" : \"\",\n        \"version\" : \"1\",\n        \"envVersion\" : \"develop\",\n        \"appId\" : \"4e11280eef6a4277aa855e98eb385bec\",\n        \"url\" : \"https://mptest.1234567.com.cn/PhpUpload/uploadzip/6371658350128087501243178509.zip\",\n        \"userId\" : \"\",\n        \"userName\" : \"\",\n        \"createTime\" : \"2020-02-06T10:58:21+08:00\",\n        \"packSize\" : 591.97000000000003,\n        \"appVersion\" : null,\n        \"md5\" : \"962d6f4321e29c5dc8e13671812a97ee\",\n        \"tabBar\" : \"0\",\n        \"updateTime\" : \"2020-02-06T10:58:21+08:00\"\n      }\n    ],\n    \"AppletEntity\" : {\n      \"WealthId\" : null,\n      \"projectType\" : null,\n      \"status\" : 1,\n      \"url\" : null,\n      \"company\" : \"\U5929\U5929\U5c0f\U7a0b\U5e8f\",\n      \"companyNo\" : \"99fd97a920db491fbcaa3726ea0774ac\",\n      \"updateTime\" : \"2020-12-17T17:37:44+08:00\",\n      \"icon\" : \"https://j2.dfcfw.com/resource/uploadimg/86c9a39519d94df4a4e58199e741accd.png\",\n      \"appVersion\" : null,\n      \"isOfficial\" : 1,\n      \"version\" : null,\n      \"appName\" : \"\U57fa\U91d1FM\",\n      \"IsAllowCollect\" : false,\n      \"appId\" : \"4e11280eef6a4277aa855e98eb385bec\",\n      \"md5\" : null,\n      \"CompanyBaseSetting\" : {\n        \"DownloadUrl\" : \"https://j5.dfcfw.com/\",\n        \"RequestUrl\" : \"https://api.dongcaibaoxian.com\",\n        \"requestWhiteList\" : [\n          \"https://api.dongcaibaoxian.com\"\n        ],\n        \"UploadUrl\" : null,\n        \"uploadWhiteList\" : [\n\n        ],\n        \"downloadWhiteList\" : [\n          \"https://j5.dfcfw.com\"\n        ]\n      },\n      \"miniWhiteList\" : {\n        \"uploadWhiteList\" : [\n\n        ],\n        \"requestWhiteList\" : [\n          \"https://api.dongcaibaoxian.com\"\n        ],\n        \"downloadWhiteList\" : [\n          \"https://j5.dfcfw.com\"\n        ]\n      },\n      \"WealthName\" : null,\n      \"WealthIcon\" : null,\n      \"showType\" : 1,\n      \"description\" : \"\U57fa\U91d1\U5e72\U8d27\U3001\U884c\U60c5\U89e3\U8bfb\Uff0c\U8da3\U5473\U8f7b\U677e\U542c\U3002\"\n    },\n    \"productList\" : [\n      {\n        \"id\" : 158553,\n        \"description\" : \"fix: \U5b89\U5353\U4fa7\U6ed1\U8fd4\U56de\U4fee\U6539\",\n        \"version\" : \"1.1.3\",\n        \"envVersion\" : \"release\",\n        \"appId\" : \"4e11280eef6a4277aa855e98eb385bec\",\n        \"url\" : \"https://j2.fund.eastmoney.com/resource/uploadzip/63738435428532228213756853.zip\",\n        \"userId\" : \"\",\n        \"userName\" : \"\",\n        \"createTime\" : \"2020-10-16T15:17:42+08:00\",\n        \"packSize\" : 607.84000000000003,\n        \"appVersion\" : \"6.4.6\",\n        \"md5\" : \"f791df1ef79a0c38f84acddad7b84f17\",\n        \"tabBar\" : \"0\",\n        \"updateTime\" : \"2020-10-16T15:17:42+08:00\"\n      }\n    ],\n    \"CompanyBaseSetting\" : {\n      \"DownloadUrl\" : \"https://j5.dfcfw.com/\",\n      \"RequestUrl\" : \"https://api.dongcaibaoxian.com\",\n      \"requestWhiteList\" : [\n        \"https://api.dongcaibaoxian.com\"\n      ],\n      \"UploadUrl\" : null,\n      \"uploadWhiteList\" : [\n\n      ],\n      \"downloadWhiteList\" : [\n        \"https://j5.dfcfw.com\"\n      ]\n    }\n  },\n  \"resultCode\" : 0,\n  \"resultMessage\" : \"\U6210\U529f\"\n}` }}</pre> -->
-    
     </div>
     <!-- pre标签要在一行内写完  否则开头和结尾会有多余的空格 -->
     <pre v-else
@@ -248,7 +209,7 @@ export default vm;
   padding: 0px;
   width: 98%;
   height: 100%;
-  // font-family: normal;
+  font-family: normal;
   // white-space: pre-line;
   // word-wrap: break-word;
   overflow-x: scroll;

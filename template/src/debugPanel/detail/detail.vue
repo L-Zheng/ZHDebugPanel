@@ -4,7 +4,7 @@
     :style="{
       top: layoutConfig.optionH + 'px',
       width: layoutConfig.detailW,
-      height: contentPercentH,
+      height: contentH + 'px',
       border: layoutConfig.border,
     }"
   >
@@ -12,6 +12,7 @@
       class="option-wrap"
       :style="{
         'border-bottom': items.length == 0 ? '' : layoutConfig.border,
+        height: layoutConfig.optionH + 'px',
       }"
     >
       <div
@@ -28,18 +29,33 @@
         <span>{{ item.title }}</span>
       </div>
     </div>
-    <div class="content-html" v-if="selectItem.useHtml" v-html="selectItem.contentHtml">
+    <div class="content-html" v-if="selectItem.useHtml" v-html="selectItem.contentHtml" :style="{
+        height: (contentH - layoutConfig.optionH - layoutConfig.listOptionH) + 'px',
+      }">
+    </div>
+    <div v-else class="content-wrap" :style="{
+        height: (contentH - layoutConfig.optionH - layoutConfig.listOptionH) + 'px',
+      }">
+      <div
+        class="content-pre-wrap"
+        v-for="(contentItem, contentIdx) in selectItem.items"
+        :key="contentIdx"
+      >
+        <pre class="content-pre" :style="{color: colorConfig.selectColor}">{{ contentItem.key }}</pre>
+        <pre class="content-pre" :style="{color: colorConfig.defaultColor}">{{ contentItem.value }}</pre>
+      </div>
     </div>
     <!-- pre标签要在一行内写完  否则开头和结尾会有多余的空格 -->
-    <pre v-else
+    <!-- <pre v-else
       class="content"
       :style="{
         color: colorConfig.defaultColor,
+        height: (contentH - layoutConfig.optionH - layoutConfig.listOptionH) + 'px',
       }"
-      >{{ selectItem.content }}</pre
-    >
+      >{{ selectItem.content }}</pre> -->
     <div class="bottom-wrap" :style="{
         'background-color': colorConfig.bgColor,
+        height: layoutConfig.listOptionH + 'px',
     }">
         <div
         class="bottom-title-wrap"
@@ -71,7 +87,7 @@ var vm = {
     return {
       layoutConfig: {},
       colorConfig: {},
-      contentPercentH: "",
+      contentH: '',
       highlight: false,
       secItem: null,
       items: [],
@@ -102,16 +118,13 @@ var vm = {
       const bodyRect = HtmlWindow.client();
       const windowH = bodyRect.height;
       const otherH = this.layoutConfig.optionH;
-      this.contentH = windowH - otherH - 10;
-      this.contentPercentH =
-        ((this.contentH * 1.0) / (windowH * 1.0)) * 100 + "%";
-      return this.contentPercentH;
+      this.contentH = windowH - otherH;
     },
     reloadItems(secItem) {
       const items = secItem.detailItems;
       if (!JSTool.isArray(items)) return;
       if (secItem != this.secItem) {
-        this.selectItem = {content: '载入中...', contentHtml: '载入中...'}
+        this.selectItem = {items: [{key: '载入中...'}]}
       }
       this.secItem = secItem;
       clearTimeout(this.timer);
@@ -179,22 +192,51 @@ export default vm;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  // background-color: cyan;
 }
 .title-wrap {
-  // height: 100%;
-  margin: 5px 0px;
+  height: 100%;
   padding: 0px 5px;
-  // background-color: orange;
+  white-space: nowrap;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+}
+.content-wrap{
+  margin: 1%;
+  padding: 0px;
+  width: 98%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  // overflow-x: scroll;
+  overflow-y: auto;
+}
+.content-pre-wrap{
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.content-pre{
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
+  font-family: normal;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
 }
 .content {
   margin: 1%;
   padding: 0px;
   width: 98%;
-  height: 100%;
   font-family: normal;
   white-space: pre-wrap;
   white-space: -moz-pre-wrap;
@@ -208,7 +250,6 @@ export default vm;
   margin: 1%;
   padding: 0px;
   width: 98%;
-  height: 100%;
   font-family: normal;
   // white-space: pre-line;
   // word-wrap: break-word;

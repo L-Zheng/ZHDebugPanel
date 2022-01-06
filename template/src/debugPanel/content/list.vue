@@ -85,25 +85,24 @@
             </div>
           </div>
           <div class="row-content" v-else>
+            <!-- pre标签多行与单行情况下  实际的内容width会有微小差异  导致border分割线微小错位 -->
           <pre
             class="col"
             v-for="(colItem, colIdx) in rowItem.colItems"
             :key="colIdx"
             :style="{
-              'padding-top': '0%',
-              'padding-bottom': '0%',
+              'padding-top': '1%',
+              'padding-bottom': '1%',
               'padding-left': '1%',
               'padding-right': '1%',
-                width: `${colItem.percent * 100 - 2}%`,
+                width: `${Math.floor(colItem.percent * 100 * 1.0) * 1.0 / 1.0 - 2}%`,
               color: colItem.color,
               'border-right':
                 colIdx < rowItem.colItems.length - 1
                   ? '1px solid #999'
                   : 'none',
               'background-color1': colItem.backgroundColor,
-            }"
-            >{{ getColItemTitle(colItem) }}
-          </pre>
+            }">{{ getColItemTitle(colItem) }}</pre>
           </div>
         </div>
       </div>

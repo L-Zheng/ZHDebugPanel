@@ -7,6 +7,7 @@
     <Connect
       ref="connect" @clipboardPermiss="clipboardPermiss" @startConnect="startConnect"
     ></Connect>
+    <SyncData ref="syncData"></SyncData>
   </div>
 </template>
 
@@ -26,6 +27,7 @@ import ToastPop from "./debugPanel/toastPop/toastPop.vue";
 import Option from "./debugPanel/option/option.vue";
 import Content from "./debugPanel/content/content.vue";
 import Connect from "./debugPanel/content/connect.vue";
+import SyncData from "./debugPanel/content/syncData.vue";
 import Detail from "./debugPanel/detail/detail.vue";
 function preventDefault(e) {
   e.preventDefault();
@@ -38,6 +40,7 @@ var vm = {
     Option,
     Content,
     Connect,
+    SyncData,
     Detail,
   },
   props: {},
@@ -157,6 +160,9 @@ var vm = {
           })
         );
       this.$refs.connect.hide()
+      setTimeout(() => {
+        this.$refs.syncData.show()
+      }, 500);
       });
       socket.addEventListener("close", (msg) => {
         this.$refs.toastPop.show("连接失败或关闭");
@@ -708,9 +714,14 @@ Request Query (In BodyStream):
     copyToPasteboard(secItemTemp){
       const detailItems = secItemTemp.detailItems;
       let res = "";
-      detailItems.forEach((element) => {
-        res += "\n\n" + element.title + ":\n" + element.content;
-      });
+      for (let i = 0; i < detailItems.length; i++) {
+        const el = detailItems[i];
+        res += ((i == 0 ? "" : "\n") + el.title + ":\n");
+        for (let j = 0; j < el.items.length; j++) {
+          const subEl = el.items[j];
+          res += ((j == 0 ? '' : '\n') + subEl.key + "\n" + subEl.value)
+        }
+      }
       // res = res.replace(/\\/g, '')
       // 使用yarn serve调试状态下  此api不可用
       navigator.clipboard.writeText(res).then(

@@ -94,9 +94,14 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
      showComplete:(void (^__nullable) (void))showComplete
      hideComplete:(void (^__nullable) (void))hideComplete;
 
-#pragma mark - data
+#pragma mark - parse
 
-- (void)convertToString:(id)title block:(void (^) (NSString *conciseStr, NSString *detailStr))block;
+- (NSString *)parseNativeObjToString:(id)obj;
+- (id)parseDataToNativeObj:(NSData *)data;
+- (id)parseRequestBodyDataToNativeObj:(NSData *)data;
+- (NSArray *)parseJsData:(JSContext *)jsCtx params:(NSArray *)params;
+
+#pragma mark - data
 
 - (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem;
 
@@ -105,9 +110,13 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (void)removeSecItemsList:(Class)listClass secItems:(NSArray <ZHDPListSecItem *> *)secItems instant:(BOOL)instant;
 //- (void)clearSecItemsList:(Class)listClass appItem:(ZHDPAppItem *)appItem;
 
+#pragma mark - socket
+
+- (void)sendSocketClientAllDataToList;
+
 #pragma mark - delete
 
-- (void)execeAutoDelete;
+- (void)execAutoDelete;
 
 @end
 

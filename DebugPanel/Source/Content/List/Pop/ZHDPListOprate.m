@@ -142,7 +142,7 @@
     [super didMoveToSuperview];
 }
 - (CGFloat)defaultPopW{
-    return 100;
+    return [self minPopW] * 2;
 }
 - (CGFloat)minPopW{
     return 100;

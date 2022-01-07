@@ -44,7 +44,9 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 @property (nonatomic,strong) UILabel *tipLabel;
 
 @property (nonatomic,assign) BOOL autoDeleteEnable;
-@property (nonatomic,assign) BOOL hasAutoFilterWhenCliDebug;
+
+@property (nonatomic,assign) BOOL hasEnableAutoFilterWhenCliDebug;
+@property (nonatomic,assign) BOOL hasEnableAutoDeleteWhenCliDebug;
 
 @end
 
@@ -256,7 +258,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
             }
         }
     ].mutableCopy;
-    if ([self allowAutoDelete]) {
+    if ([self allowAutoDeleteList]) {
         [opItems addObject:@{
             @"icon": @"\ue653",
             @"title": @"自动删除",
@@ -298,17 +300,15 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
         },
         @{
             @"icon": @"\ue62d",
-            @"title": @"同步输出",
+            @"title": @"同步到PC",
             @"block": ^{
                 if (!0) {
-                    [ZHDPMg() showToast:[NSString stringWithFormat:ZHDPToastFundCliUnavailable, @"同步输出"] outputType:ZHDPOutputType_Warning animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
+                    [ZHDPMg() showToast:[NSString stringWithFormat:ZHDPToastFundCliUnavailable, @"同步到PC"] outputType:NSNotFound animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
                     [weakSelf.oprate hide];
                     return;
                 }
-                [ZHDPMg() showToast:@"将隐藏此窗口\n启用同步输出" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:^{
-                    [weakSelf.oprate hide];
-                    [ZHDPMg() switchFloat];
-                }];
+                [weakSelf.oprate hide];
+                [ZHDPMg() switchFloat];
             }
         },
         @{
@@ -485,7 +485,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     NSArray <ZHDPListSecItem *> *items = [self fetchAllItems]?:@[];
     self.items = [[self filterItems:items.copy]?:@[] mutableCopy];
     [self reloadList];
-    [self autoFilterWhenCliDebug];
+    [self enableAutoFilterWhenCliDebug];
+    [self enableAutoDeleteWhenCliDebug];
 }
 - (void)reloadList{
     self.tableView.tableFooterView = (self.items.count <= 0 ? self.tipLabel : nil);
@@ -501,11 +502,11 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 
 #pragma mark - filter
 
-- (void)autoFilterWhenCliDebug{
-    if (1 || self.hasAutoFilterWhenCliDebug) {
+- (void)enableAutoFilterWhenCliDebug{
+    if (1 || self.hasEnableAutoFilterWhenCliDebug) {
         return;
     }
-    self.hasAutoFilterWhenCliDebug = YES;
+    self.hasEnableAutoFilterWhenCliDebug = YES;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self filterByCode:@"a_socket"];
     });
@@ -518,8 +519,15 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
 }
-- (void)autoDelete{
-    if (!self.autoDeleteEnable || ![self allowAutoDelete]) return;
+- (void)enableAutoDeleteWhenCliDebug{
+    if (1 || self.hasEnableAutoDeleteWhenCliDebug) {
+        return;
+    }
+    self.hasEnableAutoDeleteWhenCliDebug = YES;
+    self.autoDeleteEnable = YES;
+}
+- (void)execAutoDeleteList{
+    if (!self.autoDeleteEnable || ![self allowAutoDeleteList]) return;
     [self.oprate hide];
     
     // 不可直接使用tableView显示的数据self.items进行删除
@@ -534,7 +542,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     
     self.allowScrollAuto = YES;
 }
-- (BOOL)allowAutoDelete{
+- (BOOL)allowAutoDeleteList{
     return YES;
 }
 

@@ -87,8 +87,8 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 // list选中某一组显示的详细信息
 @interface ZHDPListDetailItem : NSObject
 @property (nonatomic,copy) NSString *title;
-@property (nonatomic,copy) NSAttributedString *content;
-@property (nonatomic,copy) NSString *htmlContent;
+@property (nonatomic,retain) NSArray *items;
+@property (nonatomic,copy) NSAttributedString *itemsAttStr;
 @property (nonatomic,assign,getter=isSelected) BOOL selected;
 @property (nonatomic,assign) CGFloat fitWidth;
 @end

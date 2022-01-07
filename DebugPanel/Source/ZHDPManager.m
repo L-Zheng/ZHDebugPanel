@@ -59,7 +59,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     NSString *str = [self dateFormat].dateFormat;
     str = @"99:99:99.999";
     CGFloat basicW = [self basicW];
-    return [str boundingRectWithSize:CGSizeMake(basicW, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: [self defaultFont]} context:nil].size.width;
+    return [str boundingRectWithSize:CGSizeMake(basicW, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: [self defaultFont]} context:nil].size.width + 2 * [self marginW];
 }
 
 #pragma mark - animate
@@ -120,6 +120,8 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     if (!_weakWindow) return;
     self.window.hidden = YES;
     self.window = nil;
+        
+    [self.dataTask cleanAllAppDataItems];
     });
 }
 
@@ -204,7 +206,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     }];
     
     if (0) {
-        [ZHDPMg() showToast:@"点击以使用同步输出" outputType:ZHDPOutputType_Warning animateDuration:0.25 stayDuration:2.0 clickBlock:^{
+        [self showToast:@"点击以\n同步到PC调试" outputType:NSNotFound animateDuration:0.25 stayDuration:3.0 clickBlock:^{
             [ZHDPMg() switchFloat];
         } showComplete:nil hideComplete:nil];
         self.debugPanelH5Disable = YES;
@@ -367,138 +369,286 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     toast.debugPanel = self.window.debugPanel;
     [toast show];
 }
-    
-#pragma mark - data
 
-/**JSContext中：js类型-->JSValue类型 对应关系
- Date：[JSValue toDate]=[NSDate class]
- function：[JSValue toObject]=[NSDictionary class]    [jsValue isObject]=YES
- null：[JSValue toObject]=[NSNull null]
- undefined：[JSValue toObject]=nil
- boolean：[JSValue toObject]=@(YES) or @(NO)  [NSNumber class]
- number：[JSValue toObject]= [NSNumber class]
- string：[JSValue toObject]= [NSString class]   [jsValue isObject]=NO
- array：[JSValue toObject]= [NSArray class]    [jsValue isObject]=YES
- json：[JSValue toObject]= [NSDictionary class]    [jsValue isObject]=YES
- */
-- (void)jsValueToNative:(JSValue *)jsValue complete:(void (^) (id res, NSString *type))complete{
-    if (!jsValue) {
-        if (complete) complete(@"[object Undefined]", @"[object Undefined]");
-        return;
-    }
-    if (@available(iOS 9.0, *)) {
-        if (jsValue.isDate) {
-            if (complete) complete([jsValue toDate], @"[object Date]");
-            return;
-        }
-        if (jsValue.isArray) {
-            if (complete) complete([jsValue toArray], @"[object Array]");
-            return;
-        }
-    }
-    if (@available(iOS 13.0, *)) {
-        if (jsValue.isSymbol) {
-            if (complete) complete(@"[object Symbol]", @"[object Symbol]");
-            return;
-        }
-    }
-    if (jsValue.isNull) {
-        if (complete) complete([NSNull null], @"[object Null]");
-        return;
-    }
-    if (jsValue.isUndefined) {
-        if (complete) complete(@"[object Undefined]", @"[object Undefined]");
-        return;
-    }
-    if (jsValue.isBoolean){
-        if (complete) complete([jsValue toBool] ? @"true" : @"false", @"[object Boolean]");
-        return;
-    }
-    if (jsValue.isString){
-        if (complete) complete([jsValue toObject], @"[object String]");
-        return;
-    }
-    if (jsValue.isNumber){
-        if (complete) complete([jsValue toObject], @"[object Number]");
-        return;
-    }
-    if (jsValue.isObject){
-        id res = [jsValue toObject];
-        if ([res isKindOfClass:NSArray.class]) {
-            if (complete) complete(res, @"[object Array]");
-            return;
-        }
-        if ([res isKindOfClass:NSDictionary.class]) {
-            if (complete) complete(res, @"[object Object]");
-            return;
-        }
-    }
-    if (complete) complete([jsValue toObject], @"[object 未知]");
-}
-- (NSString *)jsonToString:(id)json{
-    if (!json) {
-        return nil;
-    }
-    if ([json isKindOfClass:NSArray.class] || [json isKindOfClass:NSDictionary.class]) {
-        NSString *res = nil;
+#pragma mark - parse
+
+- (NSString *)parseNativeObjToString:(id)obj{
+    if (!obj) return nil;
+    if ([obj isKindOfClass:NSString.class]) {
+        return obj;
+    }else if ([obj isKindOfClass:NSArray.class] ||
+        [obj isKindOfClass:NSDictionary.class]) {
+        NSString *jsonStr = nil;
         @try {
-            NSData *data = [NSJSONSerialization dataWithJSONObject:json options:NSJSONWritingPrettyPrinted error:nil];
-            res = (data ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : nil);
+            NSError *jsonError = nil;
+            NSData *data = [NSJSONSerialization dataWithJSONObject:obj options:NSJSONWritingPrettyPrinted error:&jsonError];
+            jsonStr = ((data && !jsonError) ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : nil);
         } @catch (NSException *exception) {
         } @finally {
         }
+        if (jsonStr) return jsonStr;
+        return [obj isKindOfClass:NSArray.class] ? @"[object Array]" : @"[object Object]";
+    }else if ([obj isKindOfClass:NSClassFromString(@"__NSCFBoolean")]) {
+        return ([(NSNumber *)obj boolValue] ? @"true" : @"false");
+    }else if ([obj isKindOfClass:NSData.class]) {
+        return [self parseNativeObjToString:[self parseDataToNativeObj:obj]];
+    }else if ([obj isKindOfClass:NSNull.class]) {
+        return @"[object Null]";
+    }
+    return [obj description];
+}
+- (id)parseDataToNativeObj:(NSData *)data{
+    if (!data || ![data isKindOfClass:NSData.class]) {
+        return nil;
+    }
+    id res = nil;
+    // 尝试json解析
+    @try {
+        NSError *jsonError = nil;
+        res = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingFragmentsAllowed error:&jsonError];
+        if (jsonError) res = nil;
+    } @catch (NSException *exception) {
+    } @finally {
+    }
+    if (res) return res;
+    
+    // 尝试string解析
+    @try {
+        res = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    } @catch (NSException *exception) {
+    } @finally {
+    }
+    
+    if (res && [res isKindOfClass:NSString.class] && ((NSString *)res).length > 0) {
         return res;
     }
-    return json;
+    
+    // string解析失败
+    return nil;
 }
-- (void)convertToString:(id)title block:(void (^) (NSString *conciseStr, NSString *detailStr))block{
-    if (!block) {
-        return;
+- (id)parseRequestBodyDataToNativeObj:(NSData *)data{
+    id res = [self parseDataToNativeObj:data];
+    if (!res) {
+        return nil;
     }
-    if (!title) {
-        block(nil, nil);
-        return;
+    if ([NSJSONSerialization isValidJSONObject:res]) {
+        return res;
     }
-    if ([title isKindOfClass:NSDate.class]) {
-        block([(NSDate *)title description], [(NSDate *)title description]);
-        return;
+    if (!res || ![res isKindOfClass:NSString.class] || ((NSString *)res).length == 0) {
+        return nil;
     }
-    if ([title isKindOfClass:NSArray.class]) {
-        block(@"[Object Array]", [self jsonToString:title] ?: @"[Object Array]");
-        return;
-    }
-    if ([title isKindOfClass:NSNull.class]) {
-        block(@"[Object Null]", @"[Object Null]");
-        return;
-    }
-    if ([title isKindOfClass:NSString.class]) {
-        block(title, title);
-        return;
-    }
-    if ([title isKindOfClass:NSNumber.class]) {
-        block([NSString stringWithFormat:@"%@", title], [NSString stringWithFormat:@"%@", title]);
-        return;
-    }
-    if ([title isKindOfClass:NSDictionary.class]) {
-        block(@"[Object Object]", [self jsonToString:title] ?: @"[Object Object]");
-        return;
-    }
-    block([title description], [title description]);
-}
-- (NSAttributedString *)createDetailAttStr:(NSArray *)titles descs:(NSArray *)descs{
-    NSMutableAttributedString *attStr = [[NSMutableAttributedString alloc] init];
-    NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
-    style.lineSpacing = 5;
-    for (NSUInteger i = 0; i < titles.count; i++) {
-        NSString *title = [self removeEscapeCharacter:titles[i]];
-        [attStr appendAttributedString:([title isKindOfClass:NSAttributedString.class] ? (NSAttributedString *)title : [[NSAttributedString alloc] initWithString:title attributes:@{NSFontAttributeName: [ZHDPMg() defaultBoldFont], NSForegroundColorAttributeName: [ZHDPMg() selectColor], NSParagraphStyleAttributeName: style}])];
-        if (i < descs.count){
-            NSString *desc = [self removeEscapeCharacter:descs[i]];
-            [attStr appendAttributedString:([desc isKindOfClass:NSAttributedString.class] ? (NSAttributedString *)desc : [[NSAttributedString alloc] initWithString:desc attributes:@{NSFontAttributeName: [ZHDPMg() defaultFont], NSForegroundColorAttributeName: [ZHDPMg() defaultColor], NSParagraphStyleAttributeName: style}])];
+    
+    // 转json
+    NSURLComponents *comp = [[NSURLComponents alloc] init];
+    comp.query = res;
+    NSMutableDictionary *resMap = [NSMutableDictionary dictionary];
+    for (NSURLQueryItem *item in comp.queryItems) {
+        if (item.name.length && item.value.length) {
+            [resMap setObject:item.value forKey:item.name];
         }
     }
-    return [[NSAttributedString alloc] initWithAttributedString:attStr];
+    if (resMap.allKeys.count > 0) {
+        return resMap.copy;
+    }
+    
+    // 转json失败
+    return res;
 }
+- (NSArray *)parseJsData:(JSContext *)jsCtx params:(NSArray *)params{
+    if (!jsCtx || ![jsCtx isKindOfClass:JSContext.class] ||
+        !params || ![params isKindOfClass:NSArray.class] || params.count == 0) {
+        return nil;
+    }
+    
+    NSMutableArray *jsParseParams = [NSMutableArray array];
+    NSMutableArray <NSNumber *> *insertIdxs = [NSMutableArray array];
+    NSMutableArray *res = [NSMutableArray array];
+    
+    for (NSUInteger i = 0 ; i < params.count; i++) {
+        @autoreleasepool {
+            id arg = params[i];
+            
+            NSString *type = nil;
+            id data = nil;
+            BOOL error = NO;
+            
+            if (![arg isKindOfClass:JSValue.class]) {
+                if ([arg isKindOfClass:NSDictionary.class]) {
+                    type = @"[object Object]";
+                }else if ([arg isKindOfClass:NSArray.class]){
+                    type = @"[object Array]";
+                }else if ([arg isKindOfClass:NSString.class]){
+                    type = @"[object String]";
+                }else if ([arg isKindOfClass:NSClassFromString(@"__NSCFBoolean")]){
+                    type = @"[object Boolean]";
+                }else if ([arg isKindOfClass:NSNumber.class]){
+                    type = @"[object Number]";
+                }else if ([arg isKindOfClass:NSNull.class]){
+                    type = @"[object Null]";
+                }
+                type = type;
+                data = arg;
+                error = NO;
+            }else{
+                JSValue *jsValue = (JSValue *)arg;
+                if (jsValue.isNull) {
+                    type = @"[object Null]";
+                    data = [NSNull null];
+                    error = NO;
+                } else if (jsValue.isUndefined) {
+                    type = @"[object Undefined]";
+                    data = nil;
+                    error = NO;
+                } else if (jsValue.isBoolean){
+                    type = @"[object Boolean]";
+                    data = @([jsValue toBool]);
+                    error = NO;
+                } else if (jsValue.isString){
+                    type = @"[object String]";
+                    data = [jsValue toString];
+                    error = NO;
+                } else if (jsValue.isNumber){
+                    type = @"[object Number]";
+                    data = [jsValue toNumber];
+                    error = NO;
+                } else {
+                    [insertIdxs addObject:@(i)];
+                    [jsParseParams addObject:arg];
+                    continue;
+                }
+            }
+            [res addObject:@{
+                @"type": type?:@"未知数据类型",
+                @"data": data ? data : @"[object Undefined]",
+                @"error": @(error)
+            }];
+        }
+    }
+    
+    if (insertIdxs.count == 0) {
+        return res.copy;
+    }
+    
+    NSString *parseFuncName = @"fw_parse_jsdata_to_native";
+    JSValue *parseFunc = [jsCtx objectForKeyedSubscript:parseFuncName];
+    if (parseFunc.isUndefined || !parseFunc.isObject) {
+        [jsCtx evaluateScript:[NSString stringWithFormat:
+@" \
+var %@ = function (fw_args) { \
+   var fw_parse_data_fail = '只接收基础数据类型, 当前数据中包含js特有对象, 原生解析失败.'; \
+   var fw_parse_args_res = []; \
+   fw_args.forEach(function(fw_arg){ \
+       var fw_parse_arg_res = null; \
+       var fw_parse_type = Object.prototype.toString.call(fw_arg); \
+       try { \
+           var fw_parse_data = null; \
+           /** 如果fw_arg里面带有[object Function] \
+            * JSON.parse(JSON.stringify(fw_arg))  会丢弃该数据 \
+            * 如果带有js特有的对象 会触发catch \
+            */ \
+           if (fw_parse_type == '[object Object]' || fw_parse_type == '[object Array]') { \
+               fw_parse_data = JSON.parse(JSON.stringify(fw_arg)); \
+           } else if (fw_parse_type == '[object String]' || fw_parse_type == '[object Number]' || fw_parse_type == '[object Null]' || fw_parse_type == '[object Boolean]') { \
+               fw_parse_data = fw_arg; \
+           } else if (fw_parse_type == '[object Undefined]'){ \
+               fw_parse_data = '[object Undefined]'; \
+           } else if (fw_parse_type == '[object Error]'){ \
+                var fw_error_stack = fw_arg.stack || null; \
+                if (Object.prototype.toString.call(fw_error_stack) == '[object String]' && (fw_error_stack.indexOf('\\n') != -1)) { \
+                    fw_error_stack = fw_error_stack.split('\\n'); \
+                } \
+               fw_parse_data = JSON.parse(JSON.stringify({ \
+                   message: fw_arg.toString() || null, \
+                   stack: fw_error_stack || null, \
+                   sourceURL: fw_arg.sourceURL || null, \
+                   line: fw_arg.line || 0, \
+                   column: fw_arg.column || 0 \
+               })); \
+           } else { \
+               try { \
+                   fw_parse_data = fw_arg.toString() || '.toString()解析结果为空'; \
+               } catch (error) { \
+                   fw_parse_data = '尝试.toString()解析失败'; \
+               } \
+           } \
+           fw_parse_arg_res = { \
+               type: fw_parse_type, \
+               data: fw_parse_data, \
+               error: false \
+           }; \
+       } catch (error) { \
+           fw_parse_arg_res = { \
+               type: fw_parse_type, \
+               data: fw_parse_data_fail, \
+               error: true \
+           }; \
+       } \
+       fw_parse_args_res.push(fw_parse_arg_res); \
+   }); \
+   return fw_parse_args_res; \
+};\
+", parseFuncName]];
+        parseFunc = [jsCtx objectForKeyedSubscript:parseFuncName];
+    }
+    NSArray *jsParseRes = [[parseFunc callWithArguments:@[jsParseParams.copy]] toObject];
+    
+    if (jsParseRes.count != insertIdxs.count) {
+        return res.copy;
+    }
+    for (NSUInteger i = 0; i < jsParseRes.count; i++) {
+        @autoreleasepool {
+            NSDictionary *jsParse = jsParseRes[i];
+            [res insertObject:jsParse atIndex:insertIdxs[i].unsignedIntegerValue];
+        }
+    }
+    return res.copy;
+}
+- (BOOL)allowParseToHtml{
+    return NO;
+}
+- (NSString *)parseAttributedStringToHtml:(NSAttributedString *)attStr mixinKey:(NSString *)mixinKey{
+    NSString *htmlString = @"";
+    if (![self allowParseToHtml]) {
+        return htmlString;
+    }
+    if (!attStr || ![attStr isKindOfClass:NSAttributedString.class]) {
+        return htmlString;
+    }
+    /*
+     // DTCoreText的转html消耗性能较高  暂时停用
+    DTHTMLWriter *htmlWriter = [[DTHTMLWriter alloc] initWithAttributedString:attStr];
+    htmlString = [htmlWriter HTMLString];
+    */
+    
+     // 系统的转html消耗性能较高  暂时停用
+       // 并且报警告Incorrect NSStringEncoding value 0x8000100 detected. Assuming NSASCIIStringEncoding. Will stop this compatibility mapping behavior in the near future
+    NSDictionary *documentAttributes = @{NSDocumentTypeDocumentAttribute: NSHTMLTextDocumentType};
+    NSData *htmlData = [attStr dataFromRange:NSMakeRange(0, attStr.length) documentAttributes:documentAttributes error:NULL];
+    htmlString = [[NSString alloc] initWithData:htmlData encoding:NSUTF8StringEncoding];
+    
+    // 处理标签样式为单独作用域  默认生成的style为全局作用域  当有多个htmlStr同时在h5中显示时  会出现style样式冲突
+    NSString *randomKey = [NSString stringWithFormat:@"%@-%.0f-%d-%d", mixinKey, [[NSDate date] timeIntervalSince1970] * 1000000, arc4random_uniform(1000), arc4random_uniform(1000)];
+    
+    NSUInteger limit = 100;
+    NSArray *markKeys = @[@[@"p.p", @"class=\"p"], @[@"span.s", @"class=\"s"]];
+    for (NSUInteger i = 0; i < limit; i++) {
+        for (NSArray *marks in markKeys) {
+            @autoreleasepool {
+                NSString *key = [NSString stringWithFormat:@"%@%ld", marks[0], i];
+                NSString *targetKey = [NSString stringWithFormat:@"%@%ld-%@", marks[0], i, randomKey];
+                htmlString = [htmlString stringByReplacingOccurrencesOfString:key withString:targetKey];
+                
+                key = [NSString stringWithFormat:@"%@%ld\"", marks[1], i];
+                targetKey = [NSString stringWithFormat:@"%@%ld-%@\" style=\"font-size:%.2fpx;\"", marks[1], i, randomKey, [self defaultFont].pointSize + 2];
+                htmlString = [htmlString stringByReplacingOccurrencesOfString:key withString:targetKey];
+            }
+        }
+    }
+    return htmlString;
+}
+
+#pragma mark - data
+
 - (ZHDPListColItem *)createColItem:(NSString *)formatData percent:(CGFloat)percent X:(CGFloat)X colorType:(ZHDPOutputType)colorType{
 
     formatData = formatData?:@"";
@@ -528,74 +678,95 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     ZHDPListColItem *colItem = [[ZHDPListColItem alloc] init];
     colItem.attTitle = [[NSAttributedString alloc] initWithAttributedString:tAtt];
     colItem.percent = percent;
-    CGFloat width = [self basicW] * colItem.percent;
-    
+    CGFloat width = [self basicW] * colItem.percent - 2 * [self marginW];
+
     CGSize fitSize = [colItem.attTitle boundingRectWithSize:CGSizeMake(width, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin context:nil].size;
-//    CGSize fitSize = [title boundingRectWithSize:CGSizeMake(width, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: [self defaultFont]} context:nil].size;
-    colItem.rectValue = [NSValue valueWithCGRect:CGRectMake(X, 0, width, fitSize.height + 2 * 5)];
-    
+    colItem.rectValue = [NSValue valueWithCGRect:CGRectMake(X, 0, width + 2 * [self marginW], fitSize.height + 2 * [self marginW])];
+
     return colItem;
 }
-- (id)parseObjFromData:(NSData *)data{
-    if (!data || ![data isKindOfClass:NSData.class]) {
-        return nil;
-    }
-    id res = nil;
-    // 尝试json解析
-    @try {
-        res = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingFragmentsAllowed error:nil];
-    } @catch (NSException *exception) {
-    } @finally {
-    }
-    if (res) return res;
-    
-    // 尝试string解析
-    @try {
-        res = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    } @catch (NSException *exception) {
-    } @finally {
-    }
-
-    if (res && [res isKindOfClass:NSString.class] && ((NSString *)res).length > 0) {
-        return res;
-    }
-    
-    // string解析失败
-    return nil;
-}
-- (id)parseDataFromRequestBody:(NSData *)data{
-    id res = [self parseObjFromData:data];
-    if (!res) {
-        return nil;
-    }
-    if ([NSJSONSerialization isValidJSONObject:res]) {
-        return res;
-    }
-    if (!res || ![res isKindOfClass:NSString.class] || ((NSString *)res).length == 0) {
+- (ZHDPListDetailItem *)createDetailItem:(NSString *)title keys:(NSArray *)keys values:(NSArray *)values{
+    NSUInteger minCount = MIN(keys.count, values.count);
+    if (minCount == 0) {
         return nil;
     }
     
-    // 转json
-    NSURLComponents *comp = [[NSURLComponents alloc] init];
-    comp.query = res;
-    NSMutableDictionary *resMap = [NSMutableDictionary dictionary];
-    for (NSURLQueryItem *item in comp.queryItems) {
-        if (item.name.length && item.value.length) {
-            [resMap setObject:item.value forKey:item.name];
+    NSMutableArray *items = [NSMutableArray array];
+    
+    NSMutableAttributedString *attStr = [[NSMutableAttributedString alloc] init];
+    NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
+    style.lineSpacing = 5;
+    
+    for (NSUInteger i = 0; i < minCount; i++) {
+        @autoreleasepool {
+            NSString *key = [self removeEscapeCharacter:keys[i]];
+            NSString *value = values[i];
+            BOOL isAttStr = [value isKindOfClass:NSAttributedString.class];
+            if (!isAttStr) {
+                value = [self removeEscapeCharacter:value];
+            }
+            
+            NSAttributedString *keyAtt = [[NSAttributedString alloc] initWithString:key attributes:@{
+                NSFontAttributeName: [self defaultBoldFont],
+                NSForegroundColorAttributeName: [self selectColor],
+                NSParagraphStyleAttributeName: style
+            }];
+            NSAttributedString *valueAtt = nil;
+            if (isAttStr) {
+                valueAtt = value.copy;
+            }else{
+                valueAtt = [[NSAttributedString alloc] initWithString:value attributes:@{
+                    NSFontAttributeName: [self defaultFont],
+                    NSForegroundColorAttributeName: [self defaultColor],
+                    NSParagraphStyleAttributeName: style
+                }];
+            }
+            NSAttributedString *lineAtt = [[NSAttributedString alloc] initWithString:@"\n" attributes:@{
+                NSFontAttributeName: [self defaultBoldFont],
+                NSForegroundColorAttributeName: [self selectColor],
+                NSParagraphStyleAttributeName: style
+            }];
+            
+            [attStr appendAttributedString:keyAtt];
+            [attStr appendAttributedString:lineAtt.copy];
+            [attStr appendAttributedString:valueAtt];
+            if (i < minCount - 1) {
+                [attStr appendAttributedString:lineAtt.copy];
+            }
+            [items addObject:@{
+                @"key": key,
+                @"value": isAttStr ? valueAtt.string : value
+            }];
         }
     }
-    if (resMap.allKeys.count > 0) {
-        return resMap.copy;
-    }
     
-    // 转json失败
-    return res;
+    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
+    item.title = [NSString stringWithFormat:@"%@", title];
+    item.items = items.copy;
+    item.itemsAttStr = attStr.copy;
+    return item;
 }
 - (NSString *)removeEscapeCharacter:(NSString *)str{
     if (!str || ![str isKindOfClass:NSString.class] || str.length == 0) {
         return str;
     }
     return [str stringByReplacingOccurrencesOfString:@"\\/" withString:@"/"];
+}
+- (NSString *)removeAppSandBox:(NSString *)str{
+    if (!str || ![str isKindOfClass:NSString.class] || str.length == 0) {
+        return str;
+    }
+    str = [self removeEscapeCharacter:str];
+    NSString *appBundlePath = [[NSBundle mainBundle] bundlePath];
+    NSString *appBundleName = [appBundlePath pathComponents].lastObject;
+    NSString *appSandBoxPath = NSHomeDirectory();
+    if ([str containsString:appBundlePath]) {
+        str = [str stringByReplacingOccurrencesOfString:appBundlePath withString:appBundleName];
+    }
+    if ([str containsString:appSandBoxPath]) {
+        str = [str stringByReplacingOccurrencesOfString:appSandBoxPath withString:@""];
+    }
+    return str;
 }
 - (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem{
     if (secItem.pasteboardBlock) {
@@ -607,6 +778,14 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
             [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"weixin://"]];
         } showComplete:nil hideComplete:nil];
     }
+}
+- (NSString *)createDetailItemsString:(NSArray *)detailItems{
+    NSMutableString *str = [NSMutableString string];
+    for (NSUInteger i = 0; i < detailItems.count; i++) {
+        ZHDPListDetailItem *item = detailItems[i];
+        [str appendFormat:@"%@%@:\n%@", (i == 0 ? @"" : @"\n"), item.title, item.itemsAttStr.string];
+    }
+    return str.copy;
 }
 
 - (NSString *)opSecItemsMapKey_items{
@@ -685,103 +864,6 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
 }
 // self.window  window一旦创建就会自动显示在屏幕上
 // 如果当前列表正在显示，刷新列表
-- (NSString *)parseAttributedStringToHtml:(NSAttributedString *)attStr mixinKey:(NSString *)mixinKey{
-    if (!attStr || ![attStr isKindOfClass:NSAttributedString.class]) {
-        return nil;
-    }
-    return @"";
-    // 转html消耗性能较高  暂时停用
-    //    并且报警告Incorrect NSStringEncoding value 0x8000100 detected. Assuming NSASCIIStringEncoding. Will stop this compatibility mapping behavior in the near future
-    NSDictionary *documentAttributes = @{NSDocumentTypeDocumentAttribute: NSHTMLTextDocumentType};
-    NSData *htmlData = [attStr dataFromRange:NSMakeRange(0, attStr.length) documentAttributes:documentAttributes error:NULL];
-    NSString *htmlString = [[NSString alloc] initWithData:htmlData encoding:NSUTF8StringEncoding];
-    // 处理标签样式为单独作用域  默认生成的style为全局作用域  当有多个htmlStr同时在h5中显示时  会出现style样式冲突
-    NSString *randomKey = [NSString stringWithFormat:@"%@-%.0f-%d-%d", mixinKey, [[NSDate date] timeIntervalSince1970] * 1000000, arc4random_uniform(1000), arc4random_uniform(1000)];
-    
-    NSUInteger limit = 100;
-    NSArray *markKeys = @[@[@"p.p", @"class=\"p"], @[@"span.s", @"class=\"s"]];
-    for (NSUInteger i = 0; i < limit; i++) {
-        for (NSArray *marks in markKeys) {
-            @autoreleasepool {
-                NSString *key = [NSString stringWithFormat:@"%@%ld", marks[0], i];
-                NSString *targetKey = [NSString stringWithFormat:@"%@%ld-%@", marks[0], i, randomKey];
-                htmlString = [htmlString stringByReplacingOccurrencesOfString:key withString:targetKey];
-                
-                key = [NSString stringWithFormat:@"%@%ld\"", marks[1], i];
-                targetKey = [NSString stringWithFormat:@"%@%ld-%@\" style=\"font-size:16px;\"", marks[1], i, randomKey];
-                htmlString = [htmlString stringByReplacingOccurrencesOfString:key withString:targetKey];
-            }
-        }
-    }
-    return htmlString;
-}
-- (void)sendSocketClientSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem colorType:(ZHDPOutputType)colorType{
-    if (!secItem) {
-        return;
-    }
-    NSMutableArray *rowItems = [NSMutableArray array];
-    for (ZHDPListRowItem *rowItem in secItem.rowItems) {
-        NSMutableArray *colItems = [NSMutableArray array];
-        for (NSUInteger i = 0; i < rowItem.colItems.count; i++) {
-            ZHDPListColItem *colItem = rowItem.colItems[i];
-            [colItems addObject:@{
-                @"title": [self removeEscapeCharacter:colItem.attTitle.string?:@""],
-                @"titleHtml": [self parseAttributedStringToHtml:colItem.attTitle mixinKey:[NSString stringWithFormat:@"col-%ld", i]],
-                @"percent": @(colItem.percent),
-                @"color": [ZHDPOutputItem colorStrByType:colorType]?:@"#000000",
-                @"extraInfo": colItem.extraInfo?:@{}
-            }];
-        }
-        [rowItems addObject:@{
-            @"useHtml": @(NO),
-            @"colItems": colItems.copy
-        }];
-    }
-    NSMutableArray *detailItems = [NSMutableArray array];
-    for (NSUInteger i = 0; i < secItem.detailItems.count; i++) {
-        ZHDPListDetailItem *detailItem = secItem.detailItems[i];
-        [detailItems addObject:@{
-            @"title": [self removeEscapeCharacter:detailItem.title?:@""],
-            @"content": [self removeEscapeCharacter:detailItem.content.string?:@""],
-            @"useHtml": @(NO),
-            @"contentHtml": [self parseAttributedStringToHtml:detailItem.content mixinKey:[NSString stringWithFormat:@"detail-%ld", i]],
-            @"selected": @(NO)
-        }];
-    }
-    
-    NSString *(^block) (void) = [[[self opSecItemsMap] objectForKey:NSStringFromClass(listClass)] objectForKey:[self opSecItemsMapKey_sendSocket]];
-    NSString *listId = block ? block() : @"";
-    
-    if (!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) {
-        return;
-    }
-    
-    NSDictionary *sendAppItem = @{
-        @"appId": ((!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) ? @"App" : appItem.appId),
-        @"appName": (!appItem.appName || ![appItem.appName isKindOfClass:NSString.class] || appItem.appName.length == 0) ? @"App" : appItem.appName
-    };
-        
-    NSDictionary *res = @{
-        @"listId": listId?:@"",
-        @"appItem": sendAppItem,
-        @"msg": @{
-                @"filterItem": @{
-                        @"appItem": sendAppItem,
-                        @"page": secItem.filterItem.page?:@"",
-                        @"outputItem": @{
-                                @"type": @(secItem.filterItem.outputItem.type),
-                                @"desc": secItem.filterItem.outputItem.desc?:@""
-                        }
-                },
-                @"enterMemoryTime": @(secItem.enterMemoryTime),
-                @"open": @(YES),
-                @"colItems": @[],
-                @"rowItems": rowItems.copy,
-                @"detailItems": detailItems.copy
-        }
-    };
-}
-
 - (void)addSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem{
     
     ZHDPManager *dpMg = ZHDPMg();
@@ -893,9 +975,94 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
 }
 */
 
+#pragma mark - socket
+
+- (void)sendSocketClientAllDataToList{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
+    if (!_window) return;
+    
+    ZHDebugPanel *debugPanel = self.window.debugPanel;
+    NSArray <ZHDPList *> *lists = [debugPanel.content fetchAllLists];
+    for (ZHDPList *list in lists) {
+        Class cls = [list class];
+        NSArray *items = [ZHDPMg() fetchAllAppDataItems:cls];
+        for (ZHDPListSecItem *secItem in items) {
+            [self sendSocketClientSecItemToList:cls appItem:secItem.filterItem.appItem secItem:secItem colorType:secItem.filterItem.outputItem.type];
+        }
+    }
+}
+- (void)sendSocketClientSecItemToList:(Class)listClass appItem:(ZHDPAppItem *)appItem secItem:(ZHDPListSecItem *)secItem colorType:(ZHDPOutputType)colorType{
+    if (!secItem) {
+        return;
+    }
+
+    NSMutableArray *rowItems = [NSMutableArray array];
+    for (ZHDPListRowItem *rowItem in secItem.rowItems) {
+        NSMutableArray *colItems = [NSMutableArray array];
+        for (NSUInteger i = 0; i < rowItem.colItems.count; i++) {
+            ZHDPListColItem *colItem = rowItem.colItems[i];
+            [colItems addObject:@{
+                @"title": [self removeEscapeCharacter:colItem.attTitle.string?:@""],
+//                @"titleHtml": [self parseAttributedStringToHtml:colItem.attTitle mixinKey:[NSString stringWithFormat:@"col-%ld", i]],
+                @"percent": @(colItem.percent),
+                @"color": [ZHDPOutputItem colorStrByType:colorType]?:@"#000000",
+                @"extraInfo": colItem.extraInfo?:@{}
+            }];
+        }
+        [rowItems addObject:@{
+//            @"useHtml": @([self allowParseToHtml]),
+            @"colItems": colItems.copy
+        }];
+    }
+    NSMutableArray *detailItems = [NSMutableArray array];
+    for (NSUInteger i = 0; i < secItem.detailItems.count; i++) {
+        ZHDPListDetailItem *detailItem = secItem.detailItems[i];
+        [detailItems addObject:@{
+            @"title": [self removeEscapeCharacter:detailItem.title?:@""],
+            @"items": detailItem.items?:@[],
+//            @"useHtml": @([self allowParseToHtml]),
+//            @"contentHtml": [self parseAttributedStringToHtml:detailItem.itemsAttStr mixinKey:[NSString stringWithFormat:@"detail-%ld", i]],
+            @"selected": @(NO)
+        }];
+    }
+    
+    NSString *(^block) (void) = [[[self opSecItemsMap] objectForKey:NSStringFromClass(listClass)] objectForKey:[self opSecItemsMapKey_sendSocket]];
+    NSString *listId = block ? block() : @"";
+    
+    if (!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) {
+        return;
+    }
+        
+    NSDictionary *sendAppItem = @{
+        @"appId": ((!appItem.appId || ![appItem.appId isKindOfClass:NSString.class] || appItem.appId.length == 0) ? @"App" : appItem.appId),
+        @"appName": (!appItem.appName || ![appItem.appName isKindOfClass:NSString.class] || appItem.appName.length == 0) ? @"App" : appItem.appName
+    };
+
+    NSDictionary *res = @{
+        @"listId": listId?:@"",
+        @"appItem": sendAppItem,
+        @"msg": @{
+                @"filterItem": @{
+                        @"appItem": sendAppItem,
+                        @"page": secItem.filterItem.page?:@"",
+                        @"outputItem": @{
+                                @"type": @(secItem.filterItem.outputItem.type),
+                                @"desc": secItem.filterItem.outputItem.desc?:@""
+                        }
+                },
+                @"enterMemoryTime": @(secItem.enterMemoryTime),
+                @"open": @(YES),
+                @"colItems": @[],
+                @"rowItems": rowItems.copy,
+                @"detailItems": detailItems.copy
+        }
+    };
+    // 发送到调试端
+}
+
 #pragma mark - delete
 
-- (void)execeAutoDelete{
+- (void)execAutoDelete{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
     if (!_window) return;
     __weak __typeof__(self) __self = self;
@@ -904,7 +1071,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
         if (!__self.window.debugPanel.content.selectList) return;
         NSArray <ZHDPList *> *lists = [self.window.debugPanel.content fetchAllLists];
         for (ZHDPList *list in lists) {
-            [list autoDelete];
+            [list execAutoDeleteList];
         }
     });
 }
@@ -975,26 +1142,28 @@ static id _instance;
 
     // 以下代码不可切换线程执行   JSContext在哪个线程  就在哪个线程执行   否则线程锁死
     NSArray *args = [JSContext currentArguments];
-    NSMutableArray *res = [NSMutableArray array];
+    NSMutableArray *resDatas = [NSMutableArray array];
     NSMutableArray *resTypes = [NSMutableArray array];
-    for (JSValue *jsValue in args) {
-        [self jsValueToNative:jsValue complete:^(id resValue, NSString *type) {
-            if ([resValue isKindOfClass:NSArray.class] || [resValue isKindOfClass:NSDictionary.class]) {
-                resValue = [[parseFunc callWithArguments:@[resValue]] toObject];
-                if (resValue && [resValue isKindOfClass:NSString.class] && [resValue isEqualToString:parseErrorDesc]) {
-                    colorType = ZHDPOutputType_Error;
-                }
+    
+    NSArray *parseRes = [ZHDPMg() parseJsData:context params:args];
+    for (NSDictionary *parse in parseRes) {
+        @autoreleasepool {
+            if (!parse || ![parse isKindOfClass:NSDictionary.class] || parse.allKeys.count == 0) {
+                continue;
             }
-            [res addObject:resValue?:@""];
-            [resTypes addObject:type?:@""];
-        }];
+            [resTypes addObject:parse[@"type"]?:@"未知数据类型"];
+            [resDatas addObject:parse[@"data"]?:@"未知数据,解析失败"];
+            if ([parse[@"error"] boolValue]) {
+                colorType = ZHDPOutputType_Error;
+            }
+        }
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if (ZHDPMg().status != ZHDPManagerStatus_Open) {
             return;
         }
-        [self zh_test_addLogSafe:colorType args:res.copy argTypes:resTypes.copy];
+        [self zh_test_addLogSafe:colorType args:resDatas.copy argTypes:resTypes.copy];
     });
 }
 - (void)zh_test_addLogSafe:(ZHDPOutputType)colorType args:(NSArray *)args argTypes:(NSArray *)argTypes{
@@ -1026,7 +1195,7 @@ static id _instance;
     // 内容
     NSInteger count = args.count;
     CGFloat datePercent = [dpMg dateW] / [dpMg basicW];
-    CGFloat freeW = ([dpMg basicW] - ([dpMg marginW] * (count + 1 + 1)) - [dpMg dateW]) * 1.0 / (count * 1.0);
+    CGFloat freeW = ([dpMg basicW] - [dpMg dateW]) * 1.0 / (count * 1.0);
     CGFloat otherPercent = freeW / [dpMg basicW];
     
     // 每一行中的各个分段数据
@@ -1036,34 +1205,27 @@ static id _instance;
     NSMutableArray *descs = [NSMutableArray array];
     
     // 添加时间
-    CGFloat X = [dpMg marginW];
+    CGFloat X = 0;
     NSString *dateStr = [[dpMg dateFormat] stringFromDate:[NSDate date]];
     ZHDPListColItem *colItem = [self createColItem:dateStr percent:datePercent X:X colorType:colorType];
     [colItems addObject:colItem];
-    X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
-    
+    X = CGRectGetMaxX(colItem.rectValue.CGRectValue);
+
     for (NSUInteger i = 0; i < count; i++) {
         NSString *title = args[i];
         
-        __block NSString *concise = nil;
-        __block NSString *detail = nil;
-        [dpMg convertToString:title block:^(NSString *conciseStr, NSString *detailStr) {
-            concise = conciseStr;
-            detail = detailStr;
-        }];
+        NSString *detail = [self removeAppSandBox:[self parseNativeObjToString:title]];
         // 添加参数
         colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
         [colItems addObject:colItem];
-        X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
-        
-        [titles addObject:[NSString stringWithFormat:@"%@参数%ld %@ : \n", (i == 0 ? @"" : @"\n"), i, argTypes[i]]];
+        X = CGRectGetMaxX(colItem.rectValue.CGRectValue);
+
+        [titles addObject:[NSString stringWithFormat:@"参数%ld  %@  : ", i, argTypes[i]]];
         [descs addObject:detail?:@""];
     }
     
     // 弹窗详情数据
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"参数";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
+    ZHDPListDetailItem *item = [self createDetailItem:@"参数" keys:titles values:descs];
     [detailItems addObject:item];
         
     // 每一组中的每行数据
@@ -1080,11 +1242,9 @@ static id _instance;
     secItem.detailItems = detailItems.copy;
     secItem.pasteboardBlock = ^NSString *{
         NSMutableString *str = [NSMutableString string];
-        [str appendString:dateStr];
-        for (ZHDPListDetailItem *item in detailItems) {
-            [str appendFormat:@"\n\n%@:\n%@", item.title, item.content.string];
-        }
-        return str;
+        [str appendFormat:@"%@\n", dateStr];
+        [str appendString:[self createDetailItemsString:detailItems]];
+        return str.copy;
     };
     // 添加数据
     [self addSecItemToList:ZHDPListLog.class appItem:appItem secItem:secItem];
@@ -1101,6 +1261,10 @@ static id _instance;
                   response:(NSURLResponse *)response
               responseData:(NSData *)responseData{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
+    // 来自fund-cli调试下载的js文件 不收集
+    if ([headers objectForKey:@"fund-cli-socket-request-header-key"]) {
         return;
     }
     
@@ -1133,8 +1297,8 @@ static id _instance;
         return;
     }
 
-    NSDictionary *paramsInBody = [self parseDataFromRequestBody:httpBody];
-    NSDictionary *paramsInBodyStream = [self parseDataFromRequestBody:httpBodyStream];
+    NSDictionary *paramsInBody = [self parseRequestBodyDataToNativeObj:httpBody];
+    NSDictionary *paramsInBodyStream = [self parseRequestBodyDataToNativeObj:httpBodyStream];
 
     NSString *urlStr = url.absoluteString;
     NSString *host = headers[@"host"];
@@ -1162,8 +1326,6 @@ static id _instance;
     NSTimeInterval startTimeDouble = [startDate timeIntervalSince1970];
     NSTimeInterval endTimeDouble = [endDate timeIntervalSince1970];
     NSTimeInterval durationDouble = fabs(endTimeDouble - startTimeDouble);
-//    model.startTime = [NSString stringWithFormat:@"%f", startTimeDouble];
-//    model.endTime = [NSString stringWithFormat:@"%f", endTimeDouble];
     
     NSString *duration = [NSString stringWithFormat:@"%.3fms", durationDouble * 1000];
     NSString *appId = nil;
@@ -1205,111 +1367,71 @@ static id _instance;
     NSArray *args = @[urlStrRemoveParams?:@"", method?:@"", statusCode?:@""];
     // 内容
     NSInteger count = args.count;
-    CGFloat freeW = [dpMg basicW] - ([dpMg marginW] * (count + 1));
-    NSArray *otherPercents = @[@(0.80 * freeW / [dpMg basicW]), @(0.10 * freeW / [dpMg basicW]), @(0.10 * freeW / [dpMg basicW])];
+    NSArray *otherPercents = @[@(0.77), @(0.13), @(0.10)];
 
     // 每一行中的各个分段数据
     NSMutableArray <ZHDPListColItem *> *colItems = [NSMutableArray array];
     
-    CGFloat X = [dpMg marginW];
+    CGFloat X = 0;
     for (NSUInteger i = 0; i < count; i++) {
         NSString *title = args[i];
         NSNumber *percent = otherPercents[i];
         
-        __block NSString *concise = nil;
-        __block NSString *detail = nil;
-        [dpMg convertToString:title block:^(NSString *conciseStr, NSString *detailStr) {
-            concise = conciseStr;
-            detail = detailStr;
-        }];
+        NSString *detail = [self parseNativeObjToString:title];
         // 添加参数
         ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:colorType];
         [colItems addObject:colItem];
-        X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
+        X += colItem.rectValue.CGRectValue.size.width;
     }
 
     // 弹窗详情数据
     NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    NSArray *titles = @[@"URL: ", @"\nMethod: ", @"\nStatus Code: ", @"\nStart Time: ", @"\nEnd Time: ", @"\nDuration: "];
-    NSArray *descs = @[urlStr?:@"",
-                       method?:@"",
-                       statusCode?:@"",
-                       [[dpMg dateByFormat:@"yyyy-MM-dd HH:mm:ss.SSS"] stringFromDate:startDate]?:@"",
-                       [[dpMg dateByFormat:@"yyyy-MM-dd HH:mm:ss.SSS"] stringFromDate:endDate]?:@"",
-                       duration?:@""];
-    
-    item.title = @"概要";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
+    ZHDPListDetailItem *item = [self createDetailItem:@"简要" keys:@[@"URL:", @"Method:", @"Status Code:", @"Start Time:", @"End Time:", @"Duration:"] values:@[
+        urlStr?:@"",
+        method?:@"",
+        statusCode?:@"",
+        [[dpMg dateByFormat:@"yyyy-MM-dd HH:mm:ss.SSS"] stringFromDate:startDate]?:@"",
+        [[dpMg dateByFormat:@"yyyy-MM-dd HH:mm:ss.SSS"] stringFromDate:endDate]?:@"",
+        duration?:@""
+    ]];
     [detailItems addObject:item];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    titles = @[@"Request Query (In URL): \n", @"\nRequest Query (In Body): \n", @"\nRequest Query (In BodyStream): \n"];
-    descs = @[
+    item = [self createDetailItem:@"请求参数" keys:@[@"Request Query (In URL):", @"Request Query (In Body):", @"Request Query (In BodyStream):"] values:@[
         (^NSString *(){
-            if (paramsInUrl.allKeys.count == 0) {
-                return @"";
-            }
-            return [self jsonToString:paramsInUrl]?:@"";
-        })(),
+        if (paramsInUrl.allKeys.count == 0) {
+            return @"";
+        }
+        return [self parseNativeObjToString:paramsInUrl]?:@"";
+    })(),
         (^NSString *(){
-            __block NSString *res = nil;
-            [self convertToString:paramsInBody block:^(NSString *conciseStr, NSString *detailStr) {
-                res = detailStr;
-            }];
-            return res?:@"";
-        })(),
+        NSString *res = [self parseNativeObjToString:paramsInBody];
+        return res?:@"";
+    })(),
         (^NSString *(){
-            __block NSString *res = nil;
-            [self convertToString:paramsInBodyStream block:^(NSString *conciseStr, NSString *detailStr) {
-                res = detailStr;
-            }];
-            return res?:@"";
-        })()];
-    item.title = @"请求参数";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
+        NSString *res = [self parseNativeObjToString:paramsInBodyStream];
+        return res?:@"";
+    })()]];
     [detailItems addObject:item];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    titles = @[@"Response Data: \n"];
-    descs = @[
+    item = [self createDetailItem:@"响应数据" keys:@[@"Response Data:"] values:@[
         (^NSString *(){
-            id obj = [self parseObjFromData:responseData]?:@"";
-            __block NSString *res = nil;
-            [self convertToString:obj block:^(NSString *conciseStr, NSString *detailStr) {
-                res = detailStr;
-            }];
-            return res?:@"";
-        })()
-       ];
-    item.title = @"响应数据";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
+        NSString *res = [self parseNativeObjToString:responseData];
+        return res?:@"";
+    })()
+    ]];
     [detailItems addObject:item];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    titles = @[@"Request Headers: \n"];
-    descs = @[
-        [self jsonToString:headers?:@{}]?:@""
-       ];
-    item.title = @"请求头";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
+    item = [self createDetailItem:@"请求头" keys:@[@"Request Headers:"] values:@[
+        [self parseNativeObjToString:headers?:@{}]?:@""
+    ]];
     [detailItems addObject:item];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    titles = @[@"Response Headers: \n"];
-    descs = @[
-        [self jsonToString:responseHeaders?:@{}]?:@"",
-       ];
-    item.title = @"响应头";
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
+    item = [self createDetailItem:@"响应头" keys:@[@"Response Headers:"] values:@[
+        [self parseNativeObjToString:responseHeaders?:@{}]?:@""
+    ]];
     [detailItems addObject:item];
     
-    item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"小程序";
-    titles = @[@"小程序信息: \n"].mutableCopy;
-        
-    descs = @[[self jsonToString:@{@"appName": appItem.appName?:@"", @"appId": appItem.appId?:@"", @"path": appPath?:@""}]?:@""].mutableCopy;
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
+    item = [self createDetailItem:@"来源" keys:@[@"小程序信息:"] values:@[[self parseNativeObjToString:@{@"appName": appItem.appName?:@"", @"appId": appItem.appId?:@"", @"path": appPath?:@""}]?:@""]];
     [detailItems addObject:item];
     
     // 每一组中的每行数据
@@ -1325,11 +1447,7 @@ static id _instance;
     secItem.rowItems = @[rowItem];
     secItem.detailItems = detailItems.copy;
     secItem.pasteboardBlock = ^NSString *{
-        NSMutableString *str = [NSMutableString string];
-        for (ZHDPListDetailItem *item in detailItems) {
-            [str appendFormat:@"\n\n%@:\n%@", item.title, item.content.string];
-        }
-        return str;
+        return [self createDetailItemsString:detailItems];
     };
     // 添加数据
     [self addSecItemToList:ZHDPListNetwork.class appItem:appItem secItem:secItem];
@@ -1397,38 +1515,29 @@ static id _instance;
     
     // 内容
     NSInteger count = args.count;
-    CGFloat freeW = [dpMg basicW] - ([dpMg marginW] * (count + 1));
-    NSArray *otherPercents = @[@(0.3 * freeW / [dpMg basicW]), @(0.7 * freeW / [dpMg basicW])];
-    
+    NSArray *otherPercents = @[@(0.3), @(0.7)];
+
     // 每一行中的各个分段数据
     NSMutableArray <ZHDPListColItem *> *colItems = [NSMutableArray array];
     NSMutableArray *descs = [NSMutableArray array];
         
-    CGFloat X = [dpMg marginW];
+    CGFloat X = 0;
     for (NSUInteger i = 0; i < count; i++) {
         NSString *title = args[i];
         NSNumber *percent = otherPercents[i];
         
-        __block NSString *concise = nil;
-        __block NSString *detail = nil;
-        [dpMg convertToString:title block:^(NSString *conciseStr, NSString *detailStr) {
-            concise = conciseStr;
-            detail = detailStr;
-        }];
+        NSString *detail = [self parseNativeObjToString:title];
         // 添加参数
         ZHDPListColItem *colItem = [self createColItem:detail percent:percent.floatValue X:X colorType:ZHDPOutputType_Log];
         [colItems addObject:colItem];
-        X += (colItem.rectValue.CGRectValue.size.width + [dpMg marginW]);
-        
+        X += colItem.rectValue.CGRectValue.size.width;
+
         if (detail) [descs addObject:detail];
     }
     
     // 弹窗详情数据
     NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
-    ZHDPListDetailItem *item = [[ZHDPListDetailItem alloc] init];
-    item.title = @"数据";
-    NSArray *titles = @[@"Key: \n", @"\nValue: \n"];
-    item.content = [dpMg createDetailAttStr:titles descs:descs];
+    ZHDPListDetailItem *item = [self createDetailItem:@"数据" keys:@[@"Key:", @"Value:"] values:descs];
     [detailItems addObject:item];
         
     // 每一组中的每行数据
@@ -1444,11 +1553,7 @@ static id _instance;
     secItem.rowItems = @[rowItem];
     secItem.detailItems = detailItems.copy;
     secItem.pasteboardBlock = ^NSString *{
-        NSMutableString *str = [NSMutableString string];
-        for (ZHDPListDetailItem *item in detailItems) {
-            [str appendFormat:@"\n%@:\n%@", item.title, item.content.string];
-        }
-        return str;
+        return [self createDetailItemsString:detailItems];
     };
     // 添加数据
     [self addSecItemToList:ZHDPListStorage.class appItem:appItem secItem:secItem];

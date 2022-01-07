@@ -29,7 +29,7 @@
 - (void)layoutSubviews{
     [super layoutSubviews];
     
-    NSUInteger count = MIN(self.items.count, ([self.list allowAutoDelete] ? 10 : 9));
+    NSUInteger count = MIN(self.items.count, ([self.list allowAutoDeleteList] ? 10 : 9));
     CGFloat W = count > 0 ? self.bounds.size.width * 1.0 / (count * 1.0) : self.bounds.size.width;
     CGFloat H = self.bounds.size.height;
     UICollectionViewLayout *layout = self.collectionView.collectionViewLayout;

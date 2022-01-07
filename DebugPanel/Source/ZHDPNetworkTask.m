@@ -436,15 +436,18 @@ static void zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest(id se
     if (![self useURLSession]) {
         // 在 didCompleteWithError  函数中收集
 //        NSData *streamData = [[ZHDPMg() fetchNetworkTask] convertToDataByInputStream:self.httpBodyStream_temp].copy;
-//        [ZHDPMg() zh_test_addNetwork:self.startDate url:self.url_temp method:self.requestMethod_temp headers:self.headers_temp httpBody:self.httpBody_temp httpBodyStream:streamData response:self.response responseData:self.data];
+//        [ZHDPMg() zh_test_addNetwork:self.startDate url:self.url_temp method:self.requestMethod_temp headers:self.headers_temp httpBody:self.httpBody_temp httpBodyStream:streamData response:self.response responseData:[NSData dataWithData:self.data]];
+//        self.data = nil;
         
         // 不可在此处访问request 可能request已经释放 造成崩溃
-    //    [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData:self.data];
+    //    [ZHDPMg() zh_test_addNetwork:self.startDate request:self.request response:self.response responseData:[NSData dataWithData:self.data]];
+//        self.data = nil;
     }
 }
 - (void)collect_URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error{
     NSData *streamData = [[ZHDPMg() fetchNetworkTask] convertToDataByInputStream:self.httpBodyStream_temp].copy;
-    [ZHDPMg() zh_test_addNetwork:self.startDate url:self.url_temp method:self.requestMethod_temp headers:self.headers_temp httpBody:self.httpBody_temp httpBodyStream:streamData response:self.response responseData:self.data];
+    [ZHDPMg() zh_test_addNetwork:self.startDate url:self.url_temp method:self.requestMethod_temp headers:self.headers_temp httpBody:self.httpBody_temp httpBodyStream:streamData response:self.response responseData:[NSData dataWithData:self.data]];
+    self.data = nil;
 }
 - (void)collect_URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler{
     self.response = response;

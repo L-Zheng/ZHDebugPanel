@@ -47,13 +47,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - filter
 
-- (void)autoFilterWhenCliDebug;
+- (void)enableAutoFilterWhenCliDebug;
 - (void)filterByCode:(NSString *)appId;
 
 #pragma mark - delete
 
-- (void)autoDelete;
-- (BOOL)allowAutoDelete;
+- (void)enableAutoDeleteWhenCliDebug;
+- (void)execAutoDeleteList;
+- (BOOL)allowAutoDeleteList;
 
 @end
 

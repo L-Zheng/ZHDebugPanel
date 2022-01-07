@@ -57,6 +57,7 @@
     
     NSArray *colItems = items.copy;
     for (NSUInteger i = 0; i < colItems.count; i++) {
+        @autoreleasepool {
         ZHDPListColItem *colItem = colItems[i];
         UILabel *label = i < self.labels.count ? self.labels[i] : nil;
         if (!label) {
@@ -68,7 +69,8 @@
         }
         
         label.attributedText = colItem.attTitle;
-        label.frame = [colItem.rectValue CGRectValue];
+        CGRect scopeFrame = colItem.rectValue.CGRectValue;
+        label.frame = CGRectMake(scopeFrame.origin.x + [ZHDPMg() marginW], scopeFrame.origin.y, scopeFrame.size.width - 2 * [ZHDPMg() marginW], scopeFrame.size.height);
         [self addViewToSelf:label];
         
         if (i < colItems.count - 1) {
@@ -76,11 +78,11 @@
             if (!line) {
                 line = [[UIView alloc] initWithFrame:CGRectZero];
                 line.backgroundColor = [ZHDPMg() defaultLineColor];
-//                line.backgroundColor = [UIColor cyanColor];
                 [self.verticalLines addObject:line];
             }
-            line.frame = CGRectMake(CGRectGetMaxX(label.frame) + ([ZHDPMg() marginW] - [ZHDPMg() defaultLineW]) * 0.5, label.frame.origin.y, [ZHDPMg() defaultLineW], label.frame.size.height);
+            line.frame = CGRectMake(CGRectGetMaxX(scopeFrame) - [ZHDPMg() defaultLineW]  * 0.5, scopeFrame.origin.y, [ZHDPMg() defaultLineW], scopeFrame.size.height);
             [self addViewToSelf:line];
+        }
         }
     }
     if (colItems.count < self.labels.count) {

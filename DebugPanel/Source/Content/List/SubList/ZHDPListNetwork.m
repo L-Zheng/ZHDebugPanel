@@ -17,4 +17,24 @@
     return [ZHDPMg() fetchAllAppDataItems:self.class];
 }
 
+#pragma mark - filter
+
+- (void)enableAutoFilterWhenCliDebug{
+    [super enableAutoFilterWhenCliDebug];
+}
+
+#pragma mark - delete store
+
+- (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
+}
+- (void)enableAutoDeleteWhenCliDebug{
+    [super enableAutoDeleteWhenCliDebug];
+}
+- (void)execAutoDeleteList{
+    [super execAutoDeleteList];
+}
+- (BOOL)allowAutoDeleteList{
+    return YES;
+}
+
 @end

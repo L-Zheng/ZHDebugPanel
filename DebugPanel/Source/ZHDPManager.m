@@ -454,16 +454,16 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     // 转json失败
     return res;
 }
-- (NSArray *)parseJsData:(JSContext *)jsCtx params:(NSArray *)params{
+- (NSArray *)parseJsData:(JSContext *)jsCtx params:(NSArray *)params forceJsParse:(BOOL)forceJsParse{
     if (!jsCtx || ![jsCtx isKindOfClass:JSContext.class] ||
         !params || ![params isKindOfClass:NSArray.class] || params.count == 0) {
         return nil;
     }
     
-    NSMutableArray *jsParseParams = [NSMutableArray array];
+    NSMutableArray *jsParseParams = forceJsParse ? [params mutableCopy] : [NSMutableArray array];
     NSMutableArray <NSNumber *> *insertIdxs = [NSMutableArray array];
     NSMutableArray *res = [NSMutableArray array];
-    
+    if (!forceJsParse) {
     for (NSUInteger i = 0 ; i < params.count; i++) {
         @autoreleasepool {
             id arg = params[i];
@@ -524,6 +524,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
             }];
         }
     }
+    }
     
     if (insertIdxs.count == 0) {
         return res.copy;
@@ -535,7 +536,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
         [jsCtx evaluateScript:[NSString stringWithFormat:
 @" \
 var %@ = function (fw_args) { \
-   var fw_parse_data_fail = '只接收基础数据类型, 当前数据中包含js特有对象, 原生解析失败.'; \
+   var fw_parse_data_fail = '只接收基础数据类型, 当前数据中包含js特有对象, 原生JSON.stringify()失败.'; \
    var fw_parse_args_res = []; \
    fw_args.forEach(function(fw_arg){ \
        var fw_parse_arg_res = null; \
@@ -592,6 +593,10 @@ var %@ = function (fw_args) { \
     }
     NSArray *jsParseRes = [[parseFunc callWithArguments:@[jsParseParams.copy]] toObject];
     
+    if (forceJsParse) {
+        return jsParseRes;
+    }
+
     if (jsParseRes.count != insertIdxs.count) {
         return res.copy;
     }
@@ -1145,7 +1150,7 @@ static id _instance;
     NSMutableArray *resDatas = [NSMutableArray array];
     NSMutableArray *resTypes = [NSMutableArray array];
     
-    NSArray *parseRes = [ZHDPMg() parseJsData:context params:args];
+    NSArray *parseRes = [ZHDPMg() parseJsData:context params:args forceJsParse:NO];
     for (NSDictionary *parse in parseRes) {
         @autoreleasepool {
             if (!parse || ![parse isKindOfClass:NSDictionary.class] || parse.allKeys.count == 0) {
@@ -1214,7 +1219,9 @@ static id _instance;
     for (NSUInteger i = 0; i < count; i++) {
         NSString *title = args[i];
         
-        NSString *detail = [self removeAppSandBox:[self parseNativeObjToString:title]];
+        // 不要移除沙盒地址  可能小程序就要打印个绝对路径
+//        NSString *detail = [self removeAppSandBox:[self parseNativeObjToString:title]];
+        NSString *detail = [self parseNativeObjToString:title];
         // 添加参数
         colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
         [colItems addObject:colItem];

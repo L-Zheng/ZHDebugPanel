@@ -99,7 +99,7 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (NSString *)parseNativeObjToString:(id)obj;
 - (id)parseDataToNativeObj:(NSData *)data;
 - (id)parseRequestBodyDataToNativeObj:(NSData *)data;
-- (NSArray *)parseJsData:(JSContext *)jsCtx params:(NSArray *)params;
+- (NSArray *)parseJsData:(JSContext *)jsCtx params:(NSArray *)params forceJsParse:(BOOL)forceJsParse;
 
 #pragma mark - data
 

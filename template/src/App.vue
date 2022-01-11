@@ -294,7 +294,7 @@ var vm = {
               type: logType
             }
           },
-          enterMemoryTime: new Date().getTime(),
+          enterMemoryTime: new Date().getTime() * 1000,
           open: true,
           colItems: [],
           rowItems: [
@@ -391,7 +391,7 @@ var vm = {
               type: logType
             }
           },
-          enterMemoryTime: new Date().getTime(),
+          enterMemoryTime: new Date().getTime() * 1000,
           open: true,
           colItems: [],
           rowItems: [

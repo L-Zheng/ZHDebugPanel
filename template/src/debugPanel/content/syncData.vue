@@ -5,7 +5,7 @@
       <div class="connect-header">
           <div class="connect-text" :style="{
               color: colorConfig.selectColor
-          }">开始同步App现有日志数据...</div>
+          }">开始同步App日志数据...</div>
       </div>
     </div>
   </div>

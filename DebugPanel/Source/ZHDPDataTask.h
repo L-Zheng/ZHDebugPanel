@@ -122,28 +122,23 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @property (nonatomic,assign,getter=isFundCli) BOOL fundCli;
 @end
 
+// list收集量数据
+@interface ZHDPListSpaceItem : NSObject
+@property (nonatomic,assign,getter=isSelected) BOOL selected;
+@property (nonatomic,copy) NSString *title;
+@property (nonatomic,weak) ZHDPDataSpaceItem *dataSpaceItem;
+@property (nonatomic,assign) NSInteger count;
+@property (nonatomic,retain) NSArray *canSelectValues;
+@property (nonatomic,copy) void (^block) (NSInteger count);
+@end
+
 // 某个应用的数据
 @interface ZHDPAppDataItem : NSObject
-
 @property (nonatomic,strong) ZHDPAppItem *appItem;
 
-@property (nonatomic,strong) ZHDPDataSpaceItem *logSpaceItem;
 @property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *logItems;
-
-@property (nonatomic,strong) ZHDPDataSpaceItem *networkSpaceItem;
 @property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *networkItems;
-
-@property (nonatomic,strong) ZHDPDataSpaceItem *imSpaceItem;
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *imItems;
-
-@property (nonatomic,strong) ZHDPDataSpaceItem *storageSpaceItem;
 @property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *storageItems;
-
-@property (nonatomic,strong) ZHDPDataSpaceItem *memorySpaceItem;
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *memoryItems;
-
-@property (nonatomic,strong) ZHDPDataSpaceItem *exceptionSpaceItem;
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *exceptionItems;
 
 @end
 
@@ -153,6 +148,11 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 
 @property (nonatomic,weak) ZHDPManager *dpManager;
 @property (nonatomic,strong) NSMutableDictionary *appDataMap;
+
+- (NSArray *)spaceItems;
+@property (nonatomic,strong) ZHDPDataSpaceItem *logSpaceItem;
+@property (nonatomic,strong) ZHDPDataSpaceItem *networkSpaceItem;
+@property (nonatomic,strong) ZHDPDataSpaceItem *storageSpaceItem;
 
 // 查找所有应用的数据
 - (NSArray <ZHDPAppDataItem *> *)fetchAllAppDataItems;

@@ -26,7 +26,7 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 
 + (instancetype)shareManager;
 @property (nonatomic,assign) ZHDPManagerStatus status;
-@property (nonatomic,strong) ZHDPDataTask *dataTask;
+@property (nullable,nonatomic,strong) ZHDPDataTask *dataTask;
 @property (nullable,nonatomic,strong) ZHDPWindow *window;
 
 #pragma mark - basic

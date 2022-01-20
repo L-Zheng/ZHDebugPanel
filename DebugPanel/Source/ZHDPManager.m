@@ -122,6 +122,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     self.window = nil;
         
     [self.dataTask cleanAllAppDataItems];
+    self.dataTask = nil;
     });
 }
 
@@ -806,13 +807,14 @@ var %@ = function (fw_args) { \
     NSString *itemsKey = [self opSecItemsMapKey_items];
     NSString *spaceKey = [self opSecItemsMapKey_space];
     NSString *sendSocketKey = [self opSecItemsMapKey_sendSocket];
+    __weak __typeof__(self) weakSelf = self;
     return @{
         NSStringFromClass(ZHDPListLog.class): @{
                 itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
                     return appDataItem.logItems;
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.logSpaceItem;
+                    return weakSelf.dataTask.logSpaceItem;
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"log-list";
@@ -823,7 +825,7 @@ var %@ = function (fw_args) { \
                     return appDataItem.networkItems;
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.networkSpaceItem;
+                    return weakSelf.dataTask.networkSpaceItem;
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"network-list";
@@ -834,7 +836,7 @@ var %@ = function (fw_args) { \
                     return appDataItem.storageItems;
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.storageSpaceItem;
+                    return weakSelf.dataTask.storageSpaceItem;
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"storage-list";

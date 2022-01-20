@@ -15,6 +15,7 @@
 #import "ZHDPListApps.h"// pop app列表
 #import "ZHDPListDetail.h"// pop detail数据
 #import "ZHDPListOption.h"// 工具栏
+#import "ZHDPListSpace.h"// 收集量
 
 typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     ZHDPScrollStatus_Idle      = 0,//闲置
@@ -34,12 +35,10 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 @property (nonatomic,assign) CGFloat searchH;
 
 @property (nonatomic,strong) ZHDPListOprate *oprate;
-
 @property (nonatomic,strong) ZHDPListApps *apps;
-
 @property (nonatomic,strong) ZHDPListDetail *detail;
-
 @property (nonatomic,strong) ZHDPListOption *option;
+@property (nonatomic,strong) ZHDPListSpace *space;
 
 @property (nonatomic,strong) UILabel *tipLabel;
 
@@ -69,6 +68,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     [self.oprate updateFrameH];
     [self.apps updateFrameH];
     [self.detail updateFrameH];
+    [self.space updateFrameH];
 }
 - (void)willMoveToSuperview:(UIView *)newSuperview{
     [super willMoveToSuperview:newSuperview];
@@ -326,6 +326,13 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
                 [[UIPasteboard generalPasteboard] setString:appSandBox];
                 [ZHDPMg() showToast:@"已复制-App沙盒地址" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:nil];
                 [weakSelf.oprate hide];
+            }
+        },
+        @{
+            @"icon": @"\ue6db",
+            @"title": @"收集量",
+            @"block": ^{
+                [weakSelf.space show];
             }
         },
         @{
@@ -852,6 +859,13 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
         _option.list = self;
     }
     return _option;
+}
+- (ZHDPListSpace *)space{
+    if (!_space) {
+        _space = [[ZHDPListSpace alloc] initWithFrame:CGRectZero];
+        _space.list = self;
+    }
+    return _space;
 }
 - (UILabel *)tipLabel {
     if (!_tipLabel) {

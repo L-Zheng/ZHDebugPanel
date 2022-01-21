@@ -45,7 +45,6 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 @property (nonatomic,assign) BOOL autoDeleteEnable;
 
 @property (nonatomic,assign) BOOL hasEnableAutoFilterWhenCliDebug;
-@property (nonatomic,assign) BOOL hasEnableAutoDeleteWhenCliDebug;
 
 @end
 
@@ -85,17 +84,17 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 - (void)configData{
     self.allowScrollAuto = YES;
     self.searchH = 0;
+    [self configAutoDelete:YES];
 }
 - (void)configUI{
     self.clipsToBounds = YES;
     
     [self addSubview:self.search];
-    
     [self addSubview:self.tableView];
-    
     [self addSubview:self.option];
     
     [self relaodOprate];
+    [self relaodOption];
 }
 
 #pragma mark - search
@@ -217,9 +216,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 
 #pragma mark - oprate
 
-- (NSArray <ZHDPListOprateItem *> *)fetchOprateItems{
-    NSMutableArray *res = [NSMutableArray array];
-    
+- (NSArray *)fetchToolItems:(BOOL)isOprate{
     __weak __typeof__(self) weakSelf = self;
     
     NSMutableArray *opItems = @[
@@ -258,18 +255,14 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
             }
         }
     ].mutableCopy;
-    if ([self allowAutoDeleteList]) {
+    if (isOprate && [self allowAutoDeleteList]) {
         [opItems addObject:@{
             @"icon": @"\ue653",
             @"title": @"自动删除",
             @"block": ^{
-                if (!1) {
-                    [ZHDPMg() showToast:[NSString stringWithFormat:ZHDPToastFundCliUnavailable, @"自动删除"] outputType:NSNotFound animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
-                    [weakSelf.oprate hide];
-                    return;
-                }
-                weakSelf.autoDeleteEnable = !weakSelf.autoDeleteEnable;
+                [weakSelf configAutoDelete:!weakSelf.autoDeleteEnable];
                 [weakSelf relaodOprate];
+                [weakSelf relaodOption];
                 [ZHDPMg() showToast:[NSString stringWithFormat:@"自动清理-已%@", weakSelf.autoDeleteEnable ? @"开启\n将在页面刷新前清空日志" : @"关闭"] outputType:NSNotFound animateDuration:0.25 stayDuration:2.0 clickBlock:nil showComplete:nil hideComplete:nil];
             }
         }];
@@ -343,35 +336,43 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
             }
         }
     ]];
+    NSMutableArray <ZHDPListToolItem *> *items = [NSMutableArray array];
     for (NSDictionary *opItem in opItems) {
-        ZHDPListOprateItem *item = [[ZHDPListOprateItem alloc] init];
+        ZHDPListToolItem *item = [[ZHDPListToolItem alloc] init];
         item.icon = opItem[@"icon"];
         item.desc = opItem[@"title"];
-        item.textColor = [ZHDPMg() defaultColor];
+        item.selected = NO;
         item.block = [opItem[@"block"] copy];
-        [res addObject:item];
+        [items addObject:item];
     }
-    return res.copy;
-}
-- (void)relaodOprate{
-    NSArray <ZHDPListOprateItem *> *items = [self fetchOprateItems];
     
+    // 标记过滤
     ZHDPFilterItem *filterItem = self.apps.selectItem;
     if ((filterItem.appItem || (filterItem.outputItem.type != ZHDPOutputType_All)) && items.count > 0) {
-        ZHDPListOprateItem *item = items.firstObject;
+        ZHDPListToolItem *item = items.firstObject;
         item.desc = filterItem.appItem.appName?:filterItem.outputItem.desc;
-        item.textColor = [ZHDPMg() selectColor];
+        item.selected = YES;
     }
     
+    return items.copy;
+}
+- (void)relaodOprate{
+    NSArray *items = [self fetchToolItems:YES];
+    
     // 自动删除
-    for (ZHDPListOprateItem *item in items) {
+    for (ZHDPListToolItem *item in items) {
         if ([@"自动删除" isEqualToString:item.desc]) {
-            item.textColor = self.autoDeleteEnable ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
+            item.selected = self.autoDeleteEnable;
             break;
         }
     }
-    
     [self.oprate reloadWithItems:items];
+}
+
+#pragma mark - option
+
+- (void)relaodOption{
+    NSArray *items = [self fetchToolItems:NO];
     [self.option reloadWithItems:items];
 }
 
@@ -379,6 +380,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 
 - (void)selectListApps:(ZHDPFilterItem *)item{
     [self relaodOprate];
+    [self relaodOption];
     [self.apps hide];
     [self reloadListWhenSelectApp];
 }
@@ -493,7 +495,6 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     self.items = [[self filterItems:items.copy]?:@[] mutableCopy];
     [self reloadList];
     [self enableAutoFilterWhenCliDebug];
-    [self enableAutoDeleteWhenCliDebug];
 }
 - (void)reloadList{
     self.tableView.tableFooterView = (self.items.count <= 0 ? self.tipLabel : nil);
@@ -526,12 +527,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
 }
-- (void)enableAutoDeleteWhenCliDebug{
-    if (1 || self.hasEnableAutoDeleteWhenCliDebug) {
-        return;
-    }
-    self.hasEnableAutoDeleteWhenCliDebug = YES;
-    self.autoDeleteEnable = YES;
+- (void)configAutoDelete:(BOOL)enable{
+    self.autoDeleteEnable = enable;
 }
 - (void)execAutoDeleteList{
     if (!self.autoDeleteEnable || ![self allowAutoDeleteList]) return;

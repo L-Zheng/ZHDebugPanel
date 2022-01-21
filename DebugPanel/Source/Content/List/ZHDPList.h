@@ -52,7 +52,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - delete
 
-- (void)enableAutoDeleteWhenCliDebug;
 - (void)execAutoDeleteList;
 - (BOOL)allowAutoDeleteList;
 

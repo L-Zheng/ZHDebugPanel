@@ -5,11 +5,7 @@
 //  Created by Zheng on 2021/10/30.
 //
 
-#import "ZHDPListOption.h"
+#import "ZHDPListToolsView.h"
 
-NS_ASSUME_NONNULL_BEGIN
-
-@interface ZHDPListDetailOption : ZHDPListOption
+@interface ZHDPListDetailOption : ZHDPListToolsView
 @end
-
-NS_ASSUME_NONNULL_END

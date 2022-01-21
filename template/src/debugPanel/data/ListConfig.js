@@ -97,7 +97,7 @@ class ListConfig {
         removePercent: 0.5
       },
       {
-        title: "SDK Error",
+        title: "SDKError",
         selected: false,
         listId: "sdkError-list",
         itemsFunc: appDataItem => {

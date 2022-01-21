@@ -173,7 +173,7 @@ var vm = {
       searchTop: 0,
       searchKeyword: null,
       deleteRowHighlight: false,
-      autoDeleteEnable: false
+      autoDeleteEnable: true
     };
   },
   created() {
@@ -283,13 +283,13 @@ var vm = {
         items.push({
           icon: "icon-shanchu",
           title: "",
-          selected: false,
+          selected: this.autoDeleteEnable,
           highlight: false,
           click: () => {
             this.autoDeleteEnable = !this.autoDeleteEnable;
             this.selectListOptionItems(cIdx, this.autoDeleteEnable)
             // 弹窗提示
-            ToastTool.show(`自动清理-已${this.autoDeleteEnable ? '开启' : '关闭'}`)
+            ToastTool.show(`自动清理-已${this.autoDeleteEnable ? '开启\n将在刷新页面前清空日志' : '关闭'}`)
           },
         })
       }

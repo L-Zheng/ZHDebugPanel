@@ -103,6 +103,7 @@ export default vm;
 }
 .content{
   white-space:pre-wrap;
+  text-align: center;
 }
 .pop-wrap-show {
   //弹窗出现

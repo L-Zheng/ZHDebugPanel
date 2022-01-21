@@ -9,7 +9,7 @@
 #import "ZHDPDataTask.h"
 
 // list操作栏数据
-@implementation ZHDPListOprateItem
+@implementation ZHDPListToolItem
 @end
 
 // 描述list的信息

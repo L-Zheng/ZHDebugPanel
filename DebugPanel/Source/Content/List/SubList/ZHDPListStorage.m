@@ -40,7 +40,6 @@
         [ZHDPMg() zh_test_reloadStorage];
 //    }
     [self enableAutoFilterWhenCliDebug];
-    [self enableAutoDeleteWhenCliDebug];
 }
 
 #pragma mark - scroll
@@ -58,8 +57,6 @@
 
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
 //    [ZHDPMg() fw_test_deleteStorageStore:secItems];
-}
-- (void)enableAutoDeleteWhenCliDebug{
 }
 - (void)execAutoDeleteList{
 }

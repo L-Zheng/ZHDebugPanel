@@ -219,10 +219,10 @@
          }
     ];
     for (NSUInteger i = 0; i < icons.count; i++) {
-        ZHDPListOprateItem *item = [[ZHDPListOprateItem alloc] init];
+        ZHDPListToolItem *item = [[ZHDPListToolItem alloc] init];
         item.icon = icons[i];
         item.desc = descs[i];
-        item.textColor = [ZHDPMg() defaultColor];
+        item.selected = NO;
         item.block = [blocks[i] copy];
         [res addObject:item];
     }

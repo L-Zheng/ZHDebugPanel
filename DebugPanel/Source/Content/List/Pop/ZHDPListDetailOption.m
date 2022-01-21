@@ -32,13 +32,14 @@
 
 - (void)configUI{
     [super configUI];
-    self.backgroundColor = [UIColor clearColor];
 }
-
-#pragma mark - reload
 
 #pragma mark - UICollectionViewDelegate
 
-#pragma mark - getter
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    ZHDPListToolCollectionViewCell *cell = [super collectionView:collectionView cellForItemAtIndexPath:indexPath];
+    [cell configTitleHideEnable:YES];
+    return cell;
+}
 
 @end

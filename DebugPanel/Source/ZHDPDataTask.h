@@ -27,10 +27,10 @@
  */
 
 // list操作栏数据
-@interface ZHDPListOprateItem : NSObject
+@interface ZHDPListToolItem : NSObject
 @property (nonatomic,copy) NSString *icon;
 @property (nonatomic,copy) NSString *desc;
-@property (nonatomic,strong) UIColor *textColor;
+@property (nonatomic,assign,getter=isSelected) BOOL selected;
 @property (nonatomic,copy) void (^block) (void);
 @end
 

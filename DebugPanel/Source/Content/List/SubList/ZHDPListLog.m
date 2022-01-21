@@ -27,9 +27,6 @@
 
 - (void)deleteStore:(NSArray <ZHDPListSecItem *> *)secItems{
 }
-- (void)enableAutoDeleteWhenCliDebug{
-    [super enableAutoDeleteWhenCliDebug];
-}
 - (void)execAutoDeleteList{
     [super execAutoDeleteList];
 }

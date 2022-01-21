@@ -9,15 +9,6 @@
 #import "ZHDPListPop.h"
 #import "ZHDPDataTask.h"// 数据管理
 
-@interface ZHDPListOprateCollectionViewCell : UICollectionViewCell
-- (void)configItem:(ZHDPListOprateItem *)item;
-
-- (void)configTitleHideEnable:(BOOL)enable;
-- (void)configNormalStyle;
-- (void)configHighlightStyle;
-@end
-
-
 @interface ZHDPListOprate : ZHDPListPop
-- (void)reloadWithItems:(NSArray <ZHDPListOprateItem *> *)items;
+- (void)reloadWithItems:(NSArray <ZHDPListToolItem *> *)items;
 @end

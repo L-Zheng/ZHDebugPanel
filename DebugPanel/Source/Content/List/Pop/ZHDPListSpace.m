@@ -150,22 +150,48 @@
     [self selectItem:self.items[idx]];
 }
 - (void)selectItem:(ZHDPListSpaceItem *)item{
+    if (!item) return;
+    
     for (ZHDPListSpaceItem *item in self.items) {
         item.selected = NO;
     }
     item.selected = YES;
     self.selectItem = item;
     
+    // 刷新picker
     self.pickerItems = @[@"载入..."];
     [self reloadListInstant];
     
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        
+        if (item.canSelectValues.count <= 0) return;
+            
+        // 加载picker数据
         self.pickerItems = item.canSelectValues;
-        if (self.pickerItems.count > 0) {
-            self.selectItem.count = [self.pickerItems[0] integerValue];
-        }
         [self reloadListInstant];
+        
+        // 滚动到指定位置
+        NSUInteger selectIdx = NSNotFound;
+        for (NSUInteger i = 0; i < self.pickerItems.count; i++) {
+            NSNumber *num = self.pickerItems[i];
+            if (num.integerValue == item.dataSpaceItem.count) {
+                selectIdx = i;
+                break;
+            }
+        }
+        [self.pickerView selectRow:(selectIdx == NSNotFound ? 0 : selectIdx) inComponent:0 animated:YES];
+        [self selectPicker:selectIdx];
     });
+}
+- (void)selectPicker:(NSInteger)idx{
+    if (idx >= self.pickerItems.count) {
+        return;
+    }
+    NSNumber *value = self.pickerItems[idx];
+    if ([value isKindOfClass:NSNumber.class]) {
+        self.selectItem.count = value.integerValue;
+        [self.tableView reloadData];
+    }
 }
 
 #pragma mark - click
@@ -174,9 +200,11 @@
     [self hide];
 }
 - (void)sureBtnClick:(UIButton *)btn{
-    void (^block) (NSInteger count) = self.selectItem.block;
-    if (block) {
-        block(self.selectItem.count);
+    for (ZHDPListSpaceItem *item in self.items) {
+        void (^block) (NSInteger count) = item.block;
+        if (block) {
+            block(item.count);
+        }
     }
     [self hide];
 }
@@ -213,7 +241,7 @@
         cell.textLabel.adjustsFontSizeToFitWidth = YES;
     }
     ZHDPListSpaceItem *item = self.items[indexPath.row];
-    cell.textLabel.text = [NSString stringWithFormat:@"%@  [当前:%ld条]\n[已选:%ld条]", item.title, item.dataSpaceItem.count, item.count];
+    cell.textLabel.text = [NSString stringWithFormat:@"%@ [%ld条]", item.title, item.count];
     cell.textLabel.textColor = item.isSelected ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
     return cell;
 }
@@ -231,11 +259,7 @@
     return self.pickerItems.count;
 }
 - (void)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component{
-    NSNumber *value = self.pickerItems[row];
-    if ([value isKindOfClass:NSNumber.class]) {
-        self.selectItem.count = value.integerValue;
-        [self.tableView reloadData];
-    }
+    [self selectPicker:row];
 }
 - (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component{
     return [NSString stringWithFormat:@"%@", self.pickerItems[row]];

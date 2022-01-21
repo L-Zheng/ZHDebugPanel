@@ -160,7 +160,7 @@
         NSMutableArray *canSelectValues = [NSMutableArray array];
         for (NSInteger j = -10; j < 20; j++) {
             NSInteger value = spaceItem.dataSpaceItem.count + j * 50;
-            if (value >= 20) {
+            if (value > 0) {
                 [canSelectValues addObject:@(value)];
             }
         }
@@ -193,8 +193,8 @@
 }
 - (ZHDPDataSpaceItem *)createSpaceItem:(NSUInteger)count removePercent:(CGFloat)removePercent{
     ZHDPDataSpaceItem *item = [[ZHDPDataSpaceItem alloc] init];
-    item.count = count;
-    item.removePercent = removePercent;
+    item.count = (count > 0 ? count : 20);
+    item.removePercent = (removePercent <= 0 ? 0.5 : (removePercent >= 1.0 ? 1.0 : removePercent));
     return item;
 }
 

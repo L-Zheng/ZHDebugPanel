@@ -622,7 +622,11 @@ var vm = {
       this.allowScrollAuto = true;
     },
     allowAutoDelete(){
-      return (this.checkSpecialList() ? false : true)
+      if (this.checkSpecialList() || 
+      ['timeline-list', 'im-list', 'sdkError-list'].indexOf(this.listId) !== -1) {
+        return false
+      }
+      return true
     },
     reloadListWhenSelectApp() {
       let fetchRes = this.checkSpecialList();

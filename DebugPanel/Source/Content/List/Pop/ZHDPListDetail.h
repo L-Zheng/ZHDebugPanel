@@ -16,4 +16,10 @@
 @interface ZHDPListDetail : ZHDPListPop
 - (void)showWithSecItem:(ZHDPListSecItem *)secItem;
 @property (nonatomic,weak) ZHDPListSecItem *secItem;
+
+#pragma mark - hyalinize
+// 透明化
+- (void)hyalinize;
+- (void)hyalinizeCancel;
+
 @end

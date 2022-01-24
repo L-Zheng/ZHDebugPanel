@@ -76,6 +76,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     [super didMoveToSuperview];
     BOOL show = self.superview;
     if (!show) return;
+    [self.detail hyalinizeCancel];
     [self reloadListWhenShow];
 }
 
@@ -720,6 +721,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView{
     self.scrollStatus = ZHDPScrollStatus_Dragging;
     [self updateScrollAuto];
+    [self.detail hyalinize];
 }
 // 将要结束拖拽
 - (void)scrollViewWillEndDragging:(UIScrollView *)scrollView withVelocity:(CGPoint)velocity targetContentOffset:(inout CGPoint *)targetContentOffset{
@@ -733,6 +735,9 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     if (!decelerate) {
         [self updateSecItemWhenScrollEnd];
     }
+    if (!decelerate) {
+        [self.detail hyalinizeCancel];
+    }
 //    NSLog(@"%s",__func__);
 }
 // 将要开始减速（手指拖动才会调用）
@@ -745,6 +750,7 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
     self.scrollStatus = ZHDPScrollStatus_Idle;
     [self updateScrollAuto];
     [self updateSecItemWhenScrollEnd];
+    [self.detail hyalinizeCancel];
 //    NSLog(@"%s",__func__);
 }
 // called when setContentOffset/scrollRectVisible:animated: finishes. not called if not animating

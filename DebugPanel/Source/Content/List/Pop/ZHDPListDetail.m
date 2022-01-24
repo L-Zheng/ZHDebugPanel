@@ -125,6 +125,7 @@
     return self.list.bounds.size.width - 20;
 }
 - (void)showWithSecItem:(ZHDPListSecItem *)secItem{
+    [self hyalinizeCancel];
     NSArray <ZHDPListDetailItem *> *items = secItem.detailItems;
     if (!items || ![items isKindOfClass:NSArray.class] || items.count == 0) {
         return;
@@ -258,6 +259,22 @@
 }
 - (void)scrollTextViewToTopInstant{
     [self.textView setContentOffset:CGPointMake(0, 0) animated:YES];
+}
+
+#pragma mark - hyalinize
+
+- (void)hyalinize{
+    if (![self isShow]) return;
+    self.userInteractionEnabled = NO;
+    [UIView animateWithDuration:0.20 animations:^{
+        self.alpha = 0.1;
+    }];
+}
+- (void)hyalinizeCancel{
+    self.userInteractionEnabled = YES;
+    [UIView animateWithDuration:0.20 animations:^{
+        self.alpha = 1.0;
+    }];
 }
 
 #pragma mark - UICollectionViewDelegate

@@ -7,6 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "ZHDPDataTask.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -15,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic,copy) void (^doubleTapBlock) (void);
 
 - (void)updateTitle:(NSString *)title;
-- (void)showErrorTip:(NSString *)title clickBlock:(void (^) (void))clickBlock;
+- (void)showTip:(NSString *)title outputType:(ZHDPOutputType)outputType clickBlock:(void (^) (void))clickBlock;
 @property (nonatomic,copy) void (^ __nullable clickErrorBlock) (void);
 
 - (void)stopAnimation;

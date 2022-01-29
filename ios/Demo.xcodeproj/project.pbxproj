@@ -16,6 +16,7 @@
 		8578DC75268577F600E80094 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 8578DC74268577F600E80094 /* main.m */; };
 		8578DC7F268577F600E80094 /* DemoTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8578DC7E268577F600E80094 /* DemoTests.m */; };
 		8578DC8A268577F600E80094 /* DemoUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8578DC89268577F600E80094 /* DemoUITests.m */; };
+		85AAED2827A4E39F009BE97F /* MyNavigationController.m in Sources */ = {isa = PBXBuildFile; fileRef = 85AAED2727A4E39F009BE97F /* MyNavigationController.m */; };
 		EC04026FB164E17875F13653 /* libPods-Demo.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3766EEC35B75598974263BD5 /* libPods-Demo.a */; };
 /* End PBXBuildFile section */
 
@@ -57,6 +58,8 @@
 		8578DC85268577F600E80094 /* DemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8578DC89268577F600E80094 /* DemoUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoUITests.m; sourceTree = "<group>"; };
 		8578DC8B268577F600E80094 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		85AAED2627A4E39F009BE97F /* MyNavigationController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MyNavigationController.h; sourceTree = "<group>"; };
+		85AAED2727A4E39F009BE97F /* MyNavigationController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MyNavigationController.m; sourceTree = "<group>"; };
 		EB5DB370AC9A61619F9434CB /* Pods-Demo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Demo.debug.xcconfig"; path = "Target Support Files/Pods-Demo/Pods-Demo.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -127,6 +130,8 @@
 				8578DC66268577F300E80094 /* SceneDelegate.m */,
 				8578DC68268577F300E80094 /* ViewController.h */,
 				8578DC69268577F300E80094 /* ViewController.m */,
+				85AAED2627A4E39F009BE97F /* MyNavigationController.h */,
+				85AAED2727A4E39F009BE97F /* MyNavigationController.m */,
 				8578DC6B268577F300E80094 /* Main.storyboard */,
 				8578DC6E268577F600E80094 /* Assets.xcassets */,
 				8578DC70268577F600E80094 /* LaunchScreen.storyboard */,
@@ -335,6 +340,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				85AAED2827A4E39F009BE97F /* MyNavigationController.m in Sources */,
 				8578DC6A268577F300E80094 /* ViewController.m in Sources */,
 				8578DC64268577F300E80094 /* AppDelegate.m in Sources */,
 				8578DC75268577F600E80094 /* main.m in Sources */,

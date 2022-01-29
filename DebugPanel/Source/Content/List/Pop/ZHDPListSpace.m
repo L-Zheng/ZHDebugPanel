@@ -174,7 +174,7 @@
         NSUInteger selectIdx = NSNotFound;
         for (NSUInteger i = 0; i < self.pickerItems.count; i++) {
             NSNumber *num = self.pickerItems[i];
-            if (num.integerValue == item.dataSpaceItem.count) {
+            if (num.integerValue == item.count) {
                 selectIdx = i;
                 break;
             }

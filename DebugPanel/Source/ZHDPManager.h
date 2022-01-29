@@ -118,9 +118,11 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 
 - (void)execAutoDelete;
 
-@end
+#pragma mark - dealloc controller
 
-@interface ZHDPManager (ZHPlatformTest)
+- (void)addDealloc_controller_dismiss:(UIViewController *)sourceCtrl;
+- (void)addDealloc_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls;
+- (void)addDealloc_controller_navi_setCtrls:(UINavigationController *)sourceCtrl oriCtrls:(NSArray *)oriCtrls newCtrls:(NSArray *)newCtrls;
 
 #pragma mark - monitor
 

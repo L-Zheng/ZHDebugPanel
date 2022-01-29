@@ -156,6 +156,8 @@ extern NSURLCacheStoragePolicy zhdp_cacheStoragePolicyForRequestAndResponse(NSUR
 // 拦截其它库的请求   可能存在其它库已经拦截了app的请求   自身库如果拦截   存在多处拦截  容易出问题
 static BOOL ZHDPNetworkTask_CaptureOtherLib = NO;
 
+#pragma mark - network
+
 static void (* zhdp_ori_startLoading) (id, SEL);
 static void zhdp_new_startLoading(id self, SEL _cmd){
     if (zhdp_ori_startLoading) {
@@ -241,6 +243,70 @@ static void zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest(id se
     [(ZHDPNetworkTaskProtocol *)networkP collect_URLSession:session task:task willPerformHTTPRedirection:response newRequest:request completionHandler:completionHandler];
 }
 
+#pragma mark - controller dealloc
+
+static void (* zhdp_ori_dismissViewControllerAnimated_completion) (id, SEL, BOOL, void (^)(void));
+static void zhdp_new_dismissViewControllerAnimated_completion(id self, SEL _cmd, BOOL flag, void (^completion)(void)){
+    [ZHDPMg() addDealloc_controller_dismiss:self];
+    if (zhdp_ori_dismissViewControllerAnimated_completion) {
+        zhdp_ori_dismissViewControllerAnimated_completion(self, _cmd, flag, completion);
+    }
+}
+static UIViewController * (* zhdp_ori_navi_popViewControllerAnimated) (id, SEL, BOOL);
+static UIViewController * zhdp_new_navi_popViewControllerAnimated(id self, SEL _cmd, BOOL animated){
+    UIViewController *res = nil;
+    if (zhdp_ori_navi_popViewControllerAnimated) {
+        res = zhdp_ori_navi_popViewControllerAnimated(self, _cmd, animated);
+        if (res) {
+            [ZHDPMg() addDealloc_controller_navi_pop:self popCtrls:@[res]];
+        }
+    }
+    return res;
+}
+static NSArray<__kindof UIViewController *> * (* zhdp_ori_navi_popToViewController_animated) (id, SEL, UIViewController *, BOOL);
+static NSArray<__kindof UIViewController *> * zhdp_new_navi_popToViewController_animated(id self, SEL _cmd, UIViewController *viewController, BOOL animated){
+    NSArray<__kindof UIViewController *> *res = nil;
+    if (zhdp_ori_navi_popToViewController_animated) {
+        res = zhdp_ori_navi_popToViewController_animated(self, _cmd, viewController, animated);
+        [ZHDPMg() addDealloc_controller_navi_pop:self popCtrls:res];
+    }
+    return res;
+}
+static NSArray<__kindof UIViewController *> * (* zhdp_ori_navi_popToRootViewControllerAnimated) (id, SEL, BOOL);
+static NSArray<__kindof UIViewController *> * zhdp_new_navi_popToRootViewControllerAnimated(id self, SEL _cmd, BOOL animated){
+    NSArray<__kindof UIViewController *> *res = nil;
+    if (zhdp_ori_navi_popToRootViewControllerAnimated) {
+        res = zhdp_ori_navi_popToRootViewControllerAnimated(self, _cmd, animated);
+        [ZHDPMg() addDealloc_controller_navi_pop:self popCtrls:res];
+    }
+    return res;
+}
+/*UINavigationController
+ 调用setViewControllers:方法 会触发 setViewControllers:animated:  不会触发pop相关方法
+ 调用
+    popViewControllerAnimated:
+    popToViewController:animated
+    popToRootViewControllerAnimated:
+ 不会触发 setViewControllers:方法
+ */
+static void (* zhdp_ori_navi_setViewControllers_animated) (id, SEL, NSArray<__kindof UIViewController *> *, BOOL);
+static void zhdp_new_navi_setViewControllers_animated(id self, SEL _cmd, NSArray<__kindof UIViewController *> *viewControllers, BOOL animated){
+    if (zhdp_ori_navi_setViewControllers_animated) {
+        NSArray *oriCtrls = nil;
+        if (ZHDPMg().status == ZHDPManagerStatus_Open) {
+            if ([self isKindOfClass:UINavigationController.class]) {
+                oriCtrls = [(UINavigationController *)self viewControllers];
+            }
+        }
+        zhdp_ori_navi_setViewControllers_animated(self, _cmd, viewControllers, animated);
+        if (oriCtrls && oriCtrls.count > 0) {
+            [ZHDPMg() addDealloc_controller_navi_setCtrls:self oriCtrls:oriCtrls newCtrls:viewControllers];
+        }
+    }
+}
+
+#pragma mark - NetworkTaskProtocol
+
 @interface ZHDPNetworkTaskProtocol ()<NSURLConnectionDelegate, NSURLConnectionDataDelegate, NSURLSessionDelegate, NSURLSessionTaskDelegate>
 @property (atomic, strong) NSURLConnection  *connection;
 @property (atomic, strong) NSURLResponse    *response;
@@ -261,7 +327,45 @@ static void zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest(id se
 + (void)load{
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        Class cls = NSClassFromString(@"XXXURLProtocol");
+        
+        // 捕获controller
+        Class cls = [UIViewController class];
+        zhdp_ori_dismissViewControllerAnimated_completion = (void (*) (id, SEL, BOOL, void (^)(void)))
+        zhdp_replaceMethod(
+                           @selector(dismissViewControllerAnimated:completion:),
+                           (IMP)zhdp_new_dismissViewControllerAnimated_completion,
+                           cls,
+                           NO);
+        
+        // 捕获navicontroller
+        cls = [UINavigationController class];
+        zhdp_ori_navi_popViewControllerAnimated = (UIViewController * (*) (id, SEL, BOOL))
+        zhdp_replaceMethod(
+                           @selector(popViewControllerAnimated:),
+                           (IMP)zhdp_new_navi_popViewControllerAnimated,
+                           cls,
+                           NO);
+        zhdp_ori_navi_popToViewController_animated = (NSArray<__kindof UIViewController *> * (*) (id, SEL, UIViewController *, BOOL))
+        zhdp_replaceMethod(
+                           @selector(popToViewController:animated:),
+                           (IMP)zhdp_new_navi_popToViewController_animated,
+                           cls,
+                           NO);
+        zhdp_ori_navi_popToRootViewControllerAnimated = (NSArray<__kindof UIViewController *> * (*) (id, SEL, BOOL))
+        zhdp_replaceMethod(
+                           @selector(popToRootViewControllerAnimated:),
+                           (IMP)zhdp_new_navi_popToRootViewControllerAnimated,
+                           cls,
+                           NO);
+        zhdp_ori_navi_setViewControllers_animated = (void (*) (id, SEL, NSArray<__kindof UIViewController *> *, BOOL))
+        zhdp_replaceMethod(
+                           @selector(setViewControllers:animated:),
+                           (IMP)zhdp_new_navi_setViewControllers_animated,
+                           cls,
+                           NO);
+        
+        // 捕获network
+        cls = NSClassFromString(@"XXXURLProtocol");
         ZHDPNetworkTask_CaptureOtherLib = (cls ? YES : NO);
         if (!ZHDPNetworkTask_CaptureOtherLib) {
             zhdp_orig_defaultSessionConfiguration = (ZHDPSessionConfigConstructor)

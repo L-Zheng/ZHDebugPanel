@@ -80,20 +80,20 @@
 - (NSString *)animateKey{
     return @"backgroundColor";
 }
-- (void)showErrorTip:(NSString *)title clickBlock:(void (^) (void))clickBlock{
+- (void)showTip:(NSString *)title outputType:(ZHDPOutputType)outputType clickBlock:(void (^) (void))clickBlock{
     self.clickErrorBlock = [clickBlock copy];
     NSString *errorDesc = [NSString stringWithFormat:@"%@\n检测到异常", title];
     self.titleLabel.text = errorDesc;
     if (self.animating) return;
     self.animating = YES;
 
-    [self startAnimation];
+    [self startAnimation:outputType];
 }
 
 #pragma mark - animation
 
-- (void)startAnimation{
-    NSString *colorStr = [ZHDPOutputItem colorStrByType:ZHDPOutputType_Error];
+- (void)startAnimation:(ZHDPOutputType)outputType{
+    NSString *colorStr = [ZHDPOutputItem colorStrByType:outputType];
     UIColor *errorColor = colorStr ? [ZHDPMg() zhdp_colorFromHexString:colorStr] : [UIColor redColor];
     
     CAKeyframeAnimation *animate = [CAKeyframeAnimation animationWithKeyPath:[self animateKey]];

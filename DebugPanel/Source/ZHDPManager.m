@@ -26,6 +26,8 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
 @property (nonatomic,assign) BOOL debugPanelH5Disable;
 @property (nonatomic,strong) ZHDPNetworkTask *networkTask;
 @property (nonatomic,strong) NSLock *lock;
+
+@property (nonatomic,strong) NSMutableDictionary *dealloc_map_ctrl;
 @end
 
 @implementation ZHDPManager
@@ -909,7 +911,7 @@ var %@ = function (fw_args) { \
             }
         }else if (status == ZHDebugPanelStatus_Hide || status == ZHDebugPanelStatus_Unknown){
             if (isException) {
-                [self.window.floatView showErrorTip:appItem.appName clickBlock:^{
+                [self.window.floatView showTip:appItem.appName outputType:ZHDPOutputType_Error clickBlock:^{
                     [weakDebugPanel.option selectListClass:listClass];
                 }];
             }
@@ -1083,6 +1085,236 @@ var %@ = function (fw_args) { \
     });
 }
 
+#pragma mark - dealloc controller
+
+- (void)addDealloc_controller_dismiss:(UIViewController *)sourceCtrl{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
+    if (!sourceCtrl || ![sourceCtrl isKindOfClass:UIViewController.class]) {
+        return;
+    }
+    // 获取待释放的controller
+    NSMutableArray *resCtrls = [NSMutableArray array];
+    UIViewController *stayCtrl = sourceCtrl.presentedViewController;
+    if (stayCtrl) {
+        while (stayCtrl) {
+            [resCtrls addObjectsFromArray:[self fetchController_child:stayCtrl]];
+            stayCtrl = stayCtrl.presentedViewController;
+        }
+    }else{
+        if (sourceCtrl.presentingViewController) {
+            UIViewController *resCtrl = sourceCtrl;
+            UIViewController *pCtrl = resCtrl.parentViewController;
+            while (pCtrl) {
+                resCtrl = pCtrl;
+                pCtrl = pCtrl.parentViewController;
+            }
+            [resCtrls addObjectsFromArray:[self fetchController_child:resCtrl]];
+        }
+    }
+    [self addDealloc_controller:sourceCtrl ctrls:resCtrls];
+}
+- (void)addDealloc_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
+    if (!sourceCtrl || ![sourceCtrl isKindOfClass:UINavigationController.class] ||
+        !popCtrls || ![popCtrls isKindOfClass:NSArray.class] || popCtrls.count == 0) {
+        return;
+    }
+    // 获取待释放的controller
+    NSMutableArray *resCtrls = [NSMutableArray array];
+    for (UIViewController *popCtrl in popCtrls) {
+        [resCtrls addObjectsFromArray:[self fetchController_child:popCtrl]];
+    }
+    [self addDealloc_controller:sourceCtrl ctrls:resCtrls];
+}
+- (void)addDealloc_controller_navi_setCtrls:(UINavigationController *)sourceCtrl oriCtrls:(NSArray *)oriCtrls newCtrls:(NSArray *)newCtrls{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
+    if (!sourceCtrl || ![sourceCtrl isKindOfClass:UINavigationController.class] ||
+        !oriCtrls || ![oriCtrls isKindOfClass:NSArray.class] || oriCtrls.count == 0 ||
+        !newCtrls || ![newCtrls isKindOfClass:NSArray.class]) {
+        return;
+    }
+    NSMutableArray *oriCtrls_t = [oriCtrls mutableCopy];
+    [oriCtrls_t removeObjectsInArray:newCtrls];
+    [self addDealloc_controller:sourceCtrl ctrls:oriCtrls_t.copy];
+}
+- (void)addDealloc_controller:(UIViewController *)sourceCtrl ctrls:(NSArray *)ctrls{
+    if (!sourceCtrl || ctrls.count == 0) {
+        return;
+    }
+    
+    // 生成id
+    NSDateFormatter *dateFmt = [[NSDateFormatter alloc] init];
+    [dateFmt setDateStyle:NSDateFormatterMediumStyle];
+    [dateFmt setTimeStyle:NSDateFormatterShortStyle];
+    [dateFmt setDateFormat:@"HH:mm:ss.SSS"];
+    NSString *Id = [NSString stringWithFormat:@"%@-%d-%d", [dateFmt stringFromDate:[NSDate date]], arc4random_uniform(10000), arc4random_uniform(10000)];
+    
+    // 构造数据
+    /*
+     {
+         "HH:mm:ss.SSS-0xss": {
+             "source": {
+                 "desc": "",
+                 "address": "",
+                 "point": ""
+             },
+             "noDeallocs": [
+                 {
+                     "desc": "",
+                     "address": "",
+                     "point": ""
+                 }
+             ]
+         }
+      }
+     */
+    NSMutableDictionary *resMap = [NSMutableDictionary dictionary];
+    
+    NSPointerArray *sourcePointer = [NSPointerArray weakObjectsPointerArray];
+    [sourcePointer addPointer:(__bridge void * _Nullable)(sourceCtrl)];
+    [resMap setObject:@{
+        @"desc": [sourceCtrl description]?:(sourceCtrl.title?:@""),
+        @"address": [NSString stringWithFormat:@"%p", sourceCtrl],
+        @"point": sourcePointer
+    } forKey:@"source"];
+    
+    NSMutableArray *desllocItems = [NSMutableArray array];
+    for (UIViewController *ctrlT in ctrls) {
+        if (![ctrlT isKindOfClass:UIViewController.class]) {
+            continue;
+        }
+        
+        NSPointerArray *pointer = [NSPointerArray weakObjectsPointerArray];
+        [pointer addPointer:(__bridge void * _Nullable)(ctrlT)];
+        
+        [desllocItems addObject:@{
+            @"desc": [ctrlT description]?:(ctrlT.title?:@""),
+            @"address": [NSString stringWithFormat:@"%p", ctrlT],
+            @"point": pointer,
+        }];
+    }
+    if (desllocItems.count == 0) {
+        return;
+    }
+    [resMap setObject:desllocItems.copy forKey:@"noDeallocs"];
+    
+    // 加入弱引用表
+    [self.lock lock];
+    [self.dealloc_map_ctrl setObject:resMap.copy forKey:Id];
+    [self.lock unlock];
+    
+    // 3s后检查是否释放
+    NSMutableDictionary *checkMap = [NSMutableDictionary dictionary];
+    [checkMap setObject:resMap.copy forKey:Id];
+    [self performSelector:@selector(checkDealloced_controller:) withObject:checkMap.copy afterDelay:3.0];
+}
+- (void)checkDealloced_controller:(NSDictionary *)map{
+    NSDictionary *resMap = [self fetchNoDealloc_controller:map];
+    // 抛出异常
+    if (resMap.allKeys.count > 0) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self throwNoDealloc_controller:resMap];
+        });
+    }
+}
+- (void)throwNoDealloc_controller:(NSDictionary *)map{
+    if (!map || ![map isKindOfClass:NSDictionary.class] || map.allKeys.count == 0) {
+        return;
+    }
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
+    // 发送到控制台
+    [self zh_test_addLogSafe:ZHDPOutputType_Error args:@[map] argTypes:@[@"[object Object]"]];
+    // 如果当前列表正在显示
+    if (_window) {
+        ZHDebugPanel *debugPanel = self.window.debugPanel;
+        __weak __typeof__(debugPanel) weakDebugPanel = debugPanel;
+        ZHDebugPanelStatus status = debugPanel.status;
+        Class targetCls = [ZHDPListLog class];
+        
+        if (status == ZHDebugPanelStatus_Show) {
+            ZHDPList *list = debugPanel.content.selectList;
+            if (![list isKindOfClass:targetCls]) {
+                // 弹窗提示
+                [self showToast:@"存在页面未释放" outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
+                    [weakDebugPanel.option selectListClass:targetCls];
+                } showComplete:nil hideComplete:nil];
+            }
+        }else if (status == ZHDebugPanelStatus_Hide || status == ZHDebugPanelStatus_Unknown){
+            [self.window.floatView showTip:@"存在页面未释放" outputType:ZHDPOutputType_Error clickBlock:^{
+                [weakDebugPanel.option selectListClass:targetCls];
+            }];
+        }
+    }
+}
+- (NSDictionary *)fetchNoDealloc_controller_all{
+    NSDictionary *resMap = nil;
+    [self.lock lock];
+    resMap = self.dealloc_map_ctrl.copy;
+    [self.lock unlock];
+    return [self fetchNoDealloc_controller:resMap];
+}
+- (NSDictionary *)fetchNoDealloc_controller:(NSDictionary *)map{
+    if (!map || ![map isKindOfClass:NSDictionary.class]) {
+        return nil;
+    }
+    if (map.allKeys.count == 0) {
+        return map;
+    }
+    // 剔除ios原生对象 防止json string化失败
+    NSMutableDictionary *resMap = [NSMutableDictionary dictionary];
+    [map enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSDictionary *deallocMap, BOOL *stop) {
+        NSMutableDictionary *newDeallocMap = [NSMutableDictionary dictionary];
+        NSMutableArray *newItems = [NSMutableArray array];
+        
+        NSMutableDictionary *source = [[deallocMap objectForKey:@"source"] mutableCopy];
+        [source removeObjectForKey:@"point"];
+        NSArray *items = [deallocMap objectForKey:@"noDeallocs"];
+        
+        for (NSDictionary *item in items) {
+            NSMutableDictionary *newItem = [item mutableCopy];
+            NSPointerArray *pointer = [newItem objectForKey:@"point"];
+            [pointer addPointer:NULL];
+            [pointer compact];
+            [newItem removeObjectForKey:@"point"];
+            if (pointer.allObjects.count > 0) {
+                [newItems addObject:newItem.copy];
+            }
+        }
+        
+        if (newItems.count > 0) {
+            [newDeallocMap setObject:source.copy forKey:@"source"];
+            [newDeallocMap setObject:newItems.copy forKey:@"noDeallocs"];
+            
+            [resMap setObject:newDeallocMap forKey:key];
+        }
+    }];
+    return resMap.copy;
+}
+- (NSArray *)fetchController_child:(UIViewController *)ctrl{
+    NSMutableArray *res = [NSMutableArray array];
+    if ([ctrl isKindOfClass:UIViewController.class]) {
+        [res addObject:ctrl];
+        for (UIViewController *subCtrl in ctrl.childViewControllers) {
+            [res addObjectsFromArray:[self fetchController_child:subCtrl]];
+        }
+    }
+    return res.copy;
+}
+- (NSMutableDictionary *)dealloc_map_ctrl{
+    if (!_dealloc_map_ctrl) {
+        _dealloc_map_ctrl = [NSMutableDictionary dictionary];
+    }
+    return _dealloc_map_ctrl;
+}
+
 #pragma mark - share
 
 - (instancetype)init{
@@ -1110,10 +1342,6 @@ static id _instance;
     });
     return _instance;
 }
-
-@end
-
-@implementation ZHDPManager (ZHPlatformTest)
 
 #pragma mark - monitor
 

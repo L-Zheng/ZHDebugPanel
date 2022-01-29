@@ -82,7 +82,7 @@
 }
 - (void)showTip:(NSString *)title outputType:(ZHDPOutputType)outputType clickBlock:(void (^) (void))clickBlock{
     self.clickErrorBlock = [clickBlock copy];
-    NSString *errorDesc = [NSString stringWithFormat:@"%@\n检测到异常", title];
+    NSString *errorDesc = [NSString stringWithFormat:@"%@", title];
     self.titleLabel.text = errorDesc;
     if (self.animating) return;
     self.animating = YES;

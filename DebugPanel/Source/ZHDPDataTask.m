@@ -141,14 +141,18 @@
     if (!_storageItems) _storageItems = [NSMutableArray array];
     return _storageItems;
 }
+- (NSMutableArray<ZHDPListSecItem *> *)leaksItems{
+    if (!_leaksItems) _leaksItems = [NSMutableArray array];
+    return _leaksItems;
+}
 @end
 
 
 // 数据管理
 @implementation ZHDPDataTask
 - (NSArray *)spaceItems{
-    NSArray *titles = @[@"Log", @"Network", @"Storage"];
-    NSArray <ZHDPDataSpaceItem *> *spaces = @[self.logSpaceItem, self.networkSpaceItem, self.storageSpaceItem];
+    NSArray *titles = @[@"Log", @"Network", @"Storage", @"Leaks"];
+    NSArray <ZHDPDataSpaceItem *> *spaces = @[self.logSpaceItem, self.networkSpaceItem, self.storageSpaceItem, self.leaksSpaceItem];
     
     NSMutableArray *res = [NSMutableArray array];
     for (NSUInteger i = 0; i < titles.count; i++) {
@@ -190,6 +194,12 @@
         _storageSpaceItem = [self createSpaceItem:100 removePercent:0.5];
     }
     return _storageSpaceItem;
+}
+- (ZHDPDataSpaceItem *)leaksSpaceItem{
+    if (!_leaksSpaceItem) {
+        _leaksSpaceItem = [self createSpaceItem:100 removePercent:0.5];
+    }
+    return _leaksSpaceItem;
 }
 - (ZHDPDataSpaceItem *)createSpaceItem:(NSUInteger)count removePercent:(CGFloat)removePercent{
     ZHDPDataSpaceItem *item = [[ZHDPDataSpaceItem alloc] init];

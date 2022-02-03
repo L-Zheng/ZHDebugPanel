@@ -63,6 +63,9 @@
 - (void)configData{
 }
 - (void)configUI{
+    if (@available(iOS 13.0, *)) {
+        self.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
+    }
     self.clipsToBounds = YES;
     self.backgroundColor = [UIColor clearColor];
     

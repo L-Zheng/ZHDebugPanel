@@ -1100,7 +1100,7 @@ var %@ = function (fw_args) { \
 
 #pragma mark - dealloc controller
 
-- (void)addDealloc_controller_dismiss:(UIViewController *)sourceCtrl{
+- (void)addLeak_controller_dismiss:(UIViewController *)sourceCtrl{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
         return;
     }
@@ -1126,9 +1126,9 @@ var %@ = function (fw_args) { \
             [resCtrls addObjectsFromArray:[self fetchController_child:resCtrl]];
         }
     }
-    [self addDealloc_controller:sourceCtrl ctrls:resCtrls];
+    [self addLeak_controller:sourceCtrl ctrls:resCtrls];
 }
-- (void)addDealloc_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls{
+- (void)addLeak_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
         return;
     }
@@ -1141,9 +1141,9 @@ var %@ = function (fw_args) { \
     for (UIViewController *popCtrl in popCtrls) {
         [resCtrls addObjectsFromArray:[self fetchController_child:popCtrl]];
     }
-    [self addDealloc_controller:sourceCtrl ctrls:resCtrls];
+    [self addLeak_controller:sourceCtrl ctrls:resCtrls];
 }
-- (void)addDealloc_controller_navi_setCtrls:(UINavigationController *)sourceCtrl oriCtrls:(NSArray *)oriCtrls newCtrls:(NSArray *)newCtrls{
+- (void)addLeak_controller_navi_setCtrls:(UINavigationController *)sourceCtrl oriCtrls:(NSArray *)oriCtrls newCtrls:(NSArray *)newCtrls{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
         return;
     }
@@ -1154,9 +1154,9 @@ var %@ = function (fw_args) { \
     }
     NSMutableArray *oriCtrls_t = [oriCtrls mutableCopy];
     [oriCtrls_t removeObjectsInArray:newCtrls];
-    [self addDealloc_controller:sourceCtrl ctrls:oriCtrls_t.copy];
+    [self addLeak_controller:sourceCtrl ctrls:oriCtrls_t.copy];
 }
-- (void)addDealloc_controller:(UIViewController *)sourceCtrl ctrls:(NSArray *)ctrls{
+- (void)addLeak_controller:(UIViewController *)sourceCtrl ctrls:(NSArray *)ctrls{
     if (!sourceCtrl || ctrls.count == 0) {
         return;
     }
@@ -1177,7 +1177,7 @@ var %@ = function (fw_args) { \
                  "address": "",
                  "point": ""
              },
-             "noDeallocs": [
+             "leaks": [
                  {
                      "desc": "",
                      "address": "",
@@ -1215,7 +1215,7 @@ var %@ = function (fw_args) { \
     if (desllocItems.count == 0) {
         return;
     }
-    [resMap setObject:desllocItems.copy forKey:@"noDeallocs"];
+    [resMap setObject:desllocItems.copy forKey:@"leaks"];
     
     // 加入弱引用表
     [self.lock lock];
@@ -1225,31 +1225,31 @@ var %@ = function (fw_args) { \
     // 2s后检查是否释放
     NSMutableDictionary *checkMap = [NSMutableDictionary dictionary];
     [checkMap setObject:resMap.copy forKey:Id];
-    [self performSelector:@selector(checkDealloced_controller:) withObject:checkMap.copy afterDelay:2.0];
+    [self performSelector:@selector(checkLeaked_controller:) withObject:checkMap.copy afterDelay:2.0];
 }
-- (void)checkDealloced_controller:(NSDictionary *)map{
-    NSDictionary *resMap = [self fetchNoDealloc_controller:map];
+- (void)checkLeaked_controller:(NSDictionary *)map{
+    NSDictionary *resMap = [self fetchLeak_controller:map];
     // 抛出异常
     if (resMap.allKeys.count > 0) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self throwNoDealloc_controller:resMap];
+            [self throwLeak_controller:resMap];
         });
     }
 }
-- (void)throwNoDealloc_controller:(NSDictionary *)map{
+- (void)throwLeak_controller:(NSDictionary *)map{
     if (!map || ![map isKindOfClass:NSDictionary.class] || map.allKeys.count == 0) {
         return;
     }
     [self zh_test_addLeaks:map];
 }
-- (NSDictionary *)fetchNoDealloc_controller_all{
+- (NSDictionary *)fetchLeak_controller_all{
     NSDictionary *resMap = nil;
     [self.lock lock];
     resMap = self.dealloc_map_ctrl.copy;
     [self.lock unlock];
-    return [self fetchNoDealloc_controller:resMap];
+    return [self fetchLeak_controller:resMap];
 }
-- (NSDictionary *)fetchNoDealloc_controller:(NSDictionary *)map{
+- (NSDictionary *)fetchLeak_controller:(NSDictionary *)map{
     if (!map || ![map isKindOfClass:NSDictionary.class]) {
         return nil;
     }
@@ -1264,7 +1264,7 @@ var %@ = function (fw_args) { \
         
         NSMutableDictionary *source = [[deallocMap objectForKey:@"source"] mutableCopy];
         [source removeObjectForKey:@"point"];
-        NSArray *items = [deallocMap objectForKey:@"noDeallocs"];
+        NSArray *items = [deallocMap objectForKey:@"leaks"];
         
         for (NSDictionary *item in items) {
             NSMutableDictionary *newItem = [item mutableCopy];
@@ -1279,7 +1279,7 @@ var %@ = function (fw_args) { \
         
         if (newItems.count > 0) {
             [newDeallocMap setObject:source.copy forKey:@"source"];
-            [newDeallocMap setObject:newItems.copy forKey:@"noDeallocs"];
+            [newDeallocMap setObject:newItems.copy forKey:@"leaks"];
             
             [resMap setObject:newDeallocMap forKey:key];
         }

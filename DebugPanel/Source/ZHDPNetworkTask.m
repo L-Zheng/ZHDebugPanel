@@ -247,7 +247,7 @@ static void zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest(id se
 
 static void (* zhdp_ori_dismissViewControllerAnimated_completion) (id, SEL, BOOL, void (^)(void));
 static void zhdp_new_dismissViewControllerAnimated_completion(id self, SEL _cmd, BOOL flag, void (^completion)(void)){
-    [ZHDPMg() addDealloc_controller_dismiss:self];
+    [ZHDPMg() addLeak_controller_dismiss:self];
     if (zhdp_ori_dismissViewControllerAnimated_completion) {
         zhdp_ori_dismissViewControllerAnimated_completion(self, _cmd, flag, completion);
     }
@@ -258,7 +258,7 @@ static UIViewController * zhdp_new_navi_popViewControllerAnimated(id self, SEL _
     if (zhdp_ori_navi_popViewControllerAnimated) {
         res = zhdp_ori_navi_popViewControllerAnimated(self, _cmd, animated);
         if (res) {
-            [ZHDPMg() addDealloc_controller_navi_pop:self popCtrls:@[res]];
+            [ZHDPMg() addLeak_controller_navi_pop:self popCtrls:@[res]];
         }
     }
     return res;
@@ -268,7 +268,7 @@ static NSArray<__kindof UIViewController *> * zhdp_new_navi_popToViewController_
     NSArray<__kindof UIViewController *> *res = nil;
     if (zhdp_ori_navi_popToViewController_animated) {
         res = zhdp_ori_navi_popToViewController_animated(self, _cmd, viewController, animated);
-        [ZHDPMg() addDealloc_controller_navi_pop:self popCtrls:res];
+        [ZHDPMg() addLeak_controller_navi_pop:self popCtrls:res];
     }
     return res;
 }
@@ -277,7 +277,7 @@ static NSArray<__kindof UIViewController *> * zhdp_new_navi_popToRootViewControl
     NSArray<__kindof UIViewController *> *res = nil;
     if (zhdp_ori_navi_popToRootViewControllerAnimated) {
         res = zhdp_ori_navi_popToRootViewControllerAnimated(self, _cmd, animated);
-        [ZHDPMg() addDealloc_controller_navi_pop:self popCtrls:res];
+        [ZHDPMg() addLeak_controller_navi_pop:self popCtrls:res];
     }
     return res;
 }
@@ -300,7 +300,7 @@ static void zhdp_new_navi_setViewControllers_animated(id self, SEL _cmd, NSArray
         }
         zhdp_ori_navi_setViewControllers_animated(self, _cmd, viewControllers, animated);
         if (oriCtrls && oriCtrls.count > 0) {
-            [ZHDPMg() addDealloc_controller_navi_setCtrls:self oriCtrls:oriCtrls newCtrls:viewControllers];
+            [ZHDPMg() addLeak_controller_navi_setCtrls:self oriCtrls:oriCtrls newCtrls:viewControllers];
         }
     }
 }

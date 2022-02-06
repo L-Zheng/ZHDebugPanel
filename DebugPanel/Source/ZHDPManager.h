@@ -120,9 +120,9 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 
 #pragma mark - dealloc controller
 
-- (void)addDealloc_controller_dismiss:(UIViewController *)sourceCtrl;
-- (void)addDealloc_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls;
-- (void)addDealloc_controller_navi_setCtrls:(UINavigationController *)sourceCtrl oriCtrls:(NSArray *)oriCtrls newCtrls:(NSArray *)newCtrls;
+- (void)addLeak_controller_dismiss:(UIViewController *)sourceCtrl;
+- (void)addLeak_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls;
+- (void)addLeak_controller_navi_setCtrls:(UINavigationController *)sourceCtrl oriCtrls:(NSArray *)oriCtrls newCtrls:(NSArray *)newCtrls;
 
 #pragma mark - monitor
 

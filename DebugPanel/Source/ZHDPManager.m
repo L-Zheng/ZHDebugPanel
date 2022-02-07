@@ -15,6 +15,7 @@
 #import "ZHDPListStorage.h"// storage列表
 #import "ZHDPListLeaks.h"// leaks列表
 #import "ZHDPToast.h"//弹窗
+#import "UIViewController+ZHLeak.h"
 
 NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@不可用";
 
@@ -28,7 +29,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
 @property (nonatomic,strong) ZHDPNetworkTask *networkTask;
 @property (nonatomic,strong) NSLock *lock;
 
-@property (nonatomic,strong) NSMutableDictionary *dealloc_map_ctrl;
+@property (nonatomic,strong) NSMutableDictionary *leaks_map_ctrl;
 @end
 
 @implementation ZHDPManager
@@ -1107,28 +1108,48 @@ var %@ = function (fw_args) { \
     if (!sourceCtrl || ![sourceCtrl isKindOfClass:UIViewController.class]) {
         return;
     }
+    __weak __typeof__(self) weakSelf = self;
     // 获取待释放的controller
     NSMutableArray *resCtrls = [NSMutableArray array];
-    UIViewController *stayCtrl = sourceCtrl.presentedViewController;
-    if (stayCtrl) {
-        while (stayCtrl) {
-            [resCtrls addObjectsFromArray:[self fetchController_child:stayCtrl]];
-            stayCtrl = stayCtrl.presentedViewController;
-        }
-    }else{
-        if (sourceCtrl.presentingViewController) {
-            UIViewController *resCtrl = sourceCtrl;
-            UIViewController *pCtrl = resCtrl.parentViewController;
-            while (pCtrl) {
-                resCtrl = pCtrl;
-                pCtrl = pCtrl.parentViewController;
+    UIViewController *presentedCtrl = sourceCtrl.presentedViewController;
+    if (presentedCtrl) {
+        UIViewController *lastCtrl = nil;
+        while (presentedCtrl) {
+            [resCtrls addObjectsFromArray:[self fetchController_child:presentedCtrl]];
+            if (!presentedCtrl.presentedViewController) {
+                lastCtrl = presentedCtrl;
             }
-            [resCtrls addObjectsFromArray:[self fetchController_child:resCtrl]];
+            presentedCtrl = presentedCtrl.presentedViewController;
         }
+        // 加入引用表
+        NSArray *leaks = [self addLeak_controller:sourceCtrl ctrls:resCtrls];
+        if (leaks) {
+            lastCtrl.zh_leak_viewDidDisappear = ^{
+                [weakSelf checkLeaked_delay_controller:leaks[1] Id:leaks[0]];
+            };
+        }
+        return;
     }
-    [self addLeak_controller:sourceCtrl ctrls:resCtrls];
+    if (sourceCtrl.presentingViewController) {
+        UIViewController *resCtrl = sourceCtrl;
+        UIViewController *pCtrl = resCtrl.parentViewController;
+        while (pCtrl) {
+            resCtrl = pCtrl;
+            pCtrl = pCtrl.parentViewController;
+        }
+        [resCtrls addObjectsFromArray:[self fetchController_child:resCtrl]];
+        
+        // 加入引用表
+        NSArray *leaks = [self addLeak_controller:sourceCtrl ctrls:resCtrls];
+        if (leaks) {
+            resCtrl.zh_leak_viewDidDisappear = ^{
+                [weakSelf checkLeaked_delay_controller:leaks[1] Id:leaks[0]];
+            };
+        }
+        return;
+    }
 }
-- (void)addLeak_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls{
+- (void)addLeak_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray <UIViewController *> *)popCtrls{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
         return;
     }
@@ -1136,12 +1157,19 @@ var %@ = function (fw_args) { \
         !popCtrls || ![popCtrls isKindOfClass:NSArray.class] || popCtrls.count == 0) {
         return;
     }
+    __weak __typeof__(self) weakSelf = self;
     // 获取待释放的controller
     NSMutableArray *resCtrls = [NSMutableArray array];
     for (UIViewController *popCtrl in popCtrls) {
         [resCtrls addObjectsFromArray:[self fetchController_child:popCtrl]];
     }
-    [self addLeak_controller:sourceCtrl ctrls:resCtrls];
+    // 加入引用表
+    NSArray *leaks = [self addLeak_controller:sourceCtrl ctrls:resCtrls];
+    if (leaks) {
+        popCtrls.lastObject.zh_leak_viewDidDisappear = ^{
+            [weakSelf checkLeaked_delay_controller:leaks[1] Id:leaks[0]];
+        };
+    }
 }
 - (void)addLeak_controller_navi_setCtrls:(UINavigationController *)sourceCtrl oriCtrls:(NSArray *)oriCtrls newCtrls:(NSArray *)newCtrls{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
@@ -1154,11 +1182,21 @@ var %@ = function (fw_args) { \
     }
     NSMutableArray *oriCtrls_t = [oriCtrls mutableCopy];
     [oriCtrls_t removeObjectsInArray:newCtrls];
-    [self addLeak_controller:sourceCtrl ctrls:oriCtrls_t.copy];
+    
+    // 获取待释放的controller
+    NSMutableArray *resCtrls = [NSMutableArray array];
+    for (UIViewController *ctrlT in oriCtrls_t) {
+        [resCtrls addObjectsFromArray:[self fetchController_child:ctrlT]];
+    }
+    // 加入引用表
+    NSArray *leaks = [self addLeak_controller:sourceCtrl ctrls:resCtrls];
+    if (leaks) {
+        [self checkLeaked_delay_controller:leaks[1] Id:leaks[0]];
+    }
 }
-- (void)addLeak_controller:(UIViewController *)sourceCtrl ctrls:(NSArray *)ctrls{
+- (NSArray *)addLeak_controller:(UIViewController *)sourceCtrl ctrls:(NSArray *)ctrls{
     if (!sourceCtrl || ctrls.count == 0) {
-        return;
+        return nil;
     }
     
     // 生成id
@@ -1197,7 +1235,7 @@ var %@ = function (fw_args) { \
         @"point": sourcePointer
     } forKey:@"source"];
     
-    NSMutableArray *desllocItems = [NSMutableArray array];
+    NSMutableArray *leaksItems = [NSMutableArray array];
     for (UIViewController *ctrlT in ctrls) {
         if (![ctrlT isKindOfClass:UIViewController.class]) {
             continue;
@@ -1206,26 +1244,29 @@ var %@ = function (fw_args) { \
         NSPointerArray *pointer = [NSPointerArray weakObjectsPointerArray];
         [pointer addPointer:(__bridge void * _Nullable)(ctrlT)];
         
-        [desllocItems addObject:@{
+        [leaksItems addObject:@{
             @"desc": [ctrlT description]?:(ctrlT.title?:@""),
             @"address": [NSString stringWithFormat:@"%p", ctrlT],
             @"point": pointer,
         }];
     }
-    if (desllocItems.count == 0) {
-        return;
+    if (leaksItems.count == 0) {
+        return nil;
     }
-    [resMap setObject:desllocItems.copy forKey:@"leaks"];
+    [resMap setObject:leaksItems.copy forKey:@"leaks"];
     
+    return @[Id, resMap.copy];
+}
+- (void)checkLeaked_delay_controller:(NSDictionary *)map Id:(NSString *)Id{
     // 加入弱引用表
     [self.lock lock];
-    [self.dealloc_map_ctrl setObject:resMap.copy forKey:Id];
+    [self.leaks_map_ctrl setObject:map.copy forKey:Id];
     [self.lock unlock];
     
-    // 2s后检查是否释放
+    // 延时检查是否释放
     NSMutableDictionary *checkMap = [NSMutableDictionary dictionary];
-    [checkMap setObject:resMap.copy forKey:Id];
-    [self performSelector:@selector(checkLeaked_controller:) withObject:checkMap.copy afterDelay:3.0];
+    [checkMap setObject:map.copy forKey:Id];
+    [self performSelector:@selector(checkLeaked_controller:) withObject:checkMap.copy afterDelay:2.0];
 }
 - (void)checkLeaked_controller:(NSDictionary *)map{
     NSDictionary *resMap = [self fetchLeak_controller:map];
@@ -1245,7 +1286,7 @@ var %@ = function (fw_args) { \
 - (NSDictionary *)fetchLeak_controller_all{
     NSDictionary *resMap = nil;
     [self.lock lock];
-    resMap = self.dealloc_map_ctrl.copy;
+    resMap = self.leaks_map_ctrl.copy;
     [self.lock unlock];
     return [self fetchLeak_controller:resMap];
 }
@@ -1296,11 +1337,11 @@ var %@ = function (fw_args) { \
     }
     return res.copy;
 }
-- (NSMutableDictionary *)dealloc_map_ctrl{
-    if (!_dealloc_map_ctrl) {
-        _dealloc_map_ctrl = [NSMutableDictionary dictionary];
+- (NSMutableDictionary *)leaks_map_ctrl{
+    if (!_leaks_map_ctrl) {
+        _leaks_map_ctrl = [NSMutableDictionary dictionary];
     }
-    return _dealloc_map_ctrl;
+    return _leaks_map_ctrl;
 }
 
 #pragma mark - share

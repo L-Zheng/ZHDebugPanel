@@ -121,7 +121,7 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 #pragma mark - leaks controller
 
 - (void)addLeak_controller_dismiss:(UIViewController *)sourceCtrl;
-- (void)addLeak_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls;
+- (void)addLeak_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray <UIViewController *> *)popCtrls;
 - (void)addLeak_controller_navi_setCtrls:(UINavigationController *)sourceCtrl oriCtrls:(NSArray *)oriCtrls newCtrls:(NSArray *)newCtrls;
 
 #pragma mark - monitor

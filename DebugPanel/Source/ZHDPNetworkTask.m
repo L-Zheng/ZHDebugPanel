@@ -9,6 +9,7 @@
 #import "ZHDPNetworkTask.h"
 #import "ZHDPManager.h"// 调试面板管理
 #import <objc/runtime.h>
+#import "UIViewController+ZHLeak.h"
 /*截获系统请求
  
  NSURLSession.NSURLSessionConfiguration.protocolClasses
@@ -243,7 +244,7 @@ static void zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest(id se
     [(ZHDPNetworkTaskProtocol *)networkP collect_URLSession:session task:task willPerformHTTPRedirection:response newRequest:request completionHandler:completionHandler];
 }
 
-#pragma mark - controller dealloc
+#pragma mark - leaks controller
 
 static void (* zhdp_ori_dismissViewControllerAnimated_completion) (id, SEL, BOOL, void (^)(void));
 static void zhdp_new_dismissViewControllerAnimated_completion(id self, SEL _cmd, BOOL flag, void (^completion)(void)){
@@ -257,9 +258,7 @@ static UIViewController * zhdp_new_navi_popViewControllerAnimated(id self, SEL _
     UIViewController *res = nil;
     if (zhdp_ori_navi_popViewControllerAnimated) {
         res = zhdp_ori_navi_popViewControllerAnimated(self, _cmd, animated);
-        if (res) {
-            [ZHDPMg() addLeak_controller_navi_pop:self popCtrls:@[res]];
-        }
+        [ZHDPMg() addLeak_controller_navi_pop:self popCtrls:res ? @[res] : nil];
     }
     return res;
 }
@@ -304,6 +303,32 @@ static void zhdp_new_navi_setViewControllers_animated(id self, SEL _cmd, NSArray
         }
     }
 }
+static void (* zhdp_ori_controller_viewDidDisappear) (id, SEL, BOOL);
+static void zhdp_new_controller_viewDidDisappear(id self, SEL _cmd, BOOL animated){
+    if (zhdp_ori_controller_viewDidDisappear) {
+        zhdp_ori_controller_viewDidDisappear(self, _cmd, animated);
+        
+        if (ZHDPMg().status == ZHDPManagerStatus_Open &&
+            [self isKindOfClass:UIViewController.class]) {
+            void (^block) (void) = ((UIViewController *)self).zh_leak_viewDidDisappear;
+            if (block) {
+                block();
+                ((UIViewController *)self).zh_leak_viewDidDisappear = nil;
+            }
+        }
+    }
+}
+static void (* zhdp_ori_controller_viewDidAppear) (id, SEL, BOOL);
+static void zhdp_new_controller_viewDidAppear(id self, SEL _cmd, BOOL animated){
+    if (zhdp_ori_controller_viewDidAppear) {
+        zhdp_ori_controller_viewDidAppear(self, _cmd, animated);
+        
+        if (ZHDPMg().status == ZHDPManagerStatus_Open &&
+            [self isKindOfClass:UIViewController.class]) {
+            ((UIViewController *)self).zh_leak_viewDidDisappear = nil;
+        }
+    }
+}
 
 #pragma mark - NetworkTaskProtocol
 
@@ -334,6 +359,18 @@ static void zhdp_new_navi_setViewControllers_animated(id self, SEL _cmd, NSArray
         zhdp_replaceMethod(
                            @selector(dismissViewControllerAnimated:completion:),
                            (IMP)zhdp_new_dismissViewControllerAnimated_completion,
+                           cls,
+                           NO);
+        zhdp_ori_controller_viewDidDisappear = (void (*) (id, SEL, BOOL))
+        zhdp_replaceMethod(
+                           @selector(viewDidDisappear:),
+                           (IMP)zhdp_new_controller_viewDidDisappear,
+                           cls,
+                           NO);
+        zhdp_ori_controller_viewDidAppear = (void (*) (id, SEL, BOOL))
+        zhdp_replaceMethod(
+                           @selector(viewDidAppear:),
+                           (IMP)zhdp_new_controller_viewDidAppear,
                            cls,
                            NO);
         

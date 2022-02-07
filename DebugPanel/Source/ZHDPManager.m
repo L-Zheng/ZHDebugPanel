@@ -1098,7 +1098,7 @@ var %@ = function (fw_args) { \
     });
 }
 
-#pragma mark - dealloc controller
+#pragma mark - leaks controller
 
 - (void)addLeak_controller_dismiss:(UIViewController *)sourceCtrl{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
@@ -1225,7 +1225,7 @@ var %@ = function (fw_args) { \
     // 2s后检查是否释放
     NSMutableDictionary *checkMap = [NSMutableDictionary dictionary];
     [checkMap setObject:resMap.copy forKey:Id];
-    [self performSelector:@selector(checkLeaked_controller:) withObject:checkMap.copy afterDelay:2.0];
+    [self performSelector:@selector(checkLeaked_controller:) withObject:checkMap.copy afterDelay:3.0];
 }
 - (void)checkLeaked_controller:(NSDictionary *)map{
     NSDictionary *resMap = [self fetchLeak_controller:map];

@@ -118,7 +118,7 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 
 - (void)execAutoDelete;
 
-#pragma mark - dealloc controller
+#pragma mark - leaks controller
 
 - (void)addLeak_controller_dismiss:(UIViewController *)sourceCtrl;
 - (void)addLeak_controller_navi_pop:(UINavigationController *)sourceCtrl popCtrls:(NSArray *)popCtrls;

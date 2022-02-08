@@ -1240,9 +1240,16 @@ var %@ = function (fw_args) { \
         @"point": sourcePointer
     } forKey:@"trigger"];
     
+    // 忽略掉系统的controller
+    NSArray *ignoreCls = @[
+        NSStringFromClass([UIAlertController class]),
+        @"_UIAlertControllerTextFieldViewController"
+    ];
+    
     NSMutableArray *leaksItems = [NSMutableArray array];
     for (UIViewController *ctrlT in ctrls) {
-        if (![ctrlT isKindOfClass:UIViewController.class]) {
+        if (![ctrlT isKindOfClass:UIViewController.class] ||
+            [ignoreCls containsObject:NSStringFromClass([ctrlT class])]) {
             continue;
         }
         

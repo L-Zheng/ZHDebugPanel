@@ -9,7 +9,7 @@
 #import "ZHDPNetworkTask.h"
 #import "ZHDPManager.h"// 调试面板管理
 #import <objc/runtime.h>
-#import "UIViewController+ZHLeak.h"
+#import "UIViewController+ZHDPLeak.h"// 内存泄露监听
 /*截获系统请求
  
  NSURLSession.NSURLSessionConfiguration.protocolClasses
@@ -52,8 +52,8 @@
 
 typedef NSURLSessionConfiguration *(*ZHDPSessionConfigConstructor)(id,SEL);
 
-static ZHDPSessionConfigConstructor zhdp_orig_defaultSessionConfiguration;
-static ZHDPSessionConfigConstructor zhdp_orig_ephemeralSessionConfiguration;
+static ZHDPSessionConfigConstructor zhdp_ori_defaultSessionConfiguration;
+static ZHDPSessionConfigConstructor zhdp_ori_ephemeralSessionConfiguration;
 
 static NSURLSessionConfiguration * zhdp_addSessionConfiguration(NSURLSessionConfiguration *config){
     if ([config respondsToSelector:@selector(protocolClasses)] && [config respondsToSelector:@selector(setProtocolClasses:)]) {
@@ -66,12 +66,12 @@ static NSURLSessionConfiguration * zhdp_addSessionConfiguration(NSURLSessionConf
     }
     return config;
 }
-static NSURLSessionConfiguration * zhdp_replaced_defaultSessionConfiguration(id self, SEL _cmd){
-    NSURLSessionConfiguration *config = zhdp_orig_defaultSessionConfiguration(self,_cmd);
+static NSURLSessionConfiguration * zhdp_new_defaultSessionConfiguration(id self, SEL _cmd){
+    NSURLSessionConfiguration *config = zhdp_ori_defaultSessionConfiguration(self,_cmd);
     return zhdp_addSessionConfiguration(config);
 }
-static NSURLSessionConfiguration * zhdp_replaced_ephemeralSessionConfiguration(id self, SEL _cmd){
-    NSURLSessionConfiguration *config = zhdp_orig_ephemeralSessionConfiguration(self,_cmd);
+static NSURLSessionConfiguration * zhdp_new_ephemeralSessionConfiguration(id self, SEL _cmd){
+    NSURLSessionConfiguration *config = zhdp_ori_ephemeralSessionConfiguration(self,_cmd);
     return zhdp_addSessionConfiguration(config);
 }
 IMP zhdp_replaceMethod(SEL selector, IMP newImpl, Class affectedClass, BOOL isClassMethod){
@@ -248,7 +248,7 @@ static void zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest(id se
 
 static void (* zhdp_ori_dismissViewControllerAnimated_completion) (id, SEL, BOOL, void (^)(void));
 static void zhdp_new_dismissViewControllerAnimated_completion(id self, SEL _cmd, BOOL flag, void (^completion)(void)){
-    [ZHDPMg() addLeak_controller_dismiss:self];
+    [ZHDPMg() addLeak_controller_dismiss:_cmd sourceCtrl:self];
     if (zhdp_ori_dismissViewControllerAnimated_completion) {
         zhdp_ori_dismissViewControllerAnimated_completion(self, _cmd, flag, completion);
     }
@@ -258,7 +258,7 @@ static UIViewController * zhdp_new_navi_popViewControllerAnimated(id self, SEL _
     UIViewController *res = nil;
     if (zhdp_ori_navi_popViewControllerAnimated) {
         res = zhdp_ori_navi_popViewControllerAnimated(self, _cmd, animated);
-        [ZHDPMg() addLeak_controller_navi_pop:self popCtrls:res ? @[res] : nil];
+        [ZHDPMg() addLeak_controller_navi_pop:_cmd sourceCtrl:self popCtrls:res ? @[res] : nil];
     }
     return res;
 }
@@ -267,7 +267,7 @@ static NSArray<__kindof UIViewController *> * zhdp_new_navi_popToViewController_
     NSArray<__kindof UIViewController *> *res = nil;
     if (zhdp_ori_navi_popToViewController_animated) {
         res = zhdp_ori_navi_popToViewController_animated(self, _cmd, viewController, animated);
-        [ZHDPMg() addLeak_controller_navi_pop:self popCtrls:res];
+        [ZHDPMg() addLeak_controller_navi_pop:_cmd sourceCtrl:self popCtrls:res];
     }
     return res;
 }
@@ -276,7 +276,7 @@ static NSArray<__kindof UIViewController *> * zhdp_new_navi_popToRootViewControl
     NSArray<__kindof UIViewController *> *res = nil;
     if (zhdp_ori_navi_popToRootViewControllerAnimated) {
         res = zhdp_ori_navi_popToRootViewControllerAnimated(self, _cmd, animated);
-        [ZHDPMg() addLeak_controller_navi_pop:self popCtrls:res];
+        [ZHDPMg() addLeak_controller_navi_pop:_cmd sourceCtrl:self popCtrls:res];
     }
     return res;
 }
@@ -299,7 +299,7 @@ static void zhdp_new_navi_setViewControllers_animated(id self, SEL _cmd, NSArray
         }
         zhdp_ori_navi_setViewControllers_animated(self, _cmd, viewControllers, animated);
         if (oriCtrls && oriCtrls.count > 0) {
-            [ZHDPMg() addLeak_controller_navi_setCtrls:self oriCtrls:oriCtrls newCtrls:viewControllers];
+            [ZHDPMg() addLeak_controller_navi_setCtrls:_cmd sourceCtrl:self oriCtrls:oriCtrls newCtrls:viewControllers];
         }
     }
 }
@@ -310,10 +310,10 @@ static void zhdp_new_controller_viewDidDisappear(id self, SEL _cmd, BOOL animate
         
         if (ZHDPMg().status == ZHDPManagerStatus_Open &&
             [self isKindOfClass:UIViewController.class]) {
-            void (^block) (void) = ((UIViewController *)self).zh_leak_viewDidDisappear;
+            void (^block) (void) = ((UIViewController *)self).zhdp_leak_viewDidDisappear;
             if (block) {
                 block();
-                ((UIViewController *)self).zh_leak_viewDidDisappear = nil;
+                ((UIViewController *)self).zhdp_leak_viewDidDisappear = nil;
             }
         }
     }
@@ -325,7 +325,7 @@ static void zhdp_new_controller_viewDidAppear(id self, SEL _cmd, BOOL animated){
         
         if (ZHDPMg().status == ZHDPManagerStatus_Open &&
             [self isKindOfClass:UIViewController.class]) {
-            ((UIViewController *)self).zh_leak_viewDidDisappear = nil;
+            ((UIViewController *)self).zhdp_leak_viewDidDisappear = nil;
         }
     }
 }
@@ -405,17 +405,17 @@ static void zhdp_new_controller_viewDidAppear(id self, SEL _cmd, BOOL animated){
         cls = NSClassFromString(@"XXXURLProtocol");
         ZHDPNetworkTask_CaptureOtherLib = (cls ? YES : NO);
         if (!ZHDPNetworkTask_CaptureOtherLib) {
-            zhdp_orig_defaultSessionConfiguration = (ZHDPSessionConfigConstructor)
+            zhdp_ori_defaultSessionConfiguration = (ZHDPSessionConfigConstructor)
             zhdp_replaceMethod(
                                @selector(defaultSessionConfiguration),
-                               (IMP)zhdp_replaced_defaultSessionConfiguration,
+                               (IMP)zhdp_new_defaultSessionConfiguration,
                                [NSURLSessionConfiguration class],
                                YES);
             
-            zhdp_orig_ephemeralSessionConfiguration = (ZHDPSessionConfigConstructor)
+            zhdp_ori_ephemeralSessionConfiguration = (ZHDPSessionConfigConstructor)
             zhdp_replaceMethod(
                                @selector(ephemeralSessionConfiguration),
-                               (IMP)zhdp_replaced_ephemeralSessionConfiguration,
+                               (IMP)zhdp_new_ephemeralSessionConfiguration,
                                [NSURLSessionConfiguration class],
                                YES);
         }else{

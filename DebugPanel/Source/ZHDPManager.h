@@ -57,6 +57,8 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 
 - (UIWindow *)fetchKeyWindow;
 - (UIEdgeInsets)fetchKeyWindowSafeAreaInsets;
+- (UIWindow *)topNormalWindow;
+- (UIViewController *)topController;
 
 #pragma mark - float
 

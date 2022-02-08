@@ -152,35 +152,46 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
 
 - (UIWindow *)fetchKeyWindow{
     // window必须成为keyWindow  才可创建自定义的window  否则崩溃
-    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
-    if (!keyWindow || keyWindow.windowLevel != UIWindowLevelNormal) {
-        NSArray *windows = [[UIApplication sharedApplication] windows];
-        for (UIWindow *window in windows) {
-            if (window.windowLevel == UIWindowLevelNormal){
-                keyWindow = window;
-                break;
-            }
-        }
-    }
+    UIWindow *keyWindow = [self topNormalWindow];
     return keyWindow.isKeyWindow ? keyWindow : nil;
 }
 - (UIEdgeInsets)fetchKeyWindowSafeAreaInsets{
     // 只是获取window的safeAreaInsets  不需要window成为keyWindow
-    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
-    if (!keyWindow || keyWindow.windowLevel != UIWindowLevelNormal) {
-        NSArray *windows = [[UIApplication sharedApplication] windows];
-        for (UIWindow *window in windows) {
-            if (window.windowLevel == UIWindowLevelNormal){
-                keyWindow = window;
-                break;
-            }
-        }
-    }
+    UIWindow *keyWindow = [self topNormalWindow];
     UIEdgeInsets safeAreaInsets = UIEdgeInsetsZero;
     if (@available(iOS 11.0, *)) {
         safeAreaInsets = [keyWindow safeAreaInsets];
     }
     return safeAreaInsets;
+}
+- (UIWindow *)topNormalWindow{
+    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+    if (!keyWindow || keyWindow.windowLevel != UIWindowLevelNormal) {
+        NSArray *windows = [[UIApplication sharedApplication] windows];
+        for (UIWindow *window in windows) {
+            if (window.windowLevel == UIWindowLevelNormal){
+                keyWindow = window;
+                break;
+            }
+        }
+    }
+    return keyWindow;
+}
+- (UIViewController *)topController{
+    return [self topController_recursion:[self topNormalWindow].rootViewController];
+}
+- (UIViewController *)topController_recursion:(UIViewController *)startCtrl{
+    while (startCtrl.presentedViewController) {
+        startCtrl = startCtrl.presentedViewController;
+    }
+    
+    if ([startCtrl isKindOfClass:[UITabBarController class]]) {
+        return [self topController_recursion:((UITabBarController *)startCtrl).selectedViewController];
+    } else if ([startCtrl isKindOfClass:[UINavigationController class]]) {
+        return [self topController_recursion:((UINavigationController *)startCtrl).visibleViewController];
+    } else {
+        return startCtrl;
+    }
 }
 
 #pragma mark - float

@@ -316,11 +316,23 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
             @"icon": @"\ue61b",
             @"title": @"沙盒",
             @"block": ^{
-                NSString *appSandBox = NSHomeDirectory();
-                [[UIPasteboard generalPasteboard] setString:appSandBox];
-                [ZHDPMg() showToast:@"已复制-App沙盒地址" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:nil];
-                [weakSelf.oprate hide];
-            }
+        NSString *appSandBox = NSHomeDirectory();
+        if (TARGET_OS_SIMULATOR) {
+            [[UIPasteboard generalPasteboard] setString:appSandBox];
+            [ZHDPMg() showToast:@"已复制-App沙盒地址" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:nil];
+            return;
+        }
+        [ZHDPMg() showToast:@"使用AirDrop导出沙盒资源" outputType:NSNotFound animateDuration:0.25 stayDuration:0.5 clickBlock:nil showComplete:nil hideComplete:^{
+            [ZHDPMg() switchFloat];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                NSString *doc = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject;
+                NSString *lib = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES).lastObject;
+                UIActivityViewController *acCtrl = [[UIActivityViewController alloc] initWithActivityItems:@[[NSURL fileURLWithPath:doc], [NSURL fileURLWithPath:lib]] applicationActivities:nil];
+                [[ZHDPMg() topController] presentViewController:acCtrl animated:YES completion:nil];
+            });
+        }];
+        
+    }
         },
         @{
             @"icon": @"\ue6db",

@@ -57,11 +57,12 @@ void ZHDPUncaughtExceptionHandler(NSException *exception){
     }
     
     // 时间
+    NSDate *cDate = [NSDate date];
     NSDateFormatter *fmt = [[NSDateFormatter alloc] init];
     [fmt setDateStyle:NSDateFormatterMediumStyle];
     [fmt setTimeStyle:NSDateFormatterShortStyle];
-    [fmt setDateFormat:@"yyyy-MM-dd-HH-mm-ss-SSS"];
-    NSString *dateStr = [fmt stringFromDate:[NSDate date]];
+    [fmt setDateFormat:@"yyyy-MM-dd HH:mm:ss.SSS"];
+    NSString *dateStr = [fmt stringFromDate:cDate];
     
     // crash发生时 不要异步切线程 可能还没切成功 app就退出了
     NSString *crashStr = [self parseNativeObjToString:@{
@@ -70,14 +71,20 @@ void ZHDPUncaughtExceptionHandler(NSException *exception){
         @"reason": exception.reason?:@"",
         @"callStackSymbols": exception.callStackSymbols?:@[],
         @"userInfo": exception.userInfo?:@{},
+        @"app": @{
+            @"version": [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"]?:@"",
+            @"buildVersion": ([[NSBundle mainBundle] infoDictionary][(__bridge NSString *)kCFBundleVersionKey])?:@""
+        }
     }];
     if (!crashStr || ![crashStr isKindOfClass:NSString.class] || crashStr.length == 0) {
         return;
     }
     
     // 创建文件
+    [fmt setDateFormat:@"yyyy-MM-dd-HH-mm-ss-SSS"];
+    NSString *fileName = [fmt stringFromDate:cDate];
     NSString *folder = [self crash_createDir_unreport];
-    NSString *file = [folder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.json", dateStr]];
+    NSString *file = [folder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.json", fileName]];
     [crashStr writeToFile:file atomically:YES encoding:NSUTF8StringEncoding error:nil];
 }
 - (NSArray *)crash_fetchLastFiles{
@@ -2151,12 +2158,14 @@ static id _instance;
     dispatch_async(dispatch_get_main_queue(), ^{
         if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
         
-        NSArray *crashs = [self crash_fetchLastFiles];
-        NSArray *crashContents = [self crash_read:crashs];
-        [self crash_move:crashs];
-        for (NSDictionary *item in crashContents) {
-            [self zh_test_addCrashSafe:ZHDPOutputType_Error crash:item];
-        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            NSArray *crashs = [self crash_fetchLastFiles];
+            NSArray *crashContents = [self crash_read:crashs];
+            [self crash_move:crashs];
+            for (NSDictionary *item in crashContents) {
+                [self zh_test_addCrashSafe:ZHDPOutputType_Error crash:item];
+            }
+        });
     });
 }
 - (void)zh_test_addCrashSafe:(ZHDPOutputType)colorType crash:(NSDictionary *)crash{
@@ -2183,13 +2192,7 @@ static id _instance;
     filterItem.outputItem = outputItem;
     
     // 内容
-    NSArray *args = @[[NSString stringWithFormat:@"name: %@\nreason: %@\ncallStackSymbols: %@\ntime: %@\nuserInfo: %@",
-                       crash[@"name"],
-                       crash[@"reason"],
-                       crash[@"callStackSymbols"],
-                       crash[@"time"],
-                       crash[@"userInfo"]
-                      ]];
+    NSArray *args = @[crash[@"reason"]?:@""];
     NSInteger count = args.count;
     CGFloat datePercent = [dpMg dateW] / [dpMg basicW];
     CGFloat freeW = ([dpMg basicW] - [dpMg dateW]) * 1.0 / (count * 1.0);
@@ -2216,7 +2219,17 @@ static id _instance;
     }
     
     // 弹窗详情数据
-    ZHDPListDetailItem *item = [self createDetailItem:@"简要" keys:@[@"crash信息"] values:args];
+    ZHDPListDetailItem *item = [self createDetailItem:@"简要" keys:@[@"name:", @"reason:", @"time:", @"userInfo:"] values:@[
+        [self parseNativeObjToString:crash[@"name"]]?:@"",
+        [self parseNativeObjToString:crash[@"reason"]]?:@"",
+        [self parseNativeObjToString:crash[@"time"]]?:@"",
+        [self parseNativeObjToString:crash[@"userInfo"]]?:@""]];
+    [detailItems addObject:item];
+    
+    item = [self createDetailItem:@"崩溃栈" keys:@[@"callStackSymbols:"] values:@[[self parseNativeObjToString:crash[@"callStackSymbols"]]?:@""]];
+    [detailItems addObject:item];
+    
+    item = [self createDetailItem:@"App信息" keys:@[@"版本信息:"] values:@[[self parseNativeObjToString:crash[@"app"]]?:@""]];
     [detailItems addObject:item];
         
     // 每一组中的每行数据

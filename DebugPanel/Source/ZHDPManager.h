@@ -29,6 +29,10 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 @property (nullable,nonatomic,strong) ZHDPDataTask *dataTask;
 @property (nullable,nonatomic,strong) ZHDPWindow *window;
 
+#pragma mark - crash
+
+- (void)crash_save:(NSException *)exception;
+
 #pragma mark - basic
 
 - (CGFloat)basicW;

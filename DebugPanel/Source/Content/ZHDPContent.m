@@ -12,6 +12,7 @@
 #import "ZHDPListNetwork.h"// network列表
 #import "ZHDPListStorage.h"// storage列表
 #import "ZHDPListLeaks.h"// leaks列表
+#import "ZHDPListCrash.h"// crash列表
 
 @interface ZHDPContent ()
 @property (nonatomic, retain) NSArray *allList;
@@ -54,6 +55,7 @@
         @[ZHDPListNetwork.class, @"Network"],
         @[ZHDPListStorage.class, @"Storage"],
         @[ZHDPListLeaks.class, @"Leaks"],
+        @[ZHDPListCrash.class, @"Crash"],
     ];
     NSMutableArray *res = [NSMutableArray array];
     for (NSArray *temp in arr) {

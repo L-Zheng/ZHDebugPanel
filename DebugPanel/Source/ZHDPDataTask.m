@@ -145,6 +145,10 @@
     if (!_leaksItems) _leaksItems = [NSMutableArray array];
     return _leaksItems;
 }
+- (NSMutableArray<ZHDPListSecItem *> *)crashItems{
+    if (!_crashItems) _crashItems = [NSMutableArray array];
+    return _crashItems;
+}
 @end
 
 
@@ -200,6 +204,12 @@
         _leaksSpaceItem = [self createSpaceItem:100 removePercent:0.5];
     }
     return _leaksSpaceItem;
+}
+- (ZHDPDataSpaceItem *)crashSpaceItem{
+    if (!_crashSpaceItem) {
+        _crashSpaceItem = [self createSpaceItem:20 removePercent:0.5];
+    }
+    return _crashSpaceItem;
 }
 - (ZHDPDataSpaceItem *)createSpaceItem:(NSUInteger)count removePercent:(CGFloat)removePercent{
     ZHDPDataSpaceItem *item = [[ZHDPDataSpaceItem alloc] init];

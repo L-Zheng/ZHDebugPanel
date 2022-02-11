@@ -140,6 +140,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *networkItems;
 @property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *storageItems;
 @property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *leaksItems;
+@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *crashItems;
 
 @end
 
@@ -155,6 +156,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @property (nonatomic,strong) ZHDPDataSpaceItem *networkSpaceItem;
 @property (nonatomic,strong) ZHDPDataSpaceItem *storageSpaceItem;
 @property (nonatomic,strong) ZHDPDataSpaceItem *leaksSpaceItem;
+@property (nonatomic,strong) ZHDPDataSpaceItem *crashSpaceItem;
 
 // 查找所有应用的数据
 - (NSArray <ZHDPAppDataItem *> *)fetchAllAppDataItems;

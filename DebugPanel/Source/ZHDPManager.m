@@ -14,10 +14,20 @@
 #import "ZHDPListNetwork.h"// network列表
 #import "ZHDPListStorage.h"// storage列表
 #import "ZHDPListLeaks.h"// leaks列表
+#import "ZHDPListCrash.h"// crash列表
 #import "ZHDPToast.h"//弹窗
 #import "UIViewController+ZHDPLeak.h"// 内存泄露监听
 
 NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@不可用";
+
+// crash捕获
+static NSUncaughtExceptionHandler *zhdp_ori_UncaughtExceptionHandler;
+void ZHDPUncaughtExceptionHandler(NSException *exception){
+    if (zhdp_ori_UncaughtExceptionHandler) {
+        zhdp_ori_UncaughtExceptionHandler(exception);
+    }
+    [ZHDPMg() crash_save:exception];
+}
 
 @interface ZHDPManager (){
     CFURLRef _originFontUrl;//注册字体Url
@@ -33,6 +43,143 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
 @end
 
 @implementation ZHDPManager
+
+#pragma mark - crash
+
+- (void)crash_capture{
+    zhdp_ori_UncaughtExceptionHandler = NSGetUncaughtExceptionHandler();
+    NSSetUncaughtExceptionHandler(&ZHDPUncaughtExceptionHandler);
+}
+- (void)crash_save:(NSException *)exception{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open ||
+        !exception || ![exception isKindOfClass:[NSException class]]) {
+        return;
+    }
+    
+    // 时间
+    NSDateFormatter *fmt = [[NSDateFormatter alloc] init];
+    [fmt setDateStyle:NSDateFormatterMediumStyle];
+    [fmt setTimeStyle:NSDateFormatterShortStyle];
+    [fmt setDateFormat:@"yyyy-MM-dd-HH-mm-ss-SSS"];
+    NSString *dateStr = [fmt stringFromDate:[NSDate date]];
+    
+    // crash发生时 不要异步切线程 可能还没切成功 app就退出了
+    NSString *crashStr = [self parseNativeObjToString:@{
+        @"time": dateStr?:@"",
+        @"name": exception.name?:@"",
+        @"reason": exception.reason?:@"",
+        @"callStackSymbols": exception.callStackSymbols?:@[],
+        @"userInfo": exception.userInfo?:@{},
+    }];
+    if (!crashStr || ![crashStr isKindOfClass:NSString.class] || crashStr.length == 0) {
+        return;
+    }
+    
+    // 创建文件
+    NSString *folder = [self crash_createDir_unreport];
+    NSString *file = [folder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.json", dateStr]];
+    [crashStr writeToFile:file atomically:YES encoding:NSUTF8StringEncoding error:nil];
+}
+- (NSArray *)crash_fetchLastFiles{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return @[];
+    }
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *folder = [self crash_createDir_unreport];
+    NSArray *fileNames = [fm contentsOfDirectoryAtPath:folder error:nil];
+    
+    NSMutableArray *res = [NSMutableArray array];
+    for (NSString *fileName in fileNames) {
+        if (!fileName || ![fileName isKindOfClass:NSString.class] || fileName.length == 0 ||
+            fileName.pathExtension.length == 0) {
+            continue;
+        }
+        [res addObject:[folder stringByAppendingPathComponent:fileName]];
+    }
+    return res.copy;
+}
+- (NSArray *)crash_read:(NSArray *)files{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return @[];
+    }
+    
+    if (!files || ![files isKindOfClass:NSArray.class] || files.count == 0) {
+        return @[];
+    }
+    
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSMutableArray *res = [NSMutableArray array];
+    for (NSString *file in files) {
+        if (!file || ![file isKindOfClass:NSString.class] || file.length == 0) {
+            continue;
+        }
+        
+        BOOL isDirectory = YES;
+        if (![fm fileExistsAtPath:file isDirectory:&isDirectory] || isDirectory) {
+            continue;
+        }
+        NSData *data = [NSData dataWithContentsOfFile:file];
+        if (!data) {
+            continue;
+        }
+        id json = nil;
+        @try {
+            NSError *jsonError = nil;
+            json = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingAllowFragments error:&jsonError];
+            if (jsonError) json = nil;
+        } @catch (NSException *exception) {
+        } @finally {
+        }
+        if (!json) {
+            continue;
+        }
+        [res addObject:json];
+    }
+    return res.copy;
+}
+- (void)crash_move:(NSArray *)files{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
+    
+    if (!files || ![files isKindOfClass:NSArray.class] || files.count == 0) {
+        return;
+    }
+    NSString *folder = [self crash_createDir_report];
+    
+    NSFileManager *fm = [NSFileManager defaultManager];
+    for (NSString *file in files) {
+        if (!file || ![file isKindOfClass:NSString.class] || file.length == 0 ||
+            !file.lastPathComponent || file.lastPathComponent.length == 0) {
+            continue;
+        }
+        
+        BOOL isDirectory = YES;
+        if (![fm fileExistsAtPath:file isDirectory:&isDirectory] || isDirectory) {
+            continue;
+        }
+        
+        NSString *targetFile = [folder stringByAppendingPathComponent:file.lastPathComponent];
+        [fm moveItemAtPath:file toPath:targetFile error:nil];
+    }
+}
+- (NSString *)crash_createDir_report{
+    return [self crash_createDir:@"Report"];
+}
+- (NSString *)crash_createDir_unreport{
+    return [self crash_createDir:@"UnReport"];
+}
+- (NSString *)crash_createDir:(NSString *)dirName{
+    NSFileManager *fm = [NSFileManager defaultManager];
+    
+    NSString *folder = [[NSTemporaryDirectory() stringByAppendingPathComponent:@"ZHDPAppCrash"] stringByAppendingPathComponent:dirName];
+    BOOL isDirectory = NO;
+    if (![fm fileExistsAtPath:folder isDirectory:&isDirectory] || !isDirectory) {
+        [fm removeItemAtPath:folder error:nil];
+        [fm createDirectoryAtPath:folder withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+    return folder;
+}
 
 #pragma mark - basic
 
@@ -108,6 +255,7 @@ NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@
     }
     [self.window showFloat:[self fetchFloatTitle]];
     [self.window hideDebugPanel:nil];
+    [self zh_test_addCrash];
     });
 }
 - (void)close{
@@ -867,6 +1015,17 @@ var %@ = function (fw_args) { \
                 sendSocketKey: ^NSString *(void){
                     return @"leaks-list";
                 }
+        },
+        NSStringFromClass(ZHDPListCrash.class): @{
+                itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
+                    return appDataItem.crashItems;
+                },
+                spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
+                    return weakSelf.dataTask.crashSpaceItem;
+                },
+                sendSocketKey: ^NSString *(void){
+                    return @"crash-list";
+                }
         }
     };
 }
@@ -921,22 +1080,23 @@ var %@ = function (fw_args) { \
         ZHDebugPanelStatus status = debugPanel.status;
         BOOL isException = NO;
         BOOL isLeaks = [listClass isEqual:ZHDPListLeaks.class];
+        BOOL isCrash = [listClass isEqual:ZHDPListCrash.class];
         
         if (status == ZHDebugPanelStatus_Show) {
             ZHDPList *list = debugPanel.content.selectList;
             if ([list isKindOfClass:listClass]) {
                 [list addSecItem:secItem spaceItem:spaceBlock(appDataItem)];
             }else{
-                if (isException || isLeaks) {
+                if (isException || isLeaks || isCrash) {
                     // 弹窗提示
-                    [self showToast:isLeaks ? @"检测到内存泄漏\n点击查看" : [NSString stringWithFormat:@"%@\n检测到异常, 点击查看", appItem.appName] outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
+                    [self showToast:isLeaks ? @"检测到内存泄漏\n点击查看" : (isException ? [NSString stringWithFormat:@"%@\n检测到异常, 点击查看", appItem.appName] : @"检测到崩溃信息\n点击查看") outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
                         [weakDebugPanel.option selectListClass:listClass];
                     } showComplete:nil hideComplete:nil];
                 }
             }
         }else if (status == ZHDebugPanelStatus_Hide || status == ZHDebugPanelStatus_Unknown){
-            if (isException || isLeaks) {
-                [self.window.floatView showTip:isLeaks ? @"检测到\n内存泄漏" : [NSString stringWithFormat:@"%@\n检测到异常", appItem.appName] outputType:ZHDPOutputType_Error clickBlock:^{
+            if (isException || isLeaks || isCrash) {
+                [self.window.floatView showTip:isLeaks ? @"检测到\n内存泄漏" : (isLeaks ? [NSString stringWithFormat:@"%@\n检测到异常", appItem.appName] : @"检测到\n崩溃信息") outputType:ZHDPOutputType_Error clickBlock:^{
                     [weakDebugPanel.option selectListClass:listClass];
                 }];
             }
@@ -1378,6 +1538,7 @@ var %@ = function (fw_args) { \
         static dispatch_once_t onceToken;
         dispatch_once(&onceToken, ^{
             self.lock = [[NSLock alloc] init];
+            [self crash_capture];
         });
     }
     return self;
@@ -1982,6 +2143,105 @@ static id _instance;
     [self addSecItemToList:ZHDPListLeaks.class appItem:appItem secItem:secItem];
     // 发送socket
     [self sendSocketClientSecItemToList:ZHDPListLeaks.class appItem:appItem secItem:secItem colorType:colorType];
+}
+
+- (void)zh_test_addCrash{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
+        
+        NSArray *crashs = [self crash_fetchLastFiles];
+        NSArray *crashContents = [self crash_read:crashs];
+        [self crash_move:crashs];
+        for (NSDictionary *item in crashContents) {
+            [self zh_test_addCrashSafe:ZHDPOutputType_Error crash:item];
+        }
+    });
+}
+- (void)zh_test_addCrashSafe:(ZHDPOutputType)colorType crash:(NSDictionary *)crash{
+    ZHDPManager *dpMg = ZHDPMg();
+    
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
+    if (!crash || ![crash isKindOfClass:NSDictionary.class] || crash.allKeys.count == 0) {
+        return;
+    }
+    
+    // 哪个应用的数据
+    ZHDPAppItem *appItem = [[ZHDPAppItem alloc] init];
+    appItem.appId = @"App";
+    appItem.appName = @"App";
+        
+    // 此条日志的过滤信息
+    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
+    filterItem.appItem = appItem;
+    filterItem.page = nil;
+    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
+    outputItem.type = colorType;
+    filterItem.outputItem = outputItem;
+    
+    // 内容
+    NSArray *args = @[[NSString stringWithFormat:@"name: %@\nreason: %@\ncallStackSymbols: %@\ntime: %@\nuserInfo: %@",
+                       crash[@"name"],
+                       crash[@"reason"],
+                       crash[@"callStackSymbols"],
+                       crash[@"time"],
+                       crash[@"userInfo"]
+                      ]];
+    NSInteger count = args.count;
+    CGFloat datePercent = [dpMg dateW] / [dpMg basicW];
+    CGFloat freeW = ([dpMg basicW] - [dpMg dateW]) * 1.0 / (count * 1.0);
+    CGFloat otherPercent = freeW / [dpMg basicW];
+    
+    // 每一行中的各个分段数据
+    NSMutableArray <ZHDPListColItem *> *colItems = [NSMutableArray array];
+    NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
+    
+    // 添加时间
+    CGFloat X = 0;
+    NSString *dateStr = [[dpMg dateFormat] stringFromDate:[NSDate date]];
+    ZHDPListColItem *colItem = [self createColItem:dateStr percent:datePercent X:X colorType:colorType];
+    [colItems addObject:colItem];
+    X += colItem.rectValue.CGRectValue.size.width;
+        
+    for (NSUInteger i = 0; i < count; i++) {
+        NSString *title = args[i];
+        NSString *detail = [self parseNativeObjToString:title];
+        // 添加参数
+        colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
+        [colItems addObject:colItem];
+        X += colItem.rectValue.CGRectValue.size.width;
+    }
+    
+    // 弹窗详情数据
+    ZHDPListDetailItem *item = [self createDetailItem:@"简要" keys:@[@"crash信息"] values:args];
+    [detailItems addObject:item];
+        
+    // 每一组中的每行数据
+    ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
+    rowItem.colItems = colItems.copy;
+    
+    // 每一组数据
+    ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
+    secItem.filterItem = filterItem;
+    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
+    secItem.open = YES;
+    secItem.colItems = @[];
+    secItem.rowItems = @[rowItem];
+    secItem.detailItems = detailItems.copy;
+    secItem.pasteboardBlock = ^NSString *{
+        NSMutableString *str = [NSMutableString string];
+        [str appendFormat:@"%@\n", dateStr];
+        [str appendString:[self createDetailItemsString:detailItems]];
+        return str.copy;
+    };
+    
+    // 添加数据
+    [self addSecItemToList:ZHDPListCrash.class appItem:appItem secItem:secItem];
+    // 发送socket
+    [self sendSocketClientSecItemToList:ZHDPListCrash.class appItem:appItem secItem:secItem colorType:colorType];
 }
 @end
 

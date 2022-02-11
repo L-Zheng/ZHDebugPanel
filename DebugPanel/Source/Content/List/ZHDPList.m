@@ -327,7 +327,8 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
                 NSString *doc = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject;
                 NSString *lib = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES).lastObject;
-                UIActivityViewController *acCtrl = [[UIActivityViewController alloc] initWithActivityItems:@[[NSURL fileURLWithPath:doc], [NSURL fileURLWithPath:lib]] applicationActivities:nil];
+                NSString *tmp = NSTemporaryDirectory();
+                UIActivityViewController *acCtrl = [[UIActivityViewController alloc] initWithActivityItems:@[[NSURL fileURLWithPath:doc], [NSURL fileURLWithPath:lib], [NSURL fileURLWithPath:tmp]] applicationActivities:nil];
                 [[ZHDPMg() topController] presentViewController:acCtrl animated:YES completion:nil];
             });
         }];

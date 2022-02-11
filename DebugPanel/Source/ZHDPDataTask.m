@@ -155,8 +155,8 @@
 // 数据管理
 @implementation ZHDPDataTask
 - (NSArray *)spaceItems{
-    NSArray *titles = @[@"Log", @"Network", @"Storage", @"Leaks"];
-    NSArray <ZHDPDataSpaceItem *> *spaces = @[self.logSpaceItem, self.networkSpaceItem, self.storageSpaceItem, self.leaksSpaceItem];
+    NSArray *titles = @[@"Log", @"Network", @"Storage", @"Leaks", @"Crash"];
+    NSArray <ZHDPDataSpaceItem *> *spaces = @[self.logSpaceItem, self.networkSpaceItem, self.storageSpaceItem, self.leaksSpaceItem, self.crashSpaceItem];
     
     NSMutableArray *res = [NSMutableArray array];
     for (NSUInteger i = 0; i < titles.count; i++) {

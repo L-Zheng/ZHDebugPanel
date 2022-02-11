@@ -1103,7 +1103,7 @@ var %@ = function (fw_args) { \
             }
         }else if (status == ZHDebugPanelStatus_Hide || status == ZHDebugPanelStatus_Unknown){
             if (isException || isLeaks || isCrash) {
-                [self.window.floatView showTip:isLeaks ? @"检测到\n内存泄漏" : (isLeaks ? [NSString stringWithFormat:@"%@\n检测到异常", appItem.appName] : @"检测到\n崩溃信息") outputType:ZHDPOutputType_Error clickBlock:^{
+                [self.window.floatView showTip:isLeaks ? @"检测到\n内存泄漏" : (isException ? [NSString stringWithFormat:@"%@\n检测到异常", appItem.appName] : @"检测到\n崩溃信息") outputType:ZHDPOutputType_Error clickBlock:^{
                     [weakDebugPanel.option selectListClass:listClass];
                 }];
             }

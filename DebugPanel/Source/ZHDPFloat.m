@@ -80,25 +80,25 @@
 - (NSString *)animateKey{
     return @"backgroundColor";
 }
-- (void)showTip:(NSString *)title outputType:(ZHDPOutputType)outputType clickBlock:(void (^) (void))clickBlock{
+- (void)showTip:(NSString *)title animateCount:(float)animateCount outputType:(ZHDPOutputType)outputType clickBlock:(void (^) (void))clickBlock{
     self.clickErrorBlock = [clickBlock copy];
     NSString *errorDesc = [NSString stringWithFormat:@"%@", title];
     self.titleLabel.text = errorDesc;
     if (self.animating) return;
     self.animating = YES;
 
-    [self startAnimation:outputType];
+    [self startAnimation:outputType animateCount:animateCount];
 }
 
 #pragma mark - animation
 
-- (void)startAnimation:(ZHDPOutputType)outputType{
+- (void)startAnimation:(ZHDPOutputType)outputType animateCount:(float)animateCount{
     NSString *colorStr = [ZHDPOutputItem colorStrByType:outputType];
     UIColor *errorColor = colorStr ? [ZHDPMg() zhdp_colorFromHexString:colorStr] : [UIColor redColor];
     
     CAKeyframeAnimation *animate = [CAKeyframeAnimation animationWithKeyPath:[self animateKey]];
     animate.values = @[(id)[UIColor clearColor].CGColor, (id)errorColor.CGColor, (id)[UIColor clearColor].CGColor];
-    animate.repeatCount = 4;
+    animate.repeatCount = animateCount;
     animate.removedOnCompletion = YES;
     animate.fillMode = kCAFillModeRemoved;
     animate.duration = 0.5;

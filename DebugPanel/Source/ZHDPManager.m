@@ -86,6 +86,26 @@ void ZHDPUncaughtExceptionHandler(NSException *exception){
     NSString *folder = [self crash_createDir_unreport];
     NSString *file = [folder stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.json", fileName]];
     [crashStr writeToFile:file atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    
+    return;
+    // 弹窗提示
+    __block BOOL isKeepRun = YES;
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"发生崩溃" message:crashStr preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction *action = [UIAlertAction actionWithTitle:@"复制并退出" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
+        isKeepRun = NO;
+    }];
+    [alert addAction:action];
+    [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
+    
+    // 保持程序运行
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    CFArrayRef allModes = CFRunLoopCopyAllModes(runLoop);
+    while (isKeepRun) {
+        for (NSString *mode in (__bridge NSArray *)allModes) {
+            CFRunLoopRunInMode((CFStringRef)mode, 0.0001, false);
+        }
+    }
+    CFRelease(runLoop);
 }
 - (NSArray *)crash_fetchLastFiles{
     if (ZHDPMg().status != ZHDPManagerStatus_Open) {
@@ -167,6 +187,7 @@ void ZHDPUncaughtExceptionHandler(NSException *exception){
         }
         
         NSString *targetFile = [folder stringByAppendingPathComponent:file.lastPathComponent];
+        [fm removeItemAtPath:targetFile error:nil];
         [fm moveItemAtPath:file toPath:targetFile error:nil];
     }
 }
@@ -1096,14 +1117,14 @@ var %@ = function (fw_args) { \
             }else{
                 if (isException || isLeaks || isCrash) {
                     // 弹窗提示
-                    [self showToast:isLeaks ? @"检测到内存泄漏\n点击查看" : (isException ? [NSString stringWithFormat:@"%@\n检测到异常, 点击查看", appItem.appName] : @"检测到崩溃信息\n点击查看") outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:1.5 clickBlock:^{
+                    [self showToast:isLeaks ? @"检测到内存泄漏\n点击查看" : (isException ? [NSString stringWithFormat:@"%@\n检测到异常, 点击查看", appItem.appName] : @"检测到崩溃信息\n点击查看") outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:(isCrash ? 5 : 1.5) clickBlock:^{
                         [weakDebugPanel.option selectListClass:listClass];
                     } showComplete:nil hideComplete:nil];
                 }
             }
         }else if (status == ZHDebugPanelStatus_Hide || status == ZHDebugPanelStatus_Unknown){
             if (isException || isLeaks || isCrash) {
-                [self.window.floatView showTip:isLeaks ? @"检测到\n内存泄漏" : (isException ? [NSString stringWithFormat:@"%@\n检测到异常", appItem.appName] : @"检测到\n崩溃信息") outputType:ZHDPOutputType_Error clickBlock:^{
+                [self.window.floatView showTip:isLeaks ? @"检测到\n内存泄漏" : (isException ? [NSString stringWithFormat:@"%@\n检测到异常", appItem.appName] : @"检测到\n崩溃信息") animateCount:(isCrash ? 20 : 5) outputType:ZHDPOutputType_Error clickBlock:^{
                     [weakDebugPanel.option selectListClass:listClass];
                 }];
             }
@@ -2158,14 +2179,12 @@ static id _instance;
     dispatch_async(dispatch_get_main_queue(), ^{
         if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
         
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            NSArray *crashs = [self crash_fetchLastFiles];
-            NSArray *crashContents = [self crash_read:crashs];
-            [self crash_move:crashs];
-            for (NSDictionary *item in crashContents) {
-                [self zh_test_addCrashSafe:ZHDPOutputType_Error crash:item];
-            }
-        });
+        NSArray *crashs = [self crash_fetchLastFiles];
+        NSArray *crashContents = [self crash_read:crashs];
+        [self crash_move:crashs];
+        for (NSDictionary *item in crashContents) {
+            [self zh_test_addCrashSafe:ZHDPOutputType_Error crash:item];
+        }
     });
 }
 - (void)zh_test_addCrashSafe:(ZHDPOutputType)colorType crash:(NSDictionary *)crash{

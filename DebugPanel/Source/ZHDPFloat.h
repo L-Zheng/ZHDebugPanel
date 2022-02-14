@@ -16,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic,copy) void (^doubleTapBlock) (void);
 
 - (void)updateTitle:(NSString *)title;
-- (void)showTip:(NSString *)title outputType:(ZHDPOutputType)outputType clickBlock:(void (^) (void))clickBlock;
+- (void)showTip:(NSString *)title animateCount:(float)animateCount outputType:(ZHDPOutputType)outputType clickBlock:(void (^) (void))clickBlock;
 @property (nonatomic,copy) void (^ __nullable clickErrorBlock) (void);
 
 - (void)stopAnimation;

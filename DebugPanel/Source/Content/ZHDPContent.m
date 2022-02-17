@@ -76,7 +76,7 @@
     };
     return list;
 }
-- (void)selectList:(ZHDPList *)list{
+- (void)selectList:(ZHDPList *)list belowSubview:(UIView *)belowSubview{
     if (!list || [self.selectList isEqual:list]) return;
     
     ZHDPList *originList = self.selectList;
@@ -91,7 +91,11 @@
     self.selectList = list;
     
     [originList removeFromSuperview];
-    [self addSubview:self.selectList];
+    if (belowSubview) {
+        [self insertSubview:self.selectList belowSubview:belowSubview];
+    }else{
+        [self addSubview:self.selectList];
+    }
     self.selectList.frame = self.bounds;
 }
 @end

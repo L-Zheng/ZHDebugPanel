@@ -14,6 +14,7 @@
 #import "ZHDPDataTask.h"// 数据管理
 
 @interface ZHDebugPanel ()
+@property (nonatomic,strong) ZHDPOptionExpan *optionExpan;
 @end
 
 @implementation ZHDebugPanel
@@ -38,6 +39,8 @@
     CGFloat contentY = CGRectGetMaxY(self.option.frame);
     CGFloat contentH = self.bounds.size.height - contentY - marginBottom;
     self.content.frame = CGRectMake(0, contentY, self.bounds.size.width, contentH);
+    
+    self.optionExpan.frame = self.content.bounds;
 }
 - (void)willMoveToSuperview:(UIView *)newSuperview{
     [super willMoveToSuperview:newSuperview];
@@ -107,6 +110,15 @@
     [self.option reloadCollectionViewFrequently];
 }
 
+#pragma mark - optionExpan
+
+- (void)showOptionExpan:(NSArray *)items{
+    [self.optionExpan showOptionExpan:self.content items:items];
+}
+- (void)hideOptionExpan{
+    [self.optionExpan hideOptionExpan];
+}
+
 #pragma mark - getter
 
 - (ZHDPOption *)option{
@@ -114,11 +126,22 @@
         _option = [[ZHDPOption alloc] initWithFrame:CGRectZero];
         __weak __typeof__(self) weakSelf = self;
         _option.selectBlock = ^(NSIndexPath *indexPath, ZHDPOptionItem *item) {
-            [weakSelf.content selectList:item.list];
+            [weakSelf.content selectList:item.list belowSubview:weakSelf.optionExpan.superview ? weakSelf.optionExpan : nil];
         };
         _option.debugPanel = self;
     }
     return _option;
+}
+- (ZHDPOptionExpan *)optionExpan{
+    if (!_optionExpan) {
+        _optionExpan = [[ZHDPOptionExpan alloc] initWithFrame:CGRectZero];
+        __weak __typeof__(self) weakSelf = self;
+        _optionExpan.selectBlock = ^(NSIndexPath *indexPath, ZHDPOptionItem *item) {
+            [weakSelf.option selectIndexPath:indexPath];
+        };
+        _optionExpan.debugPanel = self;
+    }
+    return _optionExpan;
 }
 - (ZHDPContent *)content{
     if (!_content) {

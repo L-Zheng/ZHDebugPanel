@@ -15,7 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface ZHDPContent : ZHDPComponent
 - (NSArray <ZHDPList *> *)fetchAllLists;
 @property (nonatomic, strong) ZHDPList *selectList;
-- (void)selectList:(ZHDPList *)list;
+- (void)selectList:(ZHDPList *)list belowSubview:(UIView *)belowSubview;
 @property (nonatomic,copy) void (^reloadListBlock) (ZHDPList *list, NSArray <ZHDPListSecItem *> * items);
 @end
 

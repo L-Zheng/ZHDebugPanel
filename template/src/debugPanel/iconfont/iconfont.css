@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 2579082 */
-  src: url('iconfont.woff2?t=1642678653809') format('woff2'),
-       url('iconfont.woff?t=1642678653809') format('woff'),
-       url('iconfont.ttf?t=1642678653809') format('truetype');
+  src: url('iconfont.woff2?t=1645094617276') format('woff2'),
+       url('iconfont.woff?t=1645094617276') format('woff'),
+       url('iconfont.ttf?t=1645094617276') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,14 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-xialacaidan:before {
+  content: "\e600";
+}
+
+.icon-xialacaidan-copy:before {
+  content: "\eb6b";
 }
 
 .icon-zuidazhi:before {

@@ -6,6 +6,20 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "15738459",
+      "name": "下拉菜单",
+      "font_class": "xialacaidan",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "27683676",
+      "name": "下拉菜单",
+      "font_class": "xialacaidan-copy",
+      "unicode": "eb6b",
+      "unicode_decimal": 60267
+    },
+    {
       "icon_id": "20340304",
       "name": "最大值",
       "font_class": "zuidazhi",

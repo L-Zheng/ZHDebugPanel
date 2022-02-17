@@ -21,4 +21,7 @@ typedef NS_ENUM(NSInteger, ZHDebugPanelStatus) {
 
 @property (nonatomic,strong) ZHDPOption *option;
 @property (nonatomic,strong) ZHDPContent *content;
+
+- (void)showOptionExpan:(NSArray *)items;
+- (void)hideOptionExpan;
 @end

@@ -22,6 +22,12 @@
 - (void)configItem:(ZHDPOptionItem *)item;
 @end
 
+@interface ZHDPOptionExpan : ZHDPComponent
+@property (nonatomic,copy) void (^selectBlock) (NSIndexPath *indexPath, ZHDPOptionItem *item);
+- (void)showOptionExpan:(UIView *)inView items:(NSArray <ZHDPOptionItem *> *)items;
+- (void)hideOptionExpan;
+@end
+
 @interface ZHDPOption : ZHDPComponent
 @property (nonatomic,copy) void (^selectBlock) (NSIndexPath *indexPath, ZHDPOptionItem *item);
 
@@ -31,4 +37,6 @@
 - (void)reloadCollectionViewFrequently;
 - (void)selectIndexPath:(NSIndexPath *)indexPath;
 - (void)selectListClass:(Class)listClass;
+
+- (void)hideOptionExpan;
 @end

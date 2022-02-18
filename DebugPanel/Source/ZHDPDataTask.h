@@ -113,6 +113,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @interface ZHDPDataSpaceItem : NSObject
 @property (nonatomic,assign) NSInteger count;
 @property (nonatomic,assign) CGFloat removePercent;
+@property (nonatomic,copy) NSString *storeKey;
 @end
 
 // 某个应用的简要信息

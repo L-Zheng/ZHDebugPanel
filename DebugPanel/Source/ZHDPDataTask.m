@@ -7,6 +7,7 @@
 //
 
 #import "ZHDPDataTask.h"
+#import "ZHDPStorageManager.h"
 
 // list操作栏数据
 @implementation ZHDPListToolItem
@@ -155,14 +156,13 @@
 // 数据管理
 @implementation ZHDPDataTask
 - (NSArray *)spaceItems{
-    NSArray *titles = @[@"Log", @"Network", @"Storage", @"Leaks", @"Crash"];
     NSArray <ZHDPDataSpaceItem *> *spaces = @[self.logSpaceItem, self.networkSpaceItem, self.storageSpaceItem, self.leaksSpaceItem, self.crashSpaceItem];
     
     NSMutableArray *res = [NSMutableArray array];
-    for (NSUInteger i = 0; i < titles.count; i++) {
+    for (NSUInteger i = 0; i < spaces.count; i++) {
         ZHDPListSpaceItem *spaceItem = [[ZHDPListSpaceItem alloc] init];
-        spaceItem.title = titles[i];
         spaceItem.dataSpaceItem = spaces[i];
+        spaceItem.title = spaceItem.dataSpaceItem.storeKey;
         spaceItem.count = spaceItem.dataSpaceItem.count;
         
         NSMutableArray *canSelectValues = [NSMutableArray array];
@@ -175,6 +175,7 @@
         spaceItem.canSelectValues = canSelectValues.copy;
         __weak __typeof__(spaceItem) weakSpaceItem = spaceItem;
         spaceItem.block = ^(NSInteger count) {
+            [ZHDPStorageMg() updateConfig_max:weakSpaceItem.dataSpaceItem.storeKey count:count];
             weakSpaceItem.dataSpaceItem.count = count;
         };
         [res addObject:spaceItem];
@@ -183,38 +184,40 @@
 }
 - (ZHDPDataSpaceItem *)logSpaceItem{
     if (!_logSpaceItem) {
-        _logSpaceItem = [self createSpaceItem:100 removePercent:0.5];
+        _logSpaceItem = [self createSpaceItem:@"Log" defaultCount:100 removePercent:0.5];
     }
     return _logSpaceItem;
 }
 - (ZHDPDataSpaceItem *)networkSpaceItem{
     if (!_networkSpaceItem) {
-        _networkSpaceItem = [self createSpaceItem:100 removePercent:0.5];
+        _networkSpaceItem = [self createSpaceItem:@"Network" defaultCount:100 removePercent:0.5];
     }
     return _networkSpaceItem;
 }
 - (ZHDPDataSpaceItem *)storageSpaceItem{
     if (!_storageSpaceItem) {
-        _storageSpaceItem = [self createSpaceItem:100 removePercent:0.5];
+        _storageSpaceItem = [self createSpaceItem:@"Storage" defaultCount:100 removePercent:0.5];
     }
     return _storageSpaceItem;
 }
 - (ZHDPDataSpaceItem *)leaksSpaceItem{
     if (!_leaksSpaceItem) {
-        _leaksSpaceItem = [self createSpaceItem:100 removePercent:0.5];
+        _leaksSpaceItem = [self createSpaceItem:@"Leaks" defaultCount:100 removePercent:0.5];
     }
     return _leaksSpaceItem;
 }
 - (ZHDPDataSpaceItem *)crashSpaceItem{
     if (!_crashSpaceItem) {
-        _crashSpaceItem = [self createSpaceItem:20 removePercent:0.5];
+        _crashSpaceItem = [self createSpaceItem:@"Crash" defaultCount:20 removePercent:0.5];
     }
     return _crashSpaceItem;
 }
-- (ZHDPDataSpaceItem *)createSpaceItem:(NSUInteger)count removePercent:(CGFloat)removePercent{
+- (ZHDPDataSpaceItem *)createSpaceItem:(NSString *)storeKey defaultCount:(NSInteger)defaultCount removePercent:(CGFloat)removePercent{
+    NSNumber *countNum = [ZHDPStorageMg() fetchConfig_max:storeKey];
     ZHDPDataSpaceItem *item = [[ZHDPDataSpaceItem alloc] init];
-    item.count = (count > 0 ? count : 20);
+    item.count = (countNum ? countNum.integerValue : defaultCount);
     item.removePercent = (removePercent <= 0 ? 0.5 : (removePercent >= 1.0 ? 1.0 : removePercent));
+    item.storeKey = storeKey;
     return item;
 }
 

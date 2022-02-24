@@ -13,6 +13,7 @@
 #import "ZHDPListStorage.h"// storage列表
 #import "ZHDPListLeaks.h"// leaks列表
 #import "ZHDPListCrash.h"// crash列表
+#import "ZHDPListMemoryWarning.h"// 内存警告列表
 
 @interface ZHDPContent ()
 @property (nonatomic, retain) NSArray *allList;
@@ -56,6 +57,7 @@
         @[ZHDPListStorage.class, @"Storage"],
         @[ZHDPListLeaks.class, @"Leaks"],
         @[ZHDPListCrash.class, @"Crash"],
+        @[ZHDPListMemoryWarning.class, @"MemoryWarning"]
     ];
     NSMutableArray *res = [NSMutableArray array];
     for (NSArray *temp in arr) {

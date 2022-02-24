@@ -244,7 +244,7 @@ static void zhdp_new_URLSession_task_willPerformHTTPRedirection_newRequest(id se
     [(ZHDPNetworkTaskProtocol *)networkP collect_URLSession:session task:task willPerformHTTPRedirection:response newRequest:request completionHandler:completionHandler];
 }
 
-#pragma mark - leaks controller
+#pragma mark - controller leaks
 
 static void (* zhdp_ori_dismissViewControllerAnimated_completion) (id, SEL, BOOL, void (^)(void));
 static void zhdp_new_dismissViewControllerAnimated_completion(id self, SEL _cmd, BOOL flag, void (^completion)(void)){
@@ -330,6 +330,20 @@ static void zhdp_new_controller_viewDidAppear(id self, SEL _cmd, BOOL animated){
     }
 }
 
+#pragma mark - controller memoryWarning
+
+// 监听的UIViewController的类 继承自UIViewController的子类必须调用 [super didReceiveMemoryWarning]
+static void (* zhdp_ori_controller_didReceiveMemoryWarning) (id, SEL);
+static void zhdp_new_controller_didReceiveMemoryWarning(id self, SEL _cmd){
+    if (zhdp_ori_controller_didReceiveMemoryWarning) {
+        zhdp_ori_controller_didReceiveMemoryWarning(self, _cmd);
+        
+        if (ZHDPMg().status == ZHDPManagerStatus_Open) {
+            [ZHDPMg() zh_test_addMemoryWarning:self params:nil];
+        }
+    }
+}
+
 #pragma mark - NetworkTaskProtocol
 
 @interface ZHDPNetworkTaskProtocol ()<NSURLConnectionDelegate, NSURLConnectionDataDelegate, NSURLSessionDelegate, NSURLSessionTaskDelegate>
@@ -371,6 +385,12 @@ static void zhdp_new_controller_viewDidAppear(id self, SEL _cmd, BOOL animated){
         zhdp_replaceMethod(
                            @selector(viewDidAppear:),
                            (IMP)zhdp_new_controller_viewDidAppear,
+                           cls,
+                           NO);
+        zhdp_ori_controller_didReceiveMemoryWarning = (void (*) (id, SEL))
+        zhdp_replaceMethod(
+                           @selector(didReceiveMemoryWarning),
+                           (IMP)zhdp_new_controller_didReceiveMemoryWarning,
                            cls,
                            NO);
         

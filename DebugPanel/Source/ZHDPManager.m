@@ -15,6 +15,7 @@
 #import "ZHDPListStorage.h"// storage列表
 #import "ZHDPListLeaks.h"// leaks列表
 #import "ZHDPListCrash.h"// crash列表
+#import "ZHDPListMemoryWarning.h"// 内存警告列表
 #import "ZHDPToast.h"//弹窗
 #import "UIViewController+ZHDPLeak.h"// 内存泄露监听
 
@@ -209,6 +210,26 @@ void ZHDPUncaughtExceptionHandler(NSException *exception){
     return folder;
 }
 
+#pragma mark - MemoryWarning
+
+- (void)addNoti_memoryWarning{
+    [self removeNoti_memoryWarning];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appReceiveMemoryWarning:) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+}
+- (void)removeNoti_memoryWarning{
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+}
+- (void)appReceiveMemoryWarning:(NSNotification *)noti{
+    NSMutableDictionary *res = [NSMutableDictionary dictionary];
+    if (noti.object) {
+        [res setValue:[noti.object description]?:@"" forKey:@"object"];
+    }
+    if (noti.userInfo.allKeys.count > 0) {
+        [res setValue:noti.userInfo forKey:@"userInfo"];
+    }
+    [self zh_test_addMemoryWarning:nil params:res.copy];
+}
+
 #pragma mark - basic
 
 - (CGFloat)basicW{
@@ -267,6 +288,7 @@ void ZHDPUncaughtExceptionHandler(NSException *exception){
     self.status = ZHDPManagerStatus_Open;
     [self startMonitorMpLog];
     [[self createNetworkTask] interceptNetwork];
+    [self addNoti_memoryWarning];
     
     if ([self fetchKeyWindow]) {
         [self openInternal];
@@ -296,6 +318,7 @@ void ZHDPUncaughtExceptionHandler(NSException *exception){
     [self removeTimer];
     [self stopMonitorMpLog];
     [[self fetchNetworkTask] cancelNetwork];
+    [self removeNoti_memoryWarning];
     
     if (!_weakWindow) return;
     self.window.hidden = YES;
@@ -1054,6 +1077,17 @@ var %@ = function (fw_args) { \
                 sendSocketKey: ^NSString *(void){
                     return @"crash-list";
                 }
+        },
+        NSStringFromClass(ZHDPListMemoryWarning.class): @{
+                itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
+                    return appDataItem.memoryWarningItems;
+                },
+                spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
+                    return weakSelf.dataTask.memoryWarningSpaceItem;
+                },
+                sendSocketKey: ^NSString *(void){
+                    return @"memoryWarning-list";
+                }
         }
     };
 }
@@ -1109,22 +1143,52 @@ var %@ = function (fw_args) { \
         BOOL isException = NO;
         BOOL isLeaks = [listClass isEqual:ZHDPListLeaks.class];
         BOOL isCrash = [listClass isEqual:ZHDPListCrash.class];
+        BOOL isMemoryWarning = [listClass isEqual:ZHDPListMemoryWarning.class];
+        BOOL isReport = (isException || isLeaks || isCrash || isMemoryWarning);
         
         if (status == ZHDebugPanelStatus_Show) {
             ZHDPList *list = debugPanel.content.selectList;
             if ([list isKindOfClass:listClass]) {
                 [list addSecItem:secItem spaceItem:spaceBlock(appDataItem)];
             }else{
-                if (isException || isLeaks || isCrash) {
+                if (isReport) {
+                    NSString *desc = nil;
+                    NSTimeInterval duration = 1.5;
+                    ZHDPOutputType reportType = ZHDPOutputType_Error;
+                    if (isLeaks) {
+                        desc = @"检测到内存泄漏\n点击查看";
+                    }else if (isException){
+                        desc = [NSString stringWithFormat:@"%@\n检测到异常, 点击查看", appItem.appName];
+                    }else if (isCrash){
+                        desc = @"检测到崩溃信息\n点击查看";
+                        duration = 5.0;
+                    }else if (isMemoryWarning){
+                        desc = @"检测到内存警告\n点击查看";
+                        reportType = ZHDPOutputType_Warning;
+                    }
                     // 弹窗提示
-                    [self showToast:isLeaks ? @"检测到内存泄漏\n点击查看" : (isException ? [NSString stringWithFormat:@"%@\n检测到异常, 点击查看", appItem.appName] : @"检测到崩溃信息\n点击查看") outputType:ZHDPOutputType_Error animateDuration:0.25 stayDuration:(isCrash ? 5 : 1.5) clickBlock:^{
+                    [self showToast:desc outputType:reportType animateDuration:0.25 stayDuration:duration clickBlock:^{
                         [weakDebugPanel.option selectListClass:listClass];
                     } showComplete:nil hideComplete:nil];
                 }
             }
         }else if (status == ZHDebugPanelStatus_Hide || status == ZHDebugPanelStatus_Unknown){
-            if (isException || isLeaks || isCrash) {
-                [self.window.floatView showTip:isLeaks ? @"检测到\n内存泄漏" : (isException ? [NSString stringWithFormat:@"%@\n检测到异常", appItem.appName] : @"检测到\n崩溃信息") animateCount:(isCrash ? 20 : 5) outputType:ZHDPOutputType_Error clickBlock:^{
+            if (isReport) {
+                NSString *desc = nil;
+                NSTimeInterval aniCount = 5;
+                ZHDPOutputType reportType = ZHDPOutputType_Error;
+                if (isLeaks) {
+                    desc = @"检测到\n内存泄漏";
+                }else if (isException){
+                    desc = [NSString stringWithFormat:@"%@\n检测到异常", appItem.appName];
+                }else if (isCrash){
+                    desc = @"检测到\n崩溃信息";
+                    aniCount = 20.0;
+                }else if (isMemoryWarning){
+                    desc = @"检测到\n内存警告";
+                    reportType = ZHDPOutputType_Warning;
+                }
+                [self.window.floatView showTip:desc animateCount:aniCount outputType:reportType clickBlock:^{
                     [weakDebugPanel.option selectListClass:listClass];
                 }];
             }
@@ -2274,6 +2338,104 @@ static id _instance;
     [self addSecItemToList:ZHDPListCrash.class appItem:appItem secItem:secItem];
     // 发送socket
     [self sendSocketClientSecItemToList:ZHDPListCrash.class appItem:appItem secItem:secItem colorType:colorType];
+}
+
+- (void)zh_test_addMemoryWarning:(UIViewController *)controller params:(NSDictionary *)params{
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (ZHDPMg().status != ZHDPManagerStatus_Open) return;
+        [self zh_test_addMemoryWarningSafe:ZHDPOutputType_Warning controller:controller params:params];
+    });
+}
+- (void)zh_test_addMemoryWarningSafe:(ZHDPOutputType)colorType controller:(UIViewController *)controller params:(NSDictionary *)params{
+    ZHDPManager *dpMg = ZHDPMg();
+    
+    if (ZHDPMg().status != ZHDPManagerStatus_Open) {
+        return;
+    }
+    NSMutableDictionary *resParams = [NSMutableDictionary dictionary];
+    if (params && [params isKindOfClass:NSDictionary.class]) {
+        [resParams addEntriesFromDictionary:params];
+    }
+    
+    NSDictionary *ctrlPrams = nil;
+    if (controller) {
+        ctrlPrams = @{
+            @"controller": [controller description]?:@""
+        };
+    }
+    if (ctrlPrams && [ctrlPrams isKindOfClass:NSDictionary.class]) {
+        [resParams addEntriesFromDictionary:ctrlPrams];
+    }
+    
+    // 哪个应用的数据
+    ZHDPAppItem *appItem = [[ZHDPAppItem alloc] init];
+    appItem.appId = @"App";
+    appItem.appName = @"App";
+        
+    // 此条日志的过滤信息
+    ZHDPFilterItem *filterItem = [[ZHDPFilterItem alloc] init];
+    filterItem.appItem = appItem;
+    filterItem.page = nil;
+    ZHDPOutputItem *outputItem = [[ZHDPOutputItem alloc] init];
+    outputItem.type = colorType;
+    filterItem.outputItem = outputItem;
+    
+    // 内容
+    NSArray *args = @[[self parseNativeObjToString:resParams.copy]?:@""];
+    NSInteger count = args.count;
+    CGFloat datePercent = [dpMg dateW] / [dpMg basicW];
+    CGFloat freeW = ([dpMg basicW] - [dpMg dateW]) * 1.0 / (count * 1.0);
+    CGFloat otherPercent = freeW / [dpMg basicW];
+    
+    // 每一行中的各个分段数据
+    NSMutableArray <ZHDPListColItem *> *colItems = [NSMutableArray array];
+    NSMutableArray <ZHDPListDetailItem *> *detailItems = [NSMutableArray array];
+    
+    // 添加时间
+    CGFloat X = 0;
+    NSString *dateStr = [[dpMg dateFormat] stringFromDate:[NSDate date]];
+    ZHDPListColItem *colItem = [self createColItem:dateStr percent:datePercent X:X colorType:colorType];
+    [colItems addObject:colItem];
+    X += colItem.rectValue.CGRectValue.size.width;
+        
+    for (NSUInteger i = 0; i < count; i++) {
+        NSString *title = args[i];
+        NSString *detail = [self parseNativeObjToString:title];
+        // 添加参数
+        colItem = [self createColItem:detail percent:otherPercent X:X colorType:colorType];
+        [colItems addObject:colItem];
+        X += colItem.rectValue.CGRectValue.size.width;
+    }
+    
+    // 弹窗详情数据
+    ZHDPListDetailItem *item = [self createDetailItem:@"简要" keys:@[@"警告信息:"] values:args];
+    [detailItems addObject:item];
+        
+    // 每一组中的每行数据
+    ZHDPListRowItem *rowItem = [[ZHDPListRowItem alloc] init];
+    rowItem.colItems = colItems.copy;
+    
+    // 每一组数据
+    ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
+    secItem.filterItem = filterItem;
+    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
+    secItem.open = YES;
+    secItem.colItems = @[];
+    secItem.rowItems = @[rowItem];
+    secItem.detailItems = detailItems.copy;
+    secItem.pasteboardBlock = ^NSString *{
+        NSMutableString *str = [NSMutableString string];
+        [str appendFormat:@"%@\n", dateStr];
+        [str appendString:[self createDetailItemsString:detailItems]];
+        return str.copy;
+    };
+    
+    // 添加数据
+    [self addSecItemToList:ZHDPListMemoryWarning.class appItem:appItem secItem:secItem];
+    // 发送socket
+    [self sendSocketClientSecItemToList:ZHDPListMemoryWarning.class appItem:appItem secItem:secItem colorType:colorType];
 }
 @end
 

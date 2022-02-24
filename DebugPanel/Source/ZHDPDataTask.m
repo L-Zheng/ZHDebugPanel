@@ -150,13 +150,17 @@
     if (!_crashItems) _crashItems = [NSMutableArray array];
     return _crashItems;
 }
+- (NSMutableArray<ZHDPListSecItem *> *)memoryWarningItems{
+    if (!_memoryWarningItems) _memoryWarningItems = [NSMutableArray array];
+    return _memoryWarningItems;
+}
 @end
 
 
 // 数据管理
 @implementation ZHDPDataTask
 - (NSArray *)spaceItems{
-    NSArray <ZHDPDataSpaceItem *> *spaces = @[self.logSpaceItem, self.networkSpaceItem, self.storageSpaceItem, self.leaksSpaceItem, self.crashSpaceItem];
+    NSArray <ZHDPDataSpaceItem *> *spaces = @[self.logSpaceItem, self.networkSpaceItem, self.storageSpaceItem, self.leaksSpaceItem, self.crashSpaceItem, self.memoryWarningSpaceItem];
     
     NSMutableArray *res = [NSMutableArray array];
     for (NSUInteger i = 0; i < spaces.count; i++) {
@@ -211,6 +215,12 @@
         _crashSpaceItem = [self createSpaceItem:@"Crash" defaultCount:20 removePercent:0.5];
     }
     return _crashSpaceItem;
+}
+- (ZHDPDataSpaceItem *)memoryWarningSpaceItem{
+    if (!_memoryWarningSpaceItem) {
+        _memoryWarningSpaceItem = [self createSpaceItem:@"MemoryWarning" defaultCount:20 removePercent:0.5];
+    }
+    return _memoryWarningSpaceItem;
 }
 - (ZHDPDataSpaceItem *)createSpaceItem:(NSString *)storeKey defaultCount:(NSInteger)defaultCount removePercent:(CGFloat)removePercent{
     NSNumber *countNum = [ZHDPStorageMg() fetchConfig_max:storeKey];

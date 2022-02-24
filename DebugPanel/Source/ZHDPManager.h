@@ -151,6 +151,8 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (void)zh_test_deleteStorageStore:(NSArray <ZHDPListSecItem *> *)secItems;
 - (void)zh_test_deleteStorageStoreByData:(NSArray *)secItemsData;
 
+- (void)zh_test_addMemoryWarning:(UIViewController *)controller params:(NSDictionary *)params;
+
 @end
 
 __attribute__((unused)) static ZHDPManager * ZHDPMg() {

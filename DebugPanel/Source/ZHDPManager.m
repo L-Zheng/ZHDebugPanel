@@ -1107,9 +1107,11 @@ var %@ = function (fw_args) { \
     }
     // 按照进入内存的时间 升序排列
     [res sortUsingComparator:^NSComparisonResult(ZHDPListSecItem *obj1, ZHDPListSecItem  *obj2) {
-        if (obj1.enterMemoryTime > obj2.enterMemoryTime) {
+        NSTimeInterval time1 = [obj1.enterMemoryDate timeIntervalSince1970];
+        NSTimeInterval time2 = [obj2.enterMemoryDate timeIntervalSince1970];
+        if (time1 > time2) {
             return NSOrderedDescending;
-        }else if (obj1.enterMemoryTime < obj2.enterMemoryTime){
+        }else if (time1 < time2){
             return NSOrderedAscending;
         }
         return NSOrderedSame;
@@ -1336,7 +1338,7 @@ var %@ = function (fw_args) { \
                                 @"desc": secItem.filterItem.outputItem.desc?:@""
                         }
                 },
-                @"enterMemoryTime": @(secItem.enterMemoryTime),
+                @"enterMemoryTime": @([secItem.enterMemoryDate timeIntervalSince1970]),
                 @"open": @(YES),
                 @"colItems": @[],
                 @"rowItems": rowItems.copy,
@@ -1780,7 +1782,7 @@ static id _instance;
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
     secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
+    secItem.enterMemoryDate = [NSDate date];
     secItem.open = YES;
     secItem.colItems = @[];
     secItem.rowItems = @[rowItem];
@@ -1986,7 +1988,7 @@ static id _instance;
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
     secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
+    secItem.enterMemoryDate = [NSDate date];
     secItem.open = YES;
     secItem.colItems = @[];
     secItem.rowItems = @[rowItem];
@@ -2092,7 +2094,7 @@ static id _instance;
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
     secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
+    secItem.enterMemoryDate = [NSDate date];
     secItem.open = YES;
     secItem.colItems = @[];
     secItem.rowItems = @[rowItem];
@@ -2219,7 +2221,7 @@ static id _instance;
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
     secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
+    secItem.enterMemoryDate = [NSDate date];
     secItem.open = YES;
     secItem.colItems = @[];
     secItem.rowItems = @[rowItem];
@@ -2322,7 +2324,7 @@ static id _instance;
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
     secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
+    secItem.enterMemoryDate = [NSDate date];
     secItem.open = YES;
     secItem.colItems = @[];
     secItem.rowItems = @[rowItem];
@@ -2420,7 +2422,7 @@ static id _instance;
     // 每一组数据
     ZHDPListSecItem *secItem = [[ZHDPListSecItem alloc] init];
     secItem.filterItem = filterItem;
-    secItem.enterMemoryTime = [[NSDate date] timeIntervalSince1970];
+    secItem.enterMemoryDate = [NSDate date];
     secItem.open = YES;
     secItem.colItems = @[];
     secItem.rowItems = @[rowItem];

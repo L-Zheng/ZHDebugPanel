@@ -98,7 +98,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @property (nonatomic,weak) ZHDPAppDataItem *appDataItem;
 @property (nonatomic,strong) ZHDPFilterItem *filterItem;
 
-@property (nonatomic,assign) NSTimeInterval enterMemoryTime;
+@property (nonatomic,strong) NSDate *enterMemoryDate;
 @property (nonatomic,assign,getter=isOpen) BOOL open;
 @property (nonatomic,retain) NSArray <ZHDPListColItem *> *colItems;
 @property (nonatomic,assign) CGFloat headerH;

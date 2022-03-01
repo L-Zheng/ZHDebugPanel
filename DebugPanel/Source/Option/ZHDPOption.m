@@ -54,7 +54,7 @@
     self.label.text = [NSString stringWithFormat:@"%@", item.showTitle];
     self.label.font = item.font;
     self.label.textColor = item.isSelected ? [ZHDPMg() selectColor] : [ZHDPMg() defaultColor];
-    self.label.backgroundColor = item.isSelected ? [UIColor colorWithRed:12.0/255.0 green:200.0/255.0 blue:46.0/255.0 alpha:0.05] : [ZHDPMg() bgColor];
+    self.label.backgroundColor = item.isSelected ? [[ZHDPMg() selectColor] colorWithAlphaComponent:0.05] : [ZHDPMg() bgColor];
 }
 - (void)configLine:(BOOL)hide{
     self.line.hidden = hide;

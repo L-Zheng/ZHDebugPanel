@@ -6,6 +6,27 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "1304882",
+      "name": "开关",
+      "font_class": "kaiguan",
+      "unicode": "e621",
+      "unicode_decimal": 58913
+    },
+    {
+      "icon_id": "1365379",
+      "name": "统计",
+      "font_class": "tongji",
+      "unicode": "e688",
+      "unicode_decimal": 59016
+    },
+    {
+      "icon_id": "6326748",
+      "name": "重置",
+      "font_class": "zhongzhi",
+      "unicode": "e627",
+      "unicode_decimal": 58919
+    },
+    {
       "icon_id": "15738459",
       "name": "下拉菜单",
       "font_class": "xialacaidan",

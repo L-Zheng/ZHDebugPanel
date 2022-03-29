@@ -114,6 +114,7 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @property (nonatomic,assign) NSInteger count;
 @property (nonatomic,assign) CGFloat removePercent;
 @property (nonatomic,copy) NSString *storeKey;
+@property (nonatomic,copy) NSString *title;
 @end
 
 // 某个应用的简要信息
@@ -137,13 +138,8 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @interface ZHDPAppDataItem : NSObject
 @property (nonatomic,strong) ZHDPAppItem *appItem;
 
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *logItems;
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *networkItems;
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *storageItems;
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *leaksItems;
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *crashItems;
-@property (nonatomic,retain) NSMutableArray <ZHDPListSecItem *> *memoryWarningItems;
-
+@property (nonatomic,strong) NSDictionary *dataItemsMap;
+- (NSMutableArray *)fetchDataItems:(Class)cls;
 @end
 
 
@@ -153,13 +149,9 @@ typedef NS_ENUM(NSInteger, ZHDPOutputType) {
 @property (nonatomic,weak) ZHDPManager *dpManager;
 @property (nonatomic,strong) NSMutableDictionary *appDataMap;
 
-- (NSArray *)spaceItems;
-@property (nonatomic,strong) ZHDPDataSpaceItem *logSpaceItem;
-@property (nonatomic,strong) ZHDPDataSpaceItem *networkSpaceItem;
-@property (nonatomic,strong) ZHDPDataSpaceItem *storageSpaceItem;
-@property (nonatomic,strong) ZHDPDataSpaceItem *leaksSpaceItem;
-@property (nonatomic,strong) ZHDPDataSpaceItem *crashSpaceItem;
-@property (nonatomic,strong) ZHDPDataSpaceItem *memoryWarningSpaceItem;
+@property (nonatomic,strong) NSDictionary *spaceItemMap;
+- (ZHDPDataSpaceItem *)fetchSpaceItem:(Class)cls;
+- (NSArray <ZHDPDataSpaceItem *> *)fetchSpaceItems;
 
 // 查找所有应用的数据
 - (NSArray <ZHDPAppDataItem *> *)fetchAllAppDataItems;

@@ -18,6 +18,7 @@
 #import "ZHDPListMemoryWarning.h"// 内存警告列表
 #import "ZHDPToast.h"//弹窗
 #import "UIViewController+ZHDPLeak.h"// 内存泄露监听
+#import "ZHDPStorageManager.h"
 
 NSString * const ZHDPToastFundCliUnavailable = @"本地调试服务未连接\n%@不可用";
 
@@ -452,10 +453,38 @@ void ZHDPUncaughtExceptionHandler(NSException *exception){
 
 #pragma mark - getter
 
+- (NSArray *)fetchListConfig{
+    // 三方基金公司是否显示、类、标题、存储key、最大收集量、超过最大收集量时删除比例
+    return @[
+        @[@(1), ZHDPListLog.class, @"Console", @"Console", @(100), @(0.5)],
+        @[@(1), ZHDPListNetwork.class,@"Network", @"Network", @(100), @(0.5)],
+        @[@(1), ZHDPListStorage.class, @"Storage", @"Storage", @(100), @(0.5)],
+        @[@(1), ZHDPListLeaks.class, @"内存泄露", @"Leaks", @(50), @(0.5)],
+        @[@(1), ZHDPListCrash.class,@"崩溃", @"Crash", @(20), @(0.5)],
+        @[@(1), ZHDPListMemoryWarning.class, @"内存警告", @"MemoryWarning", @(20), @(0.5)]
+    ];
+}
 - (ZHDPDataTask *)dataTask{
     if (!_dataTask) {
         _dataTask = [[ZHDPDataTask alloc] init];
         _dataTask.dpManager = self;
+        
+        // 初始化最大收集量数据
+        NSMutableDictionary *spaceItemMap = [NSMutableDictionary dictionary];
+        NSArray *configs = [ZHDPMg() fetchListConfig];
+        for (NSArray *config in configs) {
+            NSString *storeKey = config[3];
+            NSNumber *countNum = [ZHDPStorageMg() fetchConfig_max:storeKey];
+
+            ZHDPDataSpaceItem *spaceItem = [[ZHDPDataSpaceItem alloc] init];
+            spaceItem.count = (countNum ? countNum.integerValue : [config[4] integerValue]);
+            spaceItem.removePercent = [config[5] floatValue];
+            spaceItem.storeKey = storeKey;
+            spaceItem.title = config[2];
+            
+            [spaceItemMap setObject:spaceItem forKey:config[1]];
+        }
+        _dataTask.spaceItemMap = spaceItemMap.copy;
     }
     return _dataTask;
 }
@@ -1025,10 +1054,10 @@ var %@ = function (fw_args) { \
     return @{
         NSStringFromClass(ZHDPListLog.class): @{
                 itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.logItems;
+                    return [appDataItem fetchDataItems:ZHDPListLog.class];
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return weakSelf.dataTask.logSpaceItem;
+                    return [weakSelf.dataTask fetchSpaceItem:ZHDPListLog.class];
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"log-list";
@@ -1036,10 +1065,10 @@ var %@ = function (fw_args) { \
         },
         NSStringFromClass(ZHDPListNetwork.class): @{
                 itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.networkItems;
+                    return [appDataItem fetchDataItems:ZHDPListNetwork.class];
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return weakSelf.dataTask.networkSpaceItem;
+                    return [weakSelf.dataTask fetchSpaceItem:ZHDPListNetwork.class];
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"network-list";
@@ -1047,10 +1076,10 @@ var %@ = function (fw_args) { \
         },
         NSStringFromClass(ZHDPListStorage.class): @{
                 itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.storageItems;
+                    return [appDataItem fetchDataItems:ZHDPListStorage.class];
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return weakSelf.dataTask.storageSpaceItem;
+                    return [weakSelf.dataTask fetchSpaceItem:ZHDPListStorage.class];
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"storage-list";
@@ -1058,10 +1087,10 @@ var %@ = function (fw_args) { \
         },
         NSStringFromClass(ZHDPListLeaks.class): @{
                 itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.leaksItems;
+                    return [appDataItem fetchDataItems:ZHDPListLeaks.class];
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return weakSelf.dataTask.leaksSpaceItem;
+                    return [weakSelf.dataTask fetchSpaceItem:ZHDPListLeaks.class];
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"leaks-list";
@@ -1069,10 +1098,10 @@ var %@ = function (fw_args) { \
         },
         NSStringFromClass(ZHDPListCrash.class): @{
                 itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.crashItems;
+                    return [appDataItem fetchDataItems:ZHDPListCrash.class];
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return weakSelf.dataTask.crashSpaceItem;
+                    return [weakSelf.dataTask fetchSpaceItem:ZHDPListCrash.class];
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"crash-list";
@@ -1080,10 +1109,10 @@ var %@ = function (fw_args) { \
         },
         NSStringFromClass(ZHDPListMemoryWarning.class): @{
                 itemsKey: ^NSMutableArray *(ZHDPAppDataItem *appDataItem){
-                    return appDataItem.memoryWarningItems;
+                    return [appDataItem fetchDataItems:ZHDPListMemoryWarning.class];
                 },
                 spaceKey: ^ZHDPDataSpaceItem *(ZHDPAppDataItem *appDataItem){
-                    return weakSelf.dataTask.memoryWarningSpaceItem;
+                    return [weakSelf.dataTask fetchSpaceItem:ZHDPListMemoryWarning.class];
                 },
                 sendSocketKey: ^NSString *(void){
                     return @"memoryWarning-list";
@@ -2016,7 +2045,7 @@ static id _instance;
     // 从全局数据管理中移除所有storage数据
     NSArray <ZHDPAppDataItem *> *appDataItems = [dpMg.dataTask fetchAllAppDataItems];
     for (ZHDPAppDataItem *appDataItem in appDataItems) {
-        [dpMg.dataTask cleanAllItems:appDataItem.storageItems];
+        [dpMg.dataTask cleanAllItems:[appDataItem fetchDataItems:ZHDPListStorage.class]];
     }
     
     // 读取storage数据

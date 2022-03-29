@@ -73,6 +73,10 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 - (void)switchFloat;
 - (void)switchDebugPanel;
 
+#pragma mark - list
+
+- (NSArray *)fetchListConfig;
+
 #pragma mark - font
 
 - (UIFont *)iconFontWithSize:(CGFloat)fontSize;

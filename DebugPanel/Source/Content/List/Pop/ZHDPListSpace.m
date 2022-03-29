@@ -8,6 +8,7 @@
 #import "ZHDPListSpace.h"
 #import "ZHDPManager.h"// 调试面板管理
 #import "ZHDPList.h"// 列表
+#import "ZHDPStorageManager.h"
 
 @interface ZHDPListSpace () <UITableViewDelegate, UITableViewDataSource, UIPickerViewDelegate, UIPickerViewDataSource>
 @property (nonatomic,strong) UILabel *topTipLabel;
@@ -139,7 +140,31 @@
 #pragma mark - data
 
 - (void)reloadSpaceItems{
-    self.items = [ZHDPMg().dataTask spaceItems];
+    NSArray <ZHDPDataSpaceItem *> *spaces = [ZHDPMg().dataTask fetchSpaceItems];
+    
+    NSMutableArray *res = [NSMutableArray array];
+    for (NSUInteger i = 0; i < spaces.count; i++) {
+        ZHDPListSpaceItem *spaceItem = [[ZHDPListSpaceItem alloc] init];
+        spaceItem.dataSpaceItem = spaces[i];
+        spaceItem.title = spaceItem.dataSpaceItem.title;
+        spaceItem.count = spaceItem.dataSpaceItem.count;
+        
+        NSMutableArray *canSelectValues = [NSMutableArray array];
+        for (NSInteger j = -10; j < 20; j++) {
+            NSInteger value = spaceItem.dataSpaceItem.count + j * 50;
+            if (value > 0) {
+                [canSelectValues addObject:@(value)];
+            }
+        }
+        spaceItem.canSelectValues = canSelectValues.copy;
+        __weak __typeof__(spaceItem) weakSpaceItem = spaceItem;
+        spaceItem.block = ^(NSInteger count) {
+            [ZHDPStorageMg() updateConfig_max:weakSpaceItem.dataSpaceItem.storeKey count:count];
+            weakSpaceItem.dataSpaceItem.count = count;
+        };
+        [res addObject:spaceItem];
+    }
+    self.items = res.copy;
     [self selectIdx:0];
 }
 

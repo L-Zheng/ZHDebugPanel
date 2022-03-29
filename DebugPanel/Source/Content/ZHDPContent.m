@@ -14,6 +14,7 @@
 #import "ZHDPListLeaks.h"// leaks列表
 #import "ZHDPListCrash.h"// crash列表
 #import "ZHDPListMemoryWarning.h"// 内存警告列表
+#import "ZHDPManager.h"
 
 @interface ZHDPContent ()
 @property (nonatomic, retain) NSArray *allList;
@@ -50,18 +51,12 @@
 
 - (NSArray <ZHDPList *> *)fetchAllLists{
     if (self.allList) return self.allList;
-    
-    NSArray *arr = @[
-        @[ZHDPListLog.class, @"Log"],
-        @[ZHDPListNetwork.class, @"Network"],
-        @[ZHDPListStorage.class, @"Storage"],
-        @[ZHDPListLeaks.class, @"Leaks"],
-        @[ZHDPListCrash.class, @"Crash"],
-        @[ZHDPListMemoryWarning.class, @"MemoryWarning"]
-    ];
     NSMutableArray *res = [NSMutableArray array];
-    for (NSArray *temp in arr) {
-        [res addObject:[self createList:temp[0] title:temp[1]]];
+    NSArray *configs = [ZHDPMg() fetchListConfig];
+    for (NSArray *config in configs) {
+        if ([config[0] boolValue]) {
+            [res addObject:[self createList:config[1] title:config[2]]];
+        }
     }
     self.allList = res.copy;
     return self.allList;

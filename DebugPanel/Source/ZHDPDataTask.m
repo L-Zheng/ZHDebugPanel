@@ -8,6 +8,7 @@
 
 #import "ZHDPDataTask.h"
 #import "ZHDPStorageManager.h"
+#import "ZHDPManager.h"
 
 // list操作栏数据
 @implementation ZHDPListToolItem
@@ -130,105 +131,19 @@
 
 // 单个应用的数据
 @implementation ZHDPAppDataItem
-- (NSMutableArray<ZHDPListSecItem *> *)logItems{
-    if (!_logItems) _logItems = [NSMutableArray array];
-    return _logItems;
-}
-- (NSMutableArray<ZHDPListSecItem *> *)networkItems{
-    if (!_networkItems) _networkItems = [NSMutableArray array];
-    return _networkItems;
-}
-- (NSMutableArray<ZHDPListSecItem *> *)storageItems{
-    if (!_storageItems) _storageItems = [NSMutableArray array];
-    return _storageItems;
-}
-- (NSMutableArray<ZHDPListSecItem *> *)leaksItems{
-    if (!_leaksItems) _leaksItems = [NSMutableArray array];
-    return _leaksItems;
-}
-- (NSMutableArray<ZHDPListSecItem *> *)crashItems{
-    if (!_crashItems) _crashItems = [NSMutableArray array];
-    return _crashItems;
-}
-- (NSMutableArray<ZHDPListSecItem *> *)memoryWarningItems{
-    if (!_memoryWarningItems) _memoryWarningItems = [NSMutableArray array];
-    return _memoryWarningItems;
+- (NSMutableArray *)fetchDataItems:(Class)cls{
+    return [self.dataItemsMap objectForKey:cls];
 }
 @end
 
 
 // 数据管理
 @implementation ZHDPDataTask
-- (NSArray *)spaceItems{
-    NSArray <ZHDPDataSpaceItem *> *spaces = @[self.logSpaceItem, self.networkSpaceItem, self.storageSpaceItem, self.leaksSpaceItem, self.crashSpaceItem, self.memoryWarningSpaceItem];
-    
-    NSMutableArray *res = [NSMutableArray array];
-    for (NSUInteger i = 0; i < spaces.count; i++) {
-        ZHDPListSpaceItem *spaceItem = [[ZHDPListSpaceItem alloc] init];
-        spaceItem.dataSpaceItem = spaces[i];
-        spaceItem.title = spaceItem.dataSpaceItem.storeKey;
-        spaceItem.count = spaceItem.dataSpaceItem.count;
-        
-        NSMutableArray *canSelectValues = [NSMutableArray array];
-        for (NSInteger j = -10; j < 20; j++) {
-            NSInteger value = spaceItem.dataSpaceItem.count + j * 50;
-            if (value > 0) {
-                [canSelectValues addObject:@(value)];
-            }
-        }
-        spaceItem.canSelectValues = canSelectValues.copy;
-        __weak __typeof__(spaceItem) weakSpaceItem = spaceItem;
-        spaceItem.block = ^(NSInteger count) {
-            [ZHDPStorageMg() updateConfig_max:weakSpaceItem.dataSpaceItem.storeKey count:count];
-            weakSpaceItem.dataSpaceItem.count = count;
-        };
-        [res addObject:spaceItem];
-    }
-    return res.copy;
+- (ZHDPDataSpaceItem *)fetchSpaceItem:(Class)cls{
+    return [self.spaceItemMap objectForKey:cls];
 }
-- (ZHDPDataSpaceItem *)logSpaceItem{
-    if (!_logSpaceItem) {
-        _logSpaceItem = [self createSpaceItem:@"Log" defaultCount:100 removePercent:0.5];
-    }
-    return _logSpaceItem;
-}
-- (ZHDPDataSpaceItem *)networkSpaceItem{
-    if (!_networkSpaceItem) {
-        _networkSpaceItem = [self createSpaceItem:@"Network" defaultCount:100 removePercent:0.5];
-    }
-    return _networkSpaceItem;
-}
-- (ZHDPDataSpaceItem *)storageSpaceItem{
-    if (!_storageSpaceItem) {
-        _storageSpaceItem = [self createSpaceItem:@"Storage" defaultCount:100 removePercent:0.5];
-    }
-    return _storageSpaceItem;
-}
-- (ZHDPDataSpaceItem *)leaksSpaceItem{
-    if (!_leaksSpaceItem) {
-        _leaksSpaceItem = [self createSpaceItem:@"Leaks" defaultCount:100 removePercent:0.5];
-    }
-    return _leaksSpaceItem;
-}
-- (ZHDPDataSpaceItem *)crashSpaceItem{
-    if (!_crashSpaceItem) {
-        _crashSpaceItem = [self createSpaceItem:@"Crash" defaultCount:20 removePercent:0.5];
-    }
-    return _crashSpaceItem;
-}
-- (ZHDPDataSpaceItem *)memoryWarningSpaceItem{
-    if (!_memoryWarningSpaceItem) {
-        _memoryWarningSpaceItem = [self createSpaceItem:@"MemoryWarning" defaultCount:20 removePercent:0.5];
-    }
-    return _memoryWarningSpaceItem;
-}
-- (ZHDPDataSpaceItem *)createSpaceItem:(NSString *)storeKey defaultCount:(NSInteger)defaultCount removePercent:(CGFloat)removePercent{
-    NSNumber *countNum = [ZHDPStorageMg() fetchConfig_max:storeKey];
-    ZHDPDataSpaceItem *item = [[ZHDPDataSpaceItem alloc] init];
-    item.count = (countNum ? countNum.integerValue : defaultCount);
-    item.removePercent = (removePercent <= 0 ? 0.5 : (removePercent >= 1.0 ? 1.0 : removePercent));
-    item.storeKey = storeKey;
-    return item;
+- (NSArray <ZHDPDataSpaceItem *> *)fetchSpaceItems{
+    return [self.spaceItemMap allValues];
 }
 
 // 查找所有应用的数据
@@ -246,6 +161,15 @@
     if (!item) {
         item = [[ZHDPAppDataItem alloc] init];
         item.appItem = appItem;
+        
+        // 初始化数据用于存储日志
+        NSMutableDictionary *dataItemsMap = [NSMutableDictionary dictionary];
+        NSArray *configs = [self.dpManager fetchListConfig];
+        for (NSArray *config in configs) {
+            [dataItemsMap setObject:[NSMutableArray array] forKey:config[1]];
+        }
+        item.dataItemsMap = dataItemsMap.copy;
+        
         [self.appDataMap setObject:item forKey:appId];
     }
     return item;

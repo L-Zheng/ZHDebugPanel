@@ -67,6 +67,9 @@ class DataTask {
                 exceptionItems: [],
                 imItems: [],
                 sdkErrorItems: [],
+                leaksItems: [],
+                crashItems: [],
+                memoryWarningItems: []
             }
             DataTask.AllMap[appId] = appDataItem
         }

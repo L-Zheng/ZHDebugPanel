@@ -17,7 +17,7 @@ class ListConfig {
   fetchItems() {
     return [
       {
-        title: "Log",
+        title: "Console",
         selected: false,
         listId: "log-list",
         itemsFunc: appDataItem => {
@@ -67,7 +67,37 @@ class ListConfig {
         removePercent: 0.5
       },
       {
-        title: "Timeline",
+        title: "内存泄漏",
+        selected: false,
+        listId: "leaks-list",
+        itemsFunc: appDataItem => {
+          return appDataItem.leaksItems;
+        },
+        limitCount: 50,
+        removePercent: 0.5
+      },
+      {
+        title: "崩溃",
+        selected: false,
+        listId: "crash-list",
+        itemsFunc: appDataItem => {
+          return appDataItem.crashItems;
+        },
+        limitCount: 50,
+        removePercent: 0.5
+      },
+      {
+        title: "内存警告",
+        selected: false,
+        listId: "memoryWarning-list",
+        itemsFunc: appDataItem => {
+          return appDataItem.memoryWarningItems;
+        },
+        limitCount: 50,
+        removePercent: 0.5
+      },
+      {
+        title: "渲染时间线",
         selected: false,
         listId: "timeline-list",
         itemsFunc: appDataItem => {
@@ -77,7 +107,7 @@ class ListConfig {
         removePercent: 0.5
       },
       {
-        title: "MpApiCaller",
+        title: "API调用",
         selected: false,
         listId: "mpApiCaller-list",
         itemsFunc: appDataItem => {
@@ -97,7 +127,7 @@ class ListConfig {
         removePercent: 0.5
       },
       {
-        title: "SDKError",
+        title: "SDK报错",
         selected: false,
         listId: "sdkError-list",
         itemsFunc: appDataItem => {

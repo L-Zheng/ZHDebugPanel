@@ -209,7 +209,7 @@ var vm = {
         secItem.pasteboardCopy = (secItemTemp) => {
           this.copyToPasteboard(secItemTemp)
         };
-        if (listId == 'exception-list' || listId == 'sdkError-list') {
+        if (listId == 'exception-list' || listId == 'sdkError-list'|| listId == 'leaks-list' || listId == 'crash-list' || listId == 'memoryWarning-list') {
           let targetOptionItem = null;
           this.optionItems.forEach(element => {
             if (element.listId == listId) {

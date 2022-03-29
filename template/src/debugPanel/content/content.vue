@@ -43,6 +43,24 @@
       :listH="listH"
     ></List>
     <List
+      ref="leaks-list"
+      :listId="'leaks-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="crash-list"
+      :listId="'crash-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="memoryWarning-list"
+      :listId="'memoryWarning-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
       ref="timeline-list"
       :listId="'timeline-list'"
       :listWrapH="contentH"

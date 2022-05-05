@@ -1537,7 +1537,9 @@ var %@ = function (fw_args) { \
     // 忽略掉系统的controller
     NSArray *ignoreCls = @[
         NSStringFromClass([UIAlertController class]),
-        @"_UIAlertControllerTextFieldViewController"
+        @"_UIAlertControllerTextFieldViewController",
+        NSStringFromClass([UIImagePickerController class]),
+        @"PUPhotoPickerHostViewController"
     ];
     
     NSMutableArray *leaksItems = [NSMutableArray array];

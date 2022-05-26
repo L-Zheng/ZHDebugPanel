@@ -113,6 +113,9 @@ typedef NS_ENUM(NSInteger, ZHDPManagerStatus) {
 
 #pragma mark - data
 
+// 导出日志文件
+- (void)exportConsoleToFile;
+- (NSString *)fetchSecItemDesc:(ZHDPListSecItem *)secItem;
 - (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem;
 
 - (NSArray <ZHDPListSecItem *> *)fetchAllAppDataItems:(Class)listClass;

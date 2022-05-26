@@ -1017,11 +1017,63 @@ var %@ = function (fw_args) { \
     }
     return str;
 }
-- (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem{
+// 导出日志文件
+- (void)exportConsoleToFile{
+    NSMutableDictionary *writeMap = [NSMutableDictionary dictionary];
+    NSArray *configs = [ZHDPMg() fetchListConfig];
+    for (NSArray *config in configs) {
+        @autoreleasepool {
+            NSArray <ZHDPListSecItem *> *secItems = [ZHDPMg() fetchAllAppDataItems:config[1]];
+            NSMutableString *str = [NSMutableString string];
+            NSUInteger count = secItems.count;
+            for (NSUInteger i = 0; i< count; i++) {
+                @autoreleasepool {
+                    if (i == 0) {
+                        [str appendFormat:@"总量：%ld条数据\n\n", count];
+                    }else{
+                        [str appendString:@"\n"];
+                    }
+                    [str appendFormat:@"--第%ld条:-------------------\n", i + 1];
+                    [str appendFormat:@"%@", [self fetchSecItemDesc:secItems[i]]];
+                    [str appendString:@"\n"];
+                }
+            }
+            NSString *fileName = [NSString stringWithFormat:@"%@.txt",config[2]];
+            [writeMap setValue:str forKey:fileName];
+        }
+    }
+//    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    
+        NSFileManager *fm = [NSFileManager defaultManager];
+        NSString *dir = [NSTemporaryDirectory() stringByAppendingPathComponent:@"ZHDPConsole"];
+        [fm removeItemAtPath:dir error:nil];
+        [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+        [writeMap enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSString *obj, BOOL * _Nonnull stop) {
+            [[obj dataUsingEncoding:NSUTF8StringEncoding] writeToFile:[dir stringByAppendingPathComponent:key] atomically:YES];
+        }];
+//        dispatch_async(dispatch_get_main_queue(), ^{
+            if (TARGET_OS_SIMULATOR) {
+                [[UIPasteboard generalPasteboard] setString:dir];
+                [ZHDPMg() showToast:@"已复制-导出文件路径" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:nil showComplete:nil hideComplete:nil];
+                return;
+            }
+            UIActivityViewController *acCtrl = [[UIActivityViewController alloc] initWithActivityItems:@[[NSURL fileURLWithPath:dir]] applicationActivities:nil];
+            [[ZHDPMg() topController] presentViewController:acCtrl animated:YES completion:nil];
+//        });
+//    });
+}
+- (NSString *)fetchSecItemDesc:(ZHDPListSecItem *)secItem{
+    NSString *str = nil;
     if (secItem.pasteboardBlock) {
-        NSString *str = secItem.pasteboardBlock();
+        str = secItem.pasteboardBlock();
         // 去除转义字符
         str = [self removeEscapeCharacter:str];
+    }
+    return str;
+}
+- (void)copySecItemToPasteboard:(ZHDPListSecItem *)secItem{
+    NSString *str = [self fetchSecItemDesc:secItem];
+    if (str) {
         [[UIPasteboard generalPasteboard] setString:str];
         [ZHDPMg() showToast:@"已复制，点击分享" outputType:NSNotFound animateDuration:0.25 stayDuration:1.0 clickBlock:^{
             [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"weixin://"]];
@@ -1539,7 +1591,8 @@ var %@ = function (fw_args) { \
         NSStringFromClass([UIAlertController class]),
         @"_UIAlertControllerTextFieldViewController",
         NSStringFromClass([UIImagePickerController class]),
-        @"PUPhotoPickerHostViewController"
+        @"PUPhotoPickerHostViewController",
+        @"_UIActivityUserDefaultsViewController"
     ];
     
     NSMutableArray *leaksItems = [NSMutableArray array];

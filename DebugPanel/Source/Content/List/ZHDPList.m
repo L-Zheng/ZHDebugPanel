@@ -313,7 +313,14 @@ typedef NS_ENUM(NSInteger, ZHDPScrollStatus) {
             }
         },
         @{
-            @"icon": @"\ue61b",
+            @"icon": @"\ue60e",
+            @"title": @"导出日志",
+            @"block": ^{
+                [ZHDPMg() exportConsoleToFile];
+            }
+        },
+        @{
+            @"icon": @"\ue604",
             @"title": @"沙盒",
             @"block": ^{
         NSString *appSandBox = NSHomeDirectory();

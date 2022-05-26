@@ -6,6 +6,20 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "8634399",
+      "name": "导出",
+      "font_class": "daochu",
+      "unicode": "e60e",
+      "unicode_decimal": 58894
+    },
+    {
+      "icon_id": "2815727",
+      "name": "素材",
+      "font_class": "sucai",
+      "unicode": "e604",
+      "unicode_decimal": 58884
+    },
+    {
       "icon_id": "1304882",
       "name": "开关",
       "font_class": "kaiguan",
@@ -67,13 +81,6 @@
       "font_class": "caidan",
       "unicode": "e608",
       "unicode_decimal": 58888
-    },
-    {
-      "icon_id": "12189477",
-      "name": "我的沙盒",
-      "font_class": "wodeshahe",
-      "unicode": "e61b",
-      "unicode_decimal": 58907
     },
     {
       "icon_id": "18808316",

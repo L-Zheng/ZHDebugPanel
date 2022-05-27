@@ -8,12 +8,7 @@
 
 #import "ZHDPContent.h"
 #import "ZHDPDataTask.h"// 数据管理
-#import "ZHDPListLog.h"// log列表
-#import "ZHDPListNetwork.h"// network列表
-#import "ZHDPListStorage.h"// storage列表
-#import "ZHDPListLeaks.h"// leaks列表
-#import "ZHDPListCrash.h"// crash列表
-#import "ZHDPListMemoryWarning.h"// 内存警告列表
+#import "ZHDPList.h"// 列表
 #import "ZHDPManager.h"
 
 @interface ZHDPContent ()

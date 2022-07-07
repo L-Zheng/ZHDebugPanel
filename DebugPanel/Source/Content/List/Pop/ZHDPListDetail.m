@@ -45,7 +45,7 @@
 }
 @end
 
-@interface ZHDPListDetail ()<UICollectionViewDataSource,UICollectionViewDelegate>
+@interface ZHDPListDetail ()<UICollectionViewDataSource,UICollectionViewDelegate,UITextViewDelegate>
 @property (nonatomic, retain) NSArray <ZHDPListDetailItem *> *items;
 @property (nonatomic,strong) UIView *contentView;
 @property (nonatomic, strong) UICollectionView *collectionView;
@@ -245,10 +245,24 @@
     }
     [self.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionCenteredHorizontally animated:YES];
     [self reloadListInstant];
-    NSAttributedString *text = self.items[indexPath.item].itemsAttStr;
+    __block NSAttributedString *text = self.items[indexPath.item].itemsAttStr;
     self.textView.attributedText = [[NSAttributedString alloc] initWithString:@"载入中..." attributes:@{NSFontAttributeName: [ZHDPMg() defaultFont], NSForegroundColorAttributeName: [ZHDPMg() selectColor]}];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        self.textView.attributedText = text;
+        NSInteger limit = 3000;
+        if (text.length <= limit) {
+            self.textView.attributedText = text;
+            return;
+        }
+        NSMutableAttributedString *newText = [text attributedSubstringFromRange:NSMakeRange(0, limit)].mutableCopy;
+        [newText appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n\n"]];
+        [newText appendAttributedString:[[NSAttributedString alloc] initWithString:@"点击显示更多..." attributes:@{
+            // link默认蓝色，设置无效
+//            NSForegroundColorAttributeName: [ZHDPMg() selectColor],
+            NSFontAttributeName: [ZHDPMg() defaultFont],
+            NSLinkAttributeName: @"showMore://"
+        }]];
+        [newText appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n"]];
+        self.textView.attributedText = newText.copy;
     });
 
     self.lastSelectIdx = indexPath.item;
@@ -275,6 +289,17 @@
     [UIView animateWithDuration:0.20 animations:^{
         self.alpha = 1.0;
     }];
+}
+
+#pragma mark - UITextViewDelegate
+
+- (BOOL)textView:(UITextView *)textView shouldInteractWithURL:(NSURL *)URL inRange:(NSRange)characterRange {
+    if ([[URL scheme] isEqualToString:@"showMore"]) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            self.textView.attributedText = self.items[self.lastSelectIdx].itemsAttStr;
+        });
+    }
+    return YES;
 }
 
 #pragma mark - UICollectionViewDelegate
@@ -364,6 +389,7 @@
         _textView = [[UITextView alloc] initWithFrame:CGRectZero];
         _textView.backgroundColor = [UIColor clearColor];
         _textView.font = [ZHDPMg() defaultFont];
+        _textView.delegate = self;
         _textView.editable = NO;
         _textView.alwaysBounceVertical = YES;
     }

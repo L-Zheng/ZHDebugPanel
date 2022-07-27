@@ -43,6 +43,24 @@
       :listH="listH"
     ></List>
     <List
+      ref="exceptionWeb-list"
+      :listId="'exceptionWeb-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="webSocket-list"
+      :listId="'webSocket-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
+      ref="eventSource-list"
+      :listId="'eventSource-list'"
+      :listWrapH="contentH"
+      :listH="listH"
+    ></List>
+    <List
       ref="leaks-list"
       :listId="'leaks-list'"
       :listWrapH="contentH"

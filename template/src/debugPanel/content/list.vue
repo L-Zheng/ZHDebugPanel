@@ -623,7 +623,7 @@ var vm = {
     },
     allowAutoDelete(){
       if (this.checkSpecialList() || 
-      ['timeline-list', 'im-list', 'sdkError-list', 'leaks-list', 'crash-list', 'memoryWarning-list'].indexOf(this.listId) !== -1) {
+      ['timeline-list', 'im-list', 'exceptionWeb-list', 'webSocket-list', 'eventSource-list', 'sdkError-list', 'leaks-list', 'crash-list', 'memoryWarning-list'].indexOf(this.listId) !== -1) {
         return false
       }
       return true

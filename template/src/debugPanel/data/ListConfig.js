@@ -67,6 +67,36 @@ class ListConfig {
         removePercent: 0.5
       },
       {
+        title: "ExceptionWeb",
+        selected: false,
+        listId: "exceptionWeb-list",
+        itemsFunc: appDataItem => {
+          return appDataItem.exceptionWebItems;
+        },
+        limitCount: 200,
+        removePercent: 0.5
+      },
+      {
+        title: "WebSocket",
+        selected: false,
+        listId: "webSocket-list",
+        itemsFunc: appDataItem => {
+          return appDataItem.webSocketItems;
+        },
+        limitCount: 200,
+        removePercent: 0.5
+      },
+      {
+        title: "EventSource",
+        selected: false,
+        listId: "eventSource-list",
+        itemsFunc: appDataItem => {
+          return appDataItem.eventSourceItems;
+        },
+        limitCount: 200,
+        removePercent: 0.5
+      },
+      {
         title: "内存泄漏",
         selected: false,
         listId: "leaks-list",
